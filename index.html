@@ -1,0 +1,2767 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev App Store - 최근 1년 프로젝트 허브</title>
+  <meta name="description" content="최근 1년간 개발된 73개의 공개 프로젝트를 한눈에 보는 앱스토어">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: #161f33;
+      --bg-card-hover: #1e2942;
+      --bg-glass: rgba(22, 31, 51, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #0071e3;
+      --accent-indigo: #6366f1;
+      --accent-purple: #a855f7;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --sidebar-width: 260px;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,0.5);
+      --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.25);
+    }
+
+    html.light {
+      --bg-primary: #f4f6fb;
+      --bg-secondary: #e9eef6;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafd;
+      --bg-glass: rgba(255, 255, 255, 0.85);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.6);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,0.12);
+      --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      display: flex;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .app-sidebar {
+      width: var(--sidebar-width);
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .app-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 60px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px 24px 8px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0071e3 0%, #6366f1 50%, #a855f7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: white;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+      flex-shrink: 0;
+    }
+
+    .brand-info h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-info p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      padding: 12px 12px 6px;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .nav-item button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item button:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+    }
+
+    html.light .nav-item button:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .nav-item button.active {
+      background: var(--accent-indigo);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+
+    .nav-item button .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-item button .nav-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: inherit;
+    }
+
+    .nav-item button.active .nav-badge {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .dev-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s;
+    }
+
+    .dev-profile-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .dev-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-indigo);
+    }
+
+    .dev-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dev-name {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dev-status {
+      font-size: 11px;
+      color: var(--accent-emerald);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 6px var(--accent-emerald);
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      z-index: 90;
+    }
+
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 480px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 40px 10px 42px;
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      background: var(--bg-card);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-shortcut {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--border-color);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .action-btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-indigo);
+    }
+
+    .theme-toggle-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+
+    .content-container {
+      max-width: 1340px;
+      margin: 0 auto;
+      padding: 28px 32px;
+      width: 100%;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      margin-top: 36px;
+    }
+
+    .section-header:first-of-type {
+      margin-top: 0;
+    }
+
+    .section-title-group h2 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title-group p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .see-all-btn {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-indigo);
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .see-all-btn:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    
+    /* Enhanced Hero Carousel with Background Images & Visual Cards */
+    
+    /* Banner Collapse & Toggle Styling */
+    .banner-section-wrapper {
+      position: relative;
+    }
+
+    .banner-toggle-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.85);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .banner-toggle-btn:hover {
+      background: rgba(0, 0, 0, 0.65);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.02);
+    }
+
+    .hero-carousel {
+      position: relative;
+      margin-bottom: 36px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+      max-height: 600px;
+      opacity: 1;
+      transform: translateY(0);
+      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+                  opacity 0.3s ease, 
+                  margin-bottom 0.4s ease, 
+                  transform 0.4s ease;
+    }
+
+    .hero-carousel.collapsed {
+      display: none !important;
+    }
+
+    /* Collapsed Mini Banner Bar */
+    .banner-collapsed-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 28px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .banner-collapsed-bar.show {
+      display: flex;
+    }
+
+    .banner-collapsed-bar:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-indigo);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .collapsed-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .collapsed-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-indigo);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .collapsed-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .collapsed-expand-btn {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-indigo);
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .hero-carousel-unused {
+      position: relative;
+      margin-bottom: 36px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+    }
+
+    .carousel-track {
+      display: flex;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .carousel-slide {
+      min-width: 100%;
+      position: relative;
+      min-height: 420px;
+      display: flex;
+      align-items: center;
+      padding: 48px 56px;
+      color: white;
+      overflow: hidden;
+    }
+
+    .slide-bg-img {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.2) brightness(0.85);
+      transition: transform 6s ease;
+      z-index: 1;
+    }
+
+    .carousel-slide:hover .slide-bg-img {
+      transform: scale(1.04);
+    }
+
+    .slide-gradient-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(11, 15, 25, 0.95) 0%, rgba(11, 15, 25, 0.75) 45%, rgba(11, 15, 25, 0.4) 100%),
+                  linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11, 15, 25, 0.9) 100%);
+      z-index: 2;
+    }
+
+    .slide-content-wrapper {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 40px;
+    }
+
+    .slide-content {
+      max-width: 620px;
+    }
+
+    .slide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      margin-bottom: 16px;
+    }
+
+    .slide-title {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 14px rgba(0,0,0,0.7);
+    }
+
+    .slide-subtitle {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.92);
+      margin-bottom: 26px;
+      line-height: 1.6;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+    }
+
+    .slide-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Floating Hero Visual Card */
+    .slide-hero-visual {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-visual-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      width: 320px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+      transform: perspective(1000px) rotateY(-4deg);
+      transition: transform 0.3s ease;
+    }
+
+    .hero-visual-card:hover {
+      transform: perspective(1000px) rotateY(0deg) translateY(-4px);
+    }
+
+    .hero-visual-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hero-visual-icon {
+      font-size: 32px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-visual-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .hero-visual-sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .hero-visual-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .hero-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+    }
+
+    .hero-visual-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      text-align: center;
+    }
+
+    .metric-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .metric-lbl {
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    @media (max-width: 1050px) {
+      .slide-hero-visual {
+        display: none;
+      }
+    }
+
+    .carousel-indicators {
+      position: absolute;
+      right: 32px;
+      bottom: 32px;
+      z-index: 3;
+      display: flex;
+      gap: 8px;
+    }
+
+    .indicator-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .indicator-dot.active {
+      width: 28px;
+      border-radius: 6px;
+      background: #ffffff;
+    }
+
+    .editors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+
+    .editor-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .editor-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md), var(--shadow-glow);
+      border-color: var(--accent-indigo);
+    }
+
+    .editor-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .app-icon-squircle {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      color: white;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      flex-shrink: 0;
+    }
+
+    .editor-header-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .app-card-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-card-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .editor-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .meta-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .lang-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .editor-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .card-stat-stars {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-amber);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-appstore-get {
+      padding: 6px 18px;
+      border-radius: 16px;
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-indigo);
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-appstore-get:hover {
+      background: var(--accent-indigo);
+      color: white;
+    }
+
+    .btn-icon-action {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .btn-icon-action:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+      border-color: var(--border-focus);
+    }
+
+    .btn-icon-action.favorite.active {
+      color: var(--accent-rose);
+      background: rgba(244, 63, 94, 0.1);
+      border-color: rgba(244, 63, 94, 0.3);
+    }
+
+    .top-charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .rank-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .rank-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      transform: translateX(4px);
+    }
+
+    .rank-number {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-muted);
+      width: 24px;
+      text-align: center;
+    }
+
+    .rank-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .rank-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rank-title {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rank-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rank-get-btn {
+      padding: 6px 14px;
+      border-radius: 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-indigo);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .rank-get-btn:hover {
+      background: var(--accent-indigo);
+      color: white;
+    }
+
+    .filter-toolbar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .pill-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .filter-pill:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .filter-pill.active {
+      background: var(--accent-indigo);
+      color: white;
+      border-color: var(--accent-indigo);
+    }
+
+    .select-control {
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .view-mode-toggle {
+      display: flex;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 2px;
+    }
+
+    .view-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .view-btn.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .results-count-badge {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .apps-catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 18px;
+    }
+
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .app-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+
+    .app-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .app-card-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+
+    .app-card-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .app-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .app-card-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    
+    /* MCP Protocol Badge Styling */
+    .badge-pill.mcp-pill {
+      background: linear-gradient(135deg, rgba(147, 51, 234, 0.25) 0%, rgba(79, 70, 229, 0.25) 100%);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .app-card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .app-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .apps-catalog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .app-list-row {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .app-list-row:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      transform: translateX(4px);
+    }
+
+    .list-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .list-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .list-title-group {
+      width: 260px;
+      flex-shrink: 0;
+    }
+
+    .list-title {
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-desc {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-sheet {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 860px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      transform: scale(0.96) translateY(20px);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-backdrop.open .modal-sheet {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-header-section {
+      padding: 32px;
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-app-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 44px;
+      color: white;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+
+    .modal-header-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .modal-app-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+    }
+
+    .modal-app-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .modal-author-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-indigo);
+    }
+
+    .modal-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .modal-primary-btn {
+      padding: 10px 24px;
+      border-radius: 20px;
+      background: var(--accent-indigo);
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+      transition: all 0.2s;
+    }
+
+    .modal-primary-btn:hover {
+      background: #4f46e5;
+      transform: translateY(-1px);
+    }
+
+    .modal-secondary-btn {
+      padding: 10px 20px;
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .modal-secondary-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+    }
+
+    .modal-specs-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(0,0,0,0.1);
+      text-align: center;
+      gap: 12px;
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .spec-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .spec-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .modal-body {
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .mockup-preview-card {
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .mockup-window-header {
+      background: #161b22;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .window-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .window-dot.red { background: #ff5f56; }
+    .window-dot.yellow { background: #ffbd2e; }
+    .window-dot.green { background: #27c93f; }
+
+    .window-title {
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #8b949e;
+      margin-left: 8px;
+    }
+
+    .mockup-window-body {
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #c9d1d9;
+    }
+
+    .terminal-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .terminal-prompt { color: #58a6ff; font-weight: 600; }
+    .terminal-cmd { color: #f0f6fc; font-weight: 600; }
+    .terminal-output { color: #8b949e; padding-left: 18px; margin-bottom: 12px; }
+    .terminal-success { color: #7ee787; }
+    .terminal-highlight { color: #ffa657; }
+
+    .modal-section-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-description-text {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .features-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--bg-secondary);
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .feature-icon {
+      color: var(--accent-indigo);
+      font-size: 16px;
+      margin-top: 2px;
+    }
+
+    .tech-stack-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .tech-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      padding: 12px 24px;
+      border-radius: 30px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 2000;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .toast-container.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      .app-sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px 20px;
+      }
+      .nav-list {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .nav-item button {
+        white-space: nowrap;
+      }
+      .sidebar-footer {
+        display: none;
+      }
+      .top-bar {
+        padding: 12px 20px;
+      }
+      .content-container {
+        padding: 20px;
+      }
+      .carousel-slide {
+        padding: 28px;
+        min-height: 320px;
+      }
+      .slide-title {
+        font-size: 26px;
+      }
+      .modal-specs-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .list-desc {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="app-sidebar">
+    <a href="#" class="brand-logo" onclick="switchCategory('today')">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Official style App Store vector glyph -->
+          <path d="M12 2.5L3.8 17.5C3.4 18.2 3.9 19.1 4.7 19.1H7.8L9.5 16H14.5L16.2 19.1H19.3C20.1 19.1 20.6 18.2 20.2 17.5L12 2.5ZM12 7.2L13.7 13.5H10.3L12 7.2Z" fill="white" />
+          <path d="M6 18H18" stroke="white" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="brand-info">
+        <h1>Dev App Store <span style="font-size: 11px; padding: 2px 6px; background: var(--accent-indigo); color: white; border-radius: 6px;">PRO</span></h1>
+        <p>최근 1년 깃허브 프로젝트 허브</p>
+      </div>
+    </a>
+
+    <div class="nav-section-title">디스커버리</div>
+    <ul class="nav-list">
+      <li class="nav-item">
+        <button id="nav-today" class="active" onclick="switchCategory('today')">
+          <span class="nav-icon">🌟</span>
+          <span>투데이</span>
+          <span class="nav-badge">추천</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-all" onclick="switchCategory('all')">
+          <span class="nav-icon">📱</span>
+          <span>모든 앱</span>
+          <span class="nav-badge">73</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-favorites" onclick="switchCategory('favorites')">
+          <span class="nav-icon">💖</span>
+          <span>찜한 앱</span>
+          <span id="fav-count-badge" class="nav-badge">0</span>
+        </button>
+      </li>
+    </ul>
+
+    <div class="nav-section-title">카테고리</div>
+    <ul class="nav-list">
+      <li class="nav-item">
+        <button id="nav-ai_agents" onclick="switchCategory('ai_agents')">
+          <span class="nav-icon">🤖</span>
+          <span>AI & 에이전트</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-enterprise_ops" onclick="switchCategory('enterprise_ops')">
+          <span class="nav-icon">🏢</span>
+          <span>엔터프라이즈 & 운영</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-security_auth" onclick="switchCategory('security_auth')">
+          <span class="nav-icon">🛡️</span>
+          <span>보안 & 인증</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-database_sql" onclick="switchCategory('database_sql')">
+          <span class="nav-icon">📊</span>
+          <span>데이터 & SQL</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-mattermost" onclick="switchCategory('mattermost')">
+          <span class="nav-icon">💬</span>
+          <span>Mattermost 플러그인</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-devtools" onclick="switchCategory('devtools')">
+          <span class="nav-icon">🛠️</span>
+          <span>개발 도구 & 인프라</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button id="nav-productivity_life" onclick="switchCategory('productivity_life')">
+          <span class="nav-icon">🎨</span>
+          <span>생산성 & 라이프</span>
+        </button>
+      </li>
+    </ul>
+
+    <!-- System Status Box -->
+    <div class="sidebar-footer">
+      <div class="dev-profile-card" style="cursor: default; pointer-events: none;">
+        <div class="brand-icon" style="width: 36px; height: 36px; border-radius: 10px; font-size: 16px;">⚡</div>
+        <div class="dev-details">
+          <div class="dev-name">App Store System</div>
+          <div class="dev-status"><span class="status-dot"></span> 최근 1년 73개 프로젝트 활성</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="app-main">
+    
+    <!-- Top Search & Actions Bar -->
+    <header class="top-bar">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="앱 이름, 설명, 기술 스택 검색... (단축키: /)" oninput="handleSearch(this.value)">
+        <span class="search-shortcut">/</span>
+      </div>
+
+      <div class="top-actions">
+        <button class="action-btn theme-toggle-btn" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌓</button>
+      </div>
+    </header>
+
+    <!-- App Views Container -->
+    <div class="content-container">
+      
+      <!-- VIEW 1: TODAY VIEW -->
+      <section id="view-today">
+        
+        <!-- Hero Banner Carousel -->
+        <div class="banner-section-wrapper" id="bannerSectionWrapper">
+          <div class="hero-carousel" id="heroCarousel">
+          <button class="banner-toggle-btn" onclick="toggleBanner()" title="배너 접기">
+            <span>배너 접기</span> <span>⌃</span>
+          </button>
+          <div class="carousel-track" id="carouselTrack">
+            
+            <!-- Slide 1: AgentHub -->
+            <div class="carousel-slide">
+              <div class="slide-bg-img" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop');"></div>
+              <div class="slide-gradient-overlay"></div>
+              <div class="slide-content-wrapper">
+                <div class="slide-content">
+                  <span class="slide-badge" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.2);">🌟 오늘의 추천 플래그십 앱</span>
+                  <h2 class="slide-title">AgentHub</h2>
+                  <p class="slide-subtitle">각 사용자와 영속 Workspace마다 완벽히 격리된 OpenCode 및 Hermes 런타임을 제공하는 엔터프라이즈 AI 에이전트 플랫폼</p>
+                  <div class="slide-actions">
+                    <div class="hero-action-capsule">
+                      <button class="capsule-btn-get" onclick="openAppDetailByName('AgentHub')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>받기</span>
+                      </button>
+                      <div class="capsule-divider"></div>
+                      <button class="capsule-btn-details" onclick="openAppDetailByName('AgentHub')">
+                        <span>자세히 알아보기</span>
+                        <span class="capsule-arrow">→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="slide-hero-visual">
+                  <div class="hero-visual-card">
+                    <div class="hero-visual-header">
+                      <div class="hero-visual-icon" style="background: linear-gradient(135deg, #6366f1, #a855f7);">🤖</div>
+                      <div>
+                        <div class="hero-visual-title">Agent Runtime</div>
+                        <div class="hero-visual-sub">Enterprise Isolation</div>
+                      </div>
+                    </div>
+                    <div class="hero-visual-tags">
+                      <span class="hero-tag">OpenCode</span>
+                      <span class="hero-tag">Hermes</span>
+                      <span class="hero-tag">Docker</span>
+                      <span class="hero-tag">RBAC</span>
+                    </div>
+                    <div class="hero-visual-metrics">
+                      <div><span class="metric-val" style="color: #a855f7;">100%</span><br><span class="metric-lbl">격리 런타임</span></div>
+                      <div><span class="metric-val" style="color: #38bdf8;">&lt; 15ms</span><br><span class="metric-lbl">응답 지연</span></div>
+                      <div><span class="metric-val" style="color: #4ade80;">Go SSE</span><br><span class="metric-lbl">엔진 스택</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slide 2: Miraq -->
+            <div class="carousel-slide">
+              <div class="slide-bg-img" style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1600&auto=format&fit=crop');"></div>
+              <div class="slide-gradient-overlay"></div>
+              <div class="slide-content-wrapper">
+                <div class="slide-content">
+                  <span class="slide-badge" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.2);">🔮 오프라인 예측 인텔리전스</span>
+                  <h2 class="slide-title">Miraq (미라크)</h2>
+                  <p class="slide-subtitle">외부 인터넷이 차단된 폐쇄망에서도 Keycloak OIDC, REST, Webhook, MCP 표준으로 동작하는 차세대 예측 분석 플랫폼</p>
+                  <div class="slide-actions">
+                    <div class="hero-action-capsule">
+                      <button class="capsule-btn-get" onclick="openAppDetailByName('miraq')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>받기</span>
+                      </button>
+                      <div class="capsule-divider"></div>
+                      <button class="capsule-btn-details" onclick="openAppDetailByName('miraq')">
+                        <span>자세히 알아보기</span>
+                        <span class="capsule-arrow">→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="slide-hero-visual">
+                  <div class="hero-visual-card">
+                    <div class="hero-visual-header">
+                      <div class="hero-visual-icon" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6);">🔮</div>
+                      <div>
+                        <div class="hero-visual-title">Predictive Intel</div>
+                        <div class="hero-visual-sub">Air-Gapped Ready</div>
+                      </div>
+                    </div>
+                    <div class="hero-visual-tags">
+                      <span class="hero-tag">Keycloak OIDC</span>
+                      <span class="hero-tag">PostgreSQL</span>
+                      <span class="hero-tag">MCP</span>
+                    </div>
+                    <div class="hero-visual-metrics">
+                      <div><span class="metric-val" style="color: #38bdf8;">AirGap</span><br><span class="metric-lbl">폐쇄망 지원</span></div>
+                      <div><span class="metric-val" style="color: #fbbf24;">OIDC</span><br><span class="metric-lbl">SSO 호환</span></div>
+                      <div><span class="metric-val" style="color: #4ade80;">REST</span><br><span class="metric-lbl">Webhook</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slide 3: vibe-coders -->
+            <div class="carousel-slide">
+              <div class="slide-bg-img" style="background-image: url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1600&auto=format&fit=crop');"></div>
+              <div class="slide-gradient-overlay"></div>
+              <div class="slide-content-wrapper">
+                <div class="slide-content">
+                  <span class="slide-badge" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.2);">⚡ 초저지연 AI 코딩 게이트웨이</span>
+                  <h2 class="slide-title">vibe-coders</h2>
+                  <p class="slide-subtitle">AI 코딩 도구를 초저지연 중계하면서 실시간 토큰, 프롬프트, 언어, 원화(KRW) 비용을 추적하는 고성능 SSE 프록시</p>
+                  <div class="slide-actions">
+                    <div class="hero-action-capsule">
+                      <button class="capsule-btn-get" onclick="openAppDetailByName('miraq')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>받기</span>
+                      </button>
+                      <div class="capsule-divider"></div>
+                      <button class="capsule-btn-details" onclick="openAppDetailByName('miraq')">
+                        <span>자세히 알아보기</span>
+                        <span class="capsule-arrow">→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="slide-hero-visual">
+                  <div class="hero-visual-card">
+                    <div class="hero-visual-header">
+                      <div class="hero-visual-icon" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">⚡</div>
+                      <div>
+                        <div class="hero-visual-title">SSE Gateway</div>
+                        <div class="hero-visual-sub">Realtime Audit &amp; Cost</div>
+                      </div>
+                    </div>
+                    <div class="hero-visual-tags">
+                      <span class="hero-tag">SSE Streaming</span>
+                      <span class="hero-tag">KRW Cost</span>
+                      <span class="hero-tag">Prompt Audit</span>
+                    </div>
+                    <div class="hero-visual-metrics">
+                      <div><span class="metric-val" style="color: #f43f5e;">KRW</span><br><span class="metric-lbl">실시간 비용</span></div>
+                      <div><span class="metric-val" style="color: #38bdf8;">&lt; 5ms</span><br><span class="metric-lbl">중계 지연</span></div>
+                      <div><span class="metric-val" style="color: #a855f7;">Tokens</span><br><span class="metric-lbl">정밀 집계</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="carousel-indicators">
+            <button class="indicator-dot active" onclick="setSlide(0)"></button>
+            <button class="indicator-dot" onclick="setSlide(1)"></button>
+            <button class="indicator-dot" onclick="setSlide(2)"></button>
+          </div>
+        </div>
+          
+          <!-- Collapsed State Mini Bar -->
+          <div class="banner-collapsed-bar" id="bannerCollapsedBar" onclick="toggleBanner()">
+            <div class="collapsed-bar-left">
+              <span class="collapsed-badge">🌟 오늘의 추천</span>
+              <span class="collapsed-text">AgentHub, Miraq, vibe-coders 등 추천 프로젝트 배너</span>
+            </div>
+            <button class="collapsed-expand-btn">
+              <span>배너 펼치기</span> <span>⌄</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: Editor's Choice -->
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2>🏆 에디터 추천 플래그십 (Editor's Choice)</h2>
+            <p>최근 1년간 직접 개발된 프로젝트 중 높은 완성도와 아키텍처를 자랑하는 대표 앱들입니다.</p>
+          </div>
+          <button class="see-all-btn" onclick="switchCategory('all')">모두 보기 →</button>
+        </div>
+
+        <div class="editors-grid" id="editorsChoiceGrid">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+        <!-- Section: Top Charts (Ranked Apps) -->
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2>🔥 인기 급상승 & 핵심 릴리스 Top 8</h2>
+            <p>개발자 커뮤니티와 실제 사내 운영에서 검증된 주요 프로젝트</p>
+          </div>
+        </div>
+
+        <div class="top-charts-grid" id="topChartsGrid">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+        <!-- Section: AI Agent Suite Highlight -->
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2>🤖 차세대 AI & 에이전트 컬렉션</h2>
+            <p>LLM 프록시, 코딩 에이전트, MCP 서버, AI 문서 생성기</p>
+          </div>
+          <button class="see-all-btn" onclick="switchCategory('ai_agents')">AI 앱 전체 보기 →</button>
+        </div>
+
+        <div class="editors-grid" id="aiHighlightGrid">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+      </section>
+
+      <!-- VIEW 2: CATALOG / ALL APPS VIEW -->
+      <section id="view-catalog" style="display: none;">
+        
+        <div class="section-header" style="margin-top: 0;">
+          <div class="section-title-group">
+            <h2 id="catalogCategoryTitle">📱 모든 앱 (73)</h2>
+            <p id="catalogCategoryDesc">최근 1년 동안 개발 및 업데이트된 73개의 공개 프로젝트 목록</p>
+          </div>
+          <div class="results-count-badge" id="resultsCountBadge">73개 앱 표시 중</div>
+        </div>
+
+        <!-- Filters & Toolbar -->
+        <div class="filter-toolbar">
+          <div class="filter-row">
+            <div class="pill-group" id="langPillGroup">
+              <button class="filter-pill active" onclick="filterByLanguage('ALL')">전체 (73)</button>
+              <button class="filter-pill" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="filterByLanguage('MCP')">⚡ MCP 지원 (36)</button>
+              <button class="filter-pill" onclick="filterByLanguage('Go')">Go (46)</button>
+              <button class="filter-pill" onclick="filterByLanguage('TypeScript')">TypeScript (18)</button>
+              <button class="filter-pill" onclick="filterByLanguage('Java')">Java (3)</button>
+              <button class="filter-pill" onclick="filterByLanguage('JavaScript')">JavaScript (3)</button>
+              <button class="filter-pill" onclick="filterByLanguage('Rust')">Rust (2)</button>
+              <button class="filter-pill" onclick="filterByLanguage('Python')">Python (1)</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <select class="select-control" id="sortSelect" onchange="handleSortChange(this.value)">
+                <option value="pushed">최근 업데이트순</option>
+                <option value="stars">별점 (Stars) 높은순</option>
+                <option value="name">이름 (A-Z)순</option>
+                <option value="created">최초 생성일순</option>
+              </select>
+
+              <div class="view-mode-toggle">
+                <button id="viewBtnGrid" class="view-btn active" onclick="setViewMode('grid')">🔲 카드</button>
+                <button id="viewBtnList" class="view-btn" onclick="setViewMode('list')">📋 목록</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apps Container (Grid or List) -->
+        <div id="appsContainer" class="apps-catalog-grid">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Product Detail Modal (App Store Sheet) -->
+  <div class="modal-backdrop" id="appDetailModal" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-sheet" id="modalSheet">
+      <button class="modal-close-btn" onclick="closeModal()" title="닫기 (ESC)">✕</button>
+      
+      <!-- Modal Header -->
+      <div class="modal-header-section">
+        <div class="modal-app-icon" id="modalIcon">🤖</div>
+        <div class="modal-header-info">
+          <h2 class="modal-app-title" id="modalTitle">App Title</h2>
+          <p class="modal-app-subtitle" id="modalSubtitle">App subtitle description</p>
+          <div class="modal-author-badge">
+            <span>구분:</span> <strong>오픈소스 프로젝트</strong>
+            <span style="color: var(--text-muted); margin: 0 4px;">•</span>
+            <span id="modalCategoryBadge">AI & 에이전트</span>
+          </div>
+
+          <div class="modal-actions-row">
+            <a href="#" target="_blank" rel="noopener noreferrer" class="modal-primary-btn" id="modalGithubLink">
+              <span>GitHub 열기</span> ↗
+            </a>
+            <button class="modal-secondary-btn" id="modalCloneBtn" onclick="copyModalCloneCmd()">
+              <span>📋 Git Clone 복사</span>
+            </button>
+            <button class="modal-secondary-btn" id="modalFavBtn" onclick="toggleModalFavorite()">
+              <span id="modalFavIcon">🤍</span> <span>찜하기</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Specs Bar -->
+      <div class="modal-specs-bar">
+        <div class="spec-item">
+          <span class="spec-label">별점 / 스타</span>
+          <span class="spec-value" style="color: var(--accent-amber);" id="modalStars">★ 0</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">주요 언어</span>
+          <span class="spec-value" id="modalLang">Go</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">가격 / 라이선스</span>
+          <span class="spec-value" style="color: var(--accent-emerald);">FREE (오픈소스)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">최근 업데이트</span>
+          <span class="spec-value" id="modalPushed">2026-08-31</span>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        
+        <!-- Interactive Preview Mockup -->
+        <div>
+          <div class="modal-section-title">📱 앱 미리보기 & 터미널 실행 화면</div>
+          <div class="mockup-preview-card">
+            <div class="mockup-window-header">
+              <span class="window-dot red"></span>
+              <span class="window-dot yellow"></span>
+              <span class="window-dot green"></span>
+              <span class="window-title" id="mockupWindowTitle">terminal — user@macbook</span>
+            </div>
+            <div class="mockup-window-body" id="mockupBody">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <div class="modal-section-title">📖 앱 소개</div>
+          <p class="modal-description-text" id="modalDescription">앱 상세 설명 내용</p>
+        </div>
+
+        <!-- Key Features -->
+        <div>
+          <div class="modal-section-title">✨ 핵심 기능 및 특징</div>
+          <ul class="features-list" id="modalFeaturesList">
+            <!-- Dynamically populated -->
+          </ul>
+        </div>
+
+        <!-- Tech Stack -->
+        <div>
+          <div class="modal-section-title">⚙️ 기술 스택 & 아키텍처</div>
+          <div class="tech-stack-pills" id="modalTechStack">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Similar Apps -->
+        <div>
+          <div class="modal-section-title">💡 이 카테고리의 추천 앱</div>
+          <div class="top-charts-grid" id="modalSimilarApps" style="margin-bottom: 0;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toast">
+    <span id="toastIcon">📋</span>
+    <span id="toastMsg">클립보드에 복사되었습니다.</span>
+  </div>
+
+  <!-- EMBEDDED ALL APPS DATA -->
+  <script>
+    const ALL_APPS = [{"id": 1285429415, "name": "dataworks", "title": "DataWorks (데이터웍스)", "subtitle": "AI 지원 데이터 사업 워크벤치", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-06-30", "pushed_at": "2026-08-31", "html_url": "https://github.com/hkjang/dataworks", "clone_url": "https://github.com/hkjang/dataworks.git", "open_issues": 0, "size_kb": 14068, "featured": true, "editor_choice": true, "badge": "Featured", "description": "DataWorks는 데이터 자산을 기반으로 데이터 상품, API 상품, 분석 리포트 상품, 고객 제안 패키지, PoC 계획, 규제 리스크 검토를 AI가 원스톱으로 지원하는 데이터 비즈니스 전용 워크벤치입니다.", "features": ["데이터 자산 패키징 및 API 상품 기획 자동화", "AI 기반 PoC 계획 수립 및 데이터 가치 평가", "컴플라이언스 및 규제 리스크 자동 진단", "고객 제안서 및 분석 보고서 원클릭 생성"], "tech_stack": ["Go", "React", "PostgreSQL", "AI Engine", "TailwindCSS"], "icon": "💼", "gradient": "linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)", "mockup_type": "standard", "tagline": "데이터 자산 기반 상품화, API 상품, 분석 리포트 및 규제 리스크 검토", "has_mcp": false}, {"id": 1352253010, "name": "miraq", "title": "Miraq (미라크)", "subtitle": "오프라인 운영 가능한 예측 인텔리전스 플랫폼", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-31", "pushed_at": "2026-08-31", "html_url": "https://github.com/hkjang/miraq", "clone_url": "https://github.com/hkjang/miraq.git", "open_issues": 0, "size_kb": 4476, "featured": true, "editor_choice": true, "badge": "Hot", "description": "Miraq는 외부 인터넷 연결이 불가능한 폐쇄망 및 온프레미스 환경에서도 완벽하게 동작하는 엔터프라이즈 예측 인텔리전스 플랫폼입니다. Keycloak OIDC 기반 인증과 REST, Webhook, MCP 표준 프로토콜을 통해 사내 시스템과 긴밀히 연동됩니다.", "features": ["완전한 오프라인/폐쇄망 온프레미스 배포 지원", "Keycloak OIDC 기반 엔터프라이즈 싱글사인온", "REST, Webhook, MCP 표준 프로토콜 연동", "PostgreSQL & 시계열 데이터 기반 예측 모델링"], "tech_stack": ["Go", "React", "PostgreSQL", "Keycloak OIDC", "MCP", "Webhook"], "icon": "🔮", "gradient": "linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%)", "mockup_type": "standard", "tagline": "폐쇄망 오프라인 환경에서도 완벽히 구동되는 예측 인텔리전스", "has_mcp": true}, {"id": 1350160735, "name": "moina", "title": "Moina", "subtitle": "사람·관심사·지식과 AI가 모이는 소셜 지식 네트워크", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-29", "pushed_at": "2026-08-31", "html_url": "https://github.com/hkjang/moina", "clone_url": "https://github.com/hkjang/moina.git", "open_issues": 0, "size_kb": 33478, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "사람·관심사·지식과 AI가 모이는 소셜 지식 네트워크", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🔮", "gradient": "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1347825918, "name": "releasedock", "title": "Releasedock", "subtitle": "ReleaseDock Release Orchestrator / Deployment Gateway", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-26", "pushed_at": "2026-08-31", "html_url": "https://github.com/hkjang/releasedock", "clone_url": "https://github.com/hkjang/releasedock.git", "open_issues": 0, "size_kb": 539, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "ReleaseDock Release Orchestrator / Deployment Gateway", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1350090739, "name": "moyro", "title": "Moyro", "subtitle": "Offline-ready self-hosted collaboration platform built with Go and React", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-28", "pushed_at": "2026-08-31", "html_url": "https://github.com/hkjang/moyro", "clone_url": "https://github.com/hkjang/moyro.git", "open_issues": 0, "size_kb": 15226, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "Offline-ready self-hosted collaboration platform built with Go and React.", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "React", "REST API", "MCP Protocol"], "icon": "💼", "gradient": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1327289603, "name": "Momento", "title": "Momento", "subtitle": "Every Moment Matters", "category": "database_sql", "category_name": "데이터 & SQL", "category_icon": "📊", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-08", "pushed_at": "2026-08-29", "html_url": "https://github.com/hkjang/Momento", "clone_url": "https://github.com/hkjang/Momento.git", "open_issues": 0, "size_kb": 4337, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Every Moment Matters. Turn Moments into Insights.", "features": ["자연어 및 고성능 쿼리 실행/분석 지원", "데이터 스키마 메타데이터 자동 탐색", "실행 전 사전 검증 및 안전한 읽기 전용 가드", "다양한 데이터베이스 드라이버 호환"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "✨", "gradient": "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1278774593, "name": "clustara", "title": "Clustara", "subtitle": "Kubernetes 운영을 위한 장애 분석·변경 추적·보안·용량·비용 통합 운영 허브", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 2, "forks": 0, "is_fork": false, "created_at": "2026-06-24", "pushed_at": "2026-08-29", "html_url": "https://github.com/hkjang/clustara", "clone_url": "https://github.com/hkjang/clustara.git", "open_issues": 0, "size_kb": 8294, "featured": false, "editor_choice": false, "badge": "★ 2 Stars", "description": "Kubernetes 운영을 위한 장애 분석·변경 추적·보안·용량·비용 통합 운영 허브", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "Docker", "REST API"], "icon": "🪐", "gradient": "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1319034077, "name": "ptium", "title": "Ptium (티움)", "subtitle": "자체 호스팅 AI 프레젠테이션 서비스", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-01", "pushed_at": "2026-08-29", "html_url": "https://github.com/hkjang/ptium", "clone_url": "https://github.com/hkjang/ptium.git", "open_issues": 0, "size_kb": 6030, "featured": true, "editor_choice": true, "badge": "Productivity", "description": "Ptium은 자연어 프롬프트를 입력하면 전문적인 레이아웃의 슬라이드 덱으로 실시간 변환해주는 자체 호스팅(Self-hosted) AI 프레젠테이션 서비스입니다. 사내 폐쇄망에서도 안전하게 발표 자료를 자동 생성할 수 있습니다.", "features": ["자연어 프롬프트 기반 고품질 슬라이드 자동 생성", "마크다운 기반 덱 에디터 및 실시간 프레젠테이션 뷰", "온프레미스 자체 호스팅(Self-hosted) 아키텍처", "PDF 및 PPTX 내보내기 지원"], "tech_stack": ["Go", "React", "TypeScript", "LLM Orchestration", "Slide Engine", "MCP Protocol"], "icon": "📊", "gradient": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", "mockup_type": "standard", "tagline": "프롬프트를 구조화된 슬라이드 덱으로 바꾸는 자체 호스팅 AI 프레젠테이션", "has_mcp": true}, {"id": 1327702545, "name": "weekly", "title": "Weekly", "subtitle": "주간 업무 허브", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-08", "pushed_at": "2026-08-29", "html_url": "https://github.com/hkjang/weekly", "clone_url": "https://github.com/hkjang/weekly.git", "open_issues": 0, "size_kb": 130182, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "주간 업무 허브. 보고서→지식화까지 확장 가능", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🌐", "gradient": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1328681778, "name": "seaton", "title": "Seaton", "subtitle": "스마트 오피스 좌석·공간 관리 서비스", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-09", "pushed_at": "2026-08-28", "html_url": "https://github.com/hkjang/seaton", "clone_url": "https://github.com/hkjang/seaton.git", "open_issues": 0, "size_kb": 5935, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "스마트 오피스 좌석·공간 관리 서비스", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "🎯", "gradient": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1332523145, "name": "SecCheck", "title": "SecCheck (시큐체크)", "subtitle": "오프라인 운영형 보안성 심의 플랫폼", "category": "security_auth", "category_name": "보안 & 인증", "category_icon": "🛡️", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-12", "pushed_at": "2026-08-28", "html_url": "https://github.com/hkjang/SecCheck", "clone_url": "https://github.com/hkjang/SecCheck.git", "open_issues": 0, "size_kb": 17155, "featured": true, "editor_choice": true, "badge": "Security", "description": "SecCheck는 기존의 비효율적인 Excel 기반 보안성 심의를 템플릿, 버전, 제출 스냅샷, 항목별 검토로 체계화하고, Rule Engine을 통한 심사관 자동 배정과 암호학적 해시 체인 감사로그로 완벽한 추적성을 제공하는 엔터프라이즈 보안 심의 플랫폼입니다.", "features": ["보안 심의 템플릿·버전·제출 스냅샷 분리 관리", "Rule Engine 기반 심의 항목별 심사관 자동 배정", "암호학적 해시 체인 기반 위변조 방지 감사로그", "완벽한 오프라인 망 폐쇄 환경 지원"], "tech_stack": ["Go", "React", "Crypto Hash-Chain", "Rule Engine", "RBAC", "MCP Protocol"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "tagline": "Excel 기반 심의를 탈피한 Rule Engine 자동 배정 및 해시 체인 감사로그 플랫폼", "has_mcp": true}, {"id": 1332755202, "name": "ReSSO", "title": "ReSSO (레소)", "subtitle": "Keycloak 호환 경량 OIDC SSO 서비스", "category": "security_auth", "category_name": "보안 & 인증", "category_icon": "🛡️", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-13", "pushed_at": "2026-08-28", "html_url": "https://github.com/hkjang/ReSSO", "clone_url": "https://github.com/hkjang/ReSSO.git", "open_issues": 0, "size_kb": 3564, "featured": false, "editor_choice": true, "badge": "SSO / OIDC", "description": "ReSSO는 대규모 엔터프라이즈 환경에서 Keycloak과 완벽하게 호환되면서도 초경량 바이너리로 구동되는 OpenID Connect (OIDC) 및 OAuth2 싱글사인온(SSO) 서비스입니다.", "features": ["OpenID Connect (OIDC) 및 OAuth2 표준 완벽 준수", "Keycloak 마이그레이션 호환 토큰 발급 및 검증", "초경량 Go 바이너리로 최소 리소스 점유", "사내 사설망 및 폐쇄망 간편 통합"], "tech_stack": ["Go", "OIDC", "OAuth2", "JWT", "Keycloak Compatibility", "MCP Protocol"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)", "mockup_type": "standard", "tagline": "Keycloak 호환 OpenID Connect 싱글사인온 인증 인프라", "has_mcp": true}, {"id": 1333558701, "name": "umm", "title": "Umm", "subtitle": "책상 + 포스트잇 + 벽면 + 생각의 연결", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-13", "pushed_at": "2026-08-28", "html_url": "https://github.com/hkjang/umm", "clone_url": "https://github.com/hkjang/umm.git", "open_issues": 0, "size_kb": 75353, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "책상 + 포스트잇 + 벽면 + 생각의 연결", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🤖", "gradient": "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1343698485, "name": "muni", "title": "Muni", "subtitle": "文 + I → 나의 문서", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-23", "pushed_at": "2026-08-28", "html_url": "https://github.com/hkjang/muni", "clone_url": "https://github.com/hkjang/muni.git", "open_issues": 0, "size_kb": 1518, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "文 + I → 나의 문서. Docs 형태의 협업 문서 플랫폼", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "⚡", "gradient": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1348427964, "name": "moin", "title": "Moin", "subtitle": "AWS Cloud Operations Console", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-27", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/moin", "clone_url": "https://github.com/hkjang/moin.git", "open_issues": 0, "size_kb": 2571, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "AWS Cloud Operations Console", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🔮", "gradient": "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1192334088, "name": "pii-masker", "title": "Pii Masker", "subtitle": "Upstage masking API 재구성", "category": "security_auth", "category_name": "보안 & 인증", "category_icon": "🛡️", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-26", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/pii-masker", "clone_url": "https://github.com/hkjang/pii-masker.git", "open_issues": 0, "size_kb": 4809, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "Upstage masking API 재구성. pii-masker", "features": ["강력한 엔터프라이즈 보안 및 권한(RBAC) 체계", "암호학적 감사 로그 및 변경 이력 추적", "오프라인/폐쇄망 온프레미스 배포 지원", "민감정보 보호 및 실시간 위변조 탐지"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1332785226, "name": "AgentHub", "title": "AgentHub", "subtitle": "엔터프라이즈 AI 에이전트 런타임 플랫폼", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-13", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/AgentHub", "clone_url": "https://github.com/hkjang/AgentHub.git", "open_issues": 0, "size_kb": 28267, "featured": true, "editor_choice": true, "badge": "Editor's Choice", "description": "AgentHub는 전사 환경에서 안전하게 AI 에이전트를 구동할 수 있도록 설계된 엔터프라이즈 AI 에이전트 런타임 플랫폼입니다. 사용자 및 워크스페이스별로 격리된 컨테이너 환경에서 OpenCode, Hermes 등 다양한 에이전트 엔진을 실행하고, 세션 실행 로그와 감사 추적을 완벽하게 지원합니다.", "features": ["사용자 및 워크스페이스별 독립 격리 에이전트 런타임", "OpenCode & Hermes 등 복수 에이전트 프레임워크 지원", "엔터프라이즈 RBAC 권한 관리 및 세션 실행 감사 로그", "실시간 웹소켓 터미널 스트리밍 및 동적 리소스 제어"], "tech_stack": ["Go", "React", "Docker", "OpenCode", "WebSocket", "PostgreSQL", "MCP Protocol"], "icon": "🤖", "gradient": "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "mockup_type": "standard", "tagline": "각 사용자와 영속 Workspace마다 격리된 OpenCode & Hermes 런타임 제공", "has_mcp": true}, {"id": 1340592515, "name": "igame", "title": "Igame", "subtitle": "게임을 독립적으로 등록하고 운영하는 엔터프라이즈 게임 플랫폼", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-08-20", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/igame", "clone_url": "https://github.com/hkjang/igame.git", "open_issues": 0, "size_kb": 26668, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "게임을 독립적으로 등록하고 운영하는 엔터프라이즈 게임 플랫폼", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "✨", "gradient": "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1258965087, "name": "vibe-coders", "title": "vibe-coders", "subtitle": "초저지연 AI 코딩 SSE 프록시 게이트웨이", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Go", "lang_color": "#00ADD8", "stars": 3, "forks": 0, "is_fork": false, "created_at": "2026-06-04", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/vibe-coders", "clone_url": "https://github.com/hkjang/vibe-coders.git", "open_issues": 0, "size_kb": 8444, "featured": true, "editor_choice": true, "badge": "Top Rated", "description": "vibe-coders는 Cursor, Copilot, Cline 등 다양한 AI 코딩 도구의 요청을 중간에서 초저지연으로 중계하면서 실시간 토큰 사용량, 언어별 호출 통계, 프롬프트 감사, 원화(KRW) 환산 비용을 정밀하게 추적하는 고성능 SSE 프록시 게이트웨이입니다.", "features": ["Server-Sent Events (SSE) 기반 무지연 스트리밍 중계", "실시간 원화(KRW) 기준 비용 및 토큰 소모량 집계", "사용자별, IP별, 모델별 호출 통계 대시보드", "프롬프트 감사 및 비정상 요청 차단"], "tech_stack": ["Go", "SSE", "High-Concurrency", "Metrics", "Dashboard", "MCP Protocol"], "icon": "⚡", "gradient": "linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)", "mockup_type": "standard", "tagline": "AI 코딩 도구의 토큰·프롬프트·비용(KRW)을 실시간 모니터링/제어하는 게이트웨이", "has_mcp": true}, {"id": 1328369682, "name": "relio", "title": "Relio", "subtitle": "Relio", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-09", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/relio", "clone_url": "https://github.com/hkjang/relio.git", "open_issues": 0, "size_kb": 5847, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Relio. Relationship + IO “모든 고객 관계가 연결되는 곳”", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1317029153, "name": "kanpic", "title": "Kanpic", "subtitle": "kanpic 웹 기반 AI 스프레드시트 및 데이터 협업 플랫폼", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-30", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/kanpic", "clone_url": "https://github.com/hkjang/kanpic.git", "open_issues": 0, "size_kb": 31797, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "kanpic 웹 기반 AI 스프레드시트 및 데이터 협업 플랫폼", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🌐", "gradient": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1313394762, "name": "git-ctx", "title": "Git Ctx", "subtitle": "사내 코드 검색 기능을 포함 Bitbucket·GitLab 등의 코드와 문서를 AI 개발 도구에 안전하게 공급하는 온프레미스 Context Platform", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-27", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/git-ctx", "clone_url": "https://github.com/hkjang/git-ctx.git", "open_issues": 0, "size_kb": 2822, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "사내 코드 검색 기능을 포함 Bitbucket·GitLab 등의 코드와 문서를 AI 개발 도구에 안전하게 공급하는 온프레미스 Context Platform", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🎯", "gradient": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1331561598, "name": "Vendra", "title": "Vendra", "subtitle": "Vendra는 공급업체 발굴·등록·심사부터 계약, 구매, 발주, 납품, 품질, 평가, 리스크, 비용과 퇴출까지 연결하는 온프레미스 Supplier Intelligence Platform", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-12", "pushed_at": "2026-08-27", "html_url": "https://github.com/hkjang/Vendra", "clone_url": "https://github.com/hkjang/Vendra.git", "open_issues": 0, "size_kb": 3054, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Vendra는 공급업체 발굴·등록·심사부터 계약, 구매, 발주, 납품, 품질, 평가, 리스크, 비용과 퇴출까지 연결하는 온프레미스 Supplier Intelligence Platform", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "📊", "gradient": "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1314606392, "name": "invenqor", "title": "Invenqor", "subtitle": "서버 자산을 수집하는 Rust Agent와 Go 중앙 서버, React 관리 콘솔을 결합한 자산 인텔리전스 플랫폼", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-28", "pushed_at": "2026-08-26", "html_url": "https://github.com/hkjang/invenqor", "clone_url": "https://github.com/hkjang/invenqor.git", "open_issues": 0, "size_kb": 18864, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "서버 자산을 수집하는 Rust Agent와 Go 중앙 서버, React 관리 콘솔을 결합한 자산 인텔리전스 플랫폼. 단순 인벤토리 수집기를 넘어 인증, RBAC, 변경 이력, 자산 관계, 감사 로그, 안전한 Query DSL까지 포함하는 구조로 확장", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "React", "REST API", "MCP Protocol"], "icon": "🌱", "gradient": "linear-gradient(135deg, #84cc16 0%, #65a30d 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1304484659, "name": "postra", "title": "Postra (포스트라)", "subtitle": "지능형 AI 이메일 플랫폼", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-18", "pushed_at": "2026-08-26", "html_url": "https://github.com/hkjang/postra", "clone_url": "https://github.com/hkjang/postra.git", "open_issues": 0, "size_kb": 5974, "featured": true, "editor_choice": false, "badge": "AI Mail", "description": "Postra는 개인과 기업의 메일을 안전하게 수집하고, AI로 컨텍스트를 분석하여 중요 메일 요약 및 답장 초안을 생성하며, Model Context Protocol (MCP)을 통해 외부 업무 도구와 유기적으로 연결하는 지능형 메일 플랫폼입니다.", "features": ["개인/기업 이메일 통합 수집 및 AI 자동 요약", "MCP (Model Context Protocol) 기반 외부 도구 연동", "중요 메일 자동 분류 및 답장 초안 작성", "프라이버시 중심 온프레미스 아키텍처"], "tech_stack": ["Go", "React", "MCP Server", "IMAP/SMTP", "Vector Search"], "icon": "📬", "gradient": "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", "mockup_type": "standard", "tagline": "메일을 안전하게 수집하고 AI로 이해하며 MCP를 통해 도구와 연결하는 메일 플랫폼", "has_mcp": true}, {"id": 1335529068, "name": "orbit", "title": "Orbit (오르빗)", "subtitle": "중력 기반 관계 시각화 인텔리전스", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-16", "pushed_at": "2026-08-24", "html_url": "https://github.com/hkjang/orbit", "clone_url": "https://github.com/hkjang/orbit.git", "open_issues": 0, "size_kb": 21311, "featured": true, "editor_choice": false, "badge": "Visual CRM", "description": "Orbit은 사람들을 단순한 텍스트 연락처나 CRM 점수로 환원하지 않고, 나와 상대방 사이의 상호작용 빈도와 친밀도를 물리적인 중력 궤도(Gravity Orbit)와 우주 메타포로 시각화하는 인터랙티브 인텔리전스 서비스입니다.", "features": ["관계의 친밀도와 상호작용을 중력 궤도(Orbit)로 3D/2D 표현", "암호화된 기억 및 히스토리 타임라인 관리", "정형화된 CRM을 넘어선 감성적 관계 인텔리전스", "미려한 인터랙티브 모션 인터페이스"], "tech_stack": ["TypeScript", "Next.js", "Three.js/Canvas", "Web Crypto", "TailwindCSS", "MCP Protocol"], "icon": "🪐", "gradient": "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)", "mockup_type": "standard", "tagline": "사람과 사람 사이의 중력(Gravity), 시간, 암호화된 기억을 살아 숨쉬는 우주로 시각화", "has_mcp": true}, {"id": 1335541574, "name": "VibeOS", "title": "Vibeos", "subtitle": "바이브 코더를 위한 포트폴리오 운영체제", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-16", "pushed_at": "2026-08-17", "html_url": "https://github.com/hkjang/VibeOS", "clone_url": "https://github.com/hkjang/VibeOS.git", "open_issues": 0, "size_kb": 529, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "바이브 코더를 위한 포트폴리오 운영체제", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1335503276, "name": "trace", "title": "Trace", "subtitle": "Enterprise Decision Intelligence Platform", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-15", "pushed_at": "2026-08-16", "html_url": "https://github.com/hkjang/trace", "clone_url": "https://github.com/hkjang/trace.git", "open_issues": 0, "size_kb": 17013, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Enterprise Decision Intelligence Platform. 그때의 판단 속으로, 시간을 되돌려 다시 들어갑니다.", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "💼", "gradient": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1333092433, "name": "webgx", "title": "Webgx", "subtitle": "webgx는 Go와 React 기반의 독립형 Nginx Control Plane입니다", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-13", "pushed_at": "2026-08-14", "html_url": "https://github.com/hkjang/webgx", "clone_url": "https://github.com/hkjang/webgx.git", "open_issues": 0, "size_kb": 11733, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "webgx는 Go와 React 기반의 독립형 Nginx Control Plane입니다. 원문 설정 직접 수정의 위험을 없애고, 구조화 모델 검증, 불변 Revision, 2인 승인, 무중단 배포 및 즉각적인 롤백을 폐쇄망에서도 일관되게 제공합니다.", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "React", "REST API", "MCP Protocol"], "icon": "✨", "gradient": "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1333945772, "name": "ssak", "title": "Ssak", "subtitle": "장애에도 멈추지 않는 Durable Workflow Automation ssak은 Go와 React로 구축된 사내망용 내구성 워크플로 엔진입니다", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-14", "pushed_at": "2026-08-14", "html_url": "https://github.com/hkjang/ssak", "clone_url": "https://github.com/hkjang/ssak.git", "open_issues": 0, "size_kb": 17757, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "장애에도 멈추지 않는 Durable Workflow Automation ssak은 Go와 React로 구축된 사내망용 내구성 워크플로 엔진입니다. PostgreSQL 트랜잭셔널 아웃박스, 분산 작업 리스, 내구 타이머로 프로세스 재시작 뒤에도 실행을 안전하게 이어갑니다.", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "React", "PostgreSQL", "REST API"], "icon": "🪐", "gradient": "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1332857409, "name": "Kkiit", "title": "Kkiit", "subtitle": "사람·기업·AI Agent의 전문 서비스를 재능 상품 → 요구사항 → 주문 → 작업 → 납품 → 구매확정 → 정산 흐름으로 연결하는 오프라인 운영 가능 마켓플레이스", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-13", "pushed_at": "2026-08-14", "html_url": "https://github.com/hkjang/Kkiit", "clone_url": "https://github.com/hkjang/Kkiit.git", "open_issues": 0, "size_kb": 561, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "사람·기업·AI Agent의 전문 서비스를 재능 상품 → 요구사항 → 주문 → 작업 → 납품 → 구매확정 → 정산 흐름으로 연결하는 오프라인 운영 가능 마켓플레이스", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1329228283, "name": "visitflow", "title": "Visitflow", "subtitle": "Visitor Management Platform", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-09", "pushed_at": "2026-08-12", "html_url": "https://github.com/hkjang/visitflow", "clone_url": "https://github.com/hkjang/visitflow.git", "open_issues": 0, "size_kb": 2570, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Visitor Management Platform. 방문 신청 → 방문 승인 → QR 발급 → 로비 체크인 → 담당자 도착 알림 → 입실/퇴실 → 감사 추적까지 하나의 흐름으로 관리", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🌐", "gradient": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1328308877, "name": "kanvas", "title": "Kanvas", "subtitle": "지식을 그리는 공간", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-09", "pushed_at": "2026-08-12", "html_url": "https://github.com/hkjang/kanvas", "clone_url": "https://github.com/hkjang/kanvas.git", "open_issues": 0, "size_kb": 2310, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "지식을 그리는 공간. AI 기반 협업 플랫폼", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["Go", "REST API", "OpenSource", "MCP Protocol"], "icon": "🎯", "gradient": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1331945853, "name": "Planexus", "title": "Planexus", "subtitle": "Enterprise Planning Intelligence Platform", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-08-12", "pushed_at": "2026-08-12", "html_url": "https://github.com/hkjang/Planexus", "clone_url": "https://github.com/hkjang/Planexus.git", "open_issues": 0, "size_kb": 2088, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Enterprise Planning Intelligence Platform", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "📊", "gradient": "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1303421117, "name": "sqlon", "title": "SQLON (에스큐엘온)", "subtitle": "근거 중심 데이터베이스 운영 플랫폼", "category": "database_sql", "category_name": "데이터 & SQL", "category_icon": "📊", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-17", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/sqlon", "clone_url": "https://github.com/hkjang/sqlon.git", "open_issues": 0, "size_kb": 9587, "featured": false, "editor_choice": true, "badge": "DB Ops", "description": "SQLON은 엔터프라이즈 환경에서 데이터베이스 변경 작업 및 쿼리 실행 시 명확한 근거(Evidence)와 사전 검증 스크립트를 기록하고, 승인 워크플로우를 강제하여 운영 사고를 방지하는 DB 운영 플랫폼입니다.", "features": ["DB 변경 및 쿼리 실행의 근거(Evidence) 자동 기록", "실행 전 영향도 분석 및 롤백 스크립트 강제", "팀 협업 기반 쿼리 승인 워크플로우", "엔터프라이즈 감사 컴플라이언스 준수"], "tech_stack": ["Go", "React", "PostgreSQL", "Query Engine", "Audit Trail"], "icon": "🧭", "gradient": "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)", "mockup_type": "standard", "tagline": "Evidence-driven Database Operations for Enterprise", "has_mcp": false}, {"id": 1181591459, "name": "velo", "title": "Velo", "subtitle": "엔터프라이즈 WAS 파운데이션 - velo", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "Java", "lang_color": "#b07219", "stars": 2, "forks": 0, "is_fork": false, "created_at": "2026-03-14", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/velo", "clone_url": "https://github.com/hkjang/velo.git", "open_issues": 0, "size_kb": 12706, "featured": false, "editor_choice": false, "badge": "★ 2 Stars", "description": "엔터프라이즈 WAS 파운데이션 - velo", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Java", "OpenSource"], "icon": "⚡", "gradient": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1214872124, "name": "SignalHub", "title": "Signalhub", "subtitle": "SignalHub", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "Python", "lang_color": "#3572A5", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-04-19", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/SignalHub", "clone_url": "https://github.com/hkjang/SignalHub.git", "open_issues": 0, "size_kb": 1300, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "SignalHub", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Python", "Data / NLP", "OpenSource"], "icon": "💼", "gradient": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1153492511, "name": "openclaw", "title": "Openclaw", "subtitle": "openclaw 오픈소스 프로젝트", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-02-09", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/openclaw", "clone_url": "https://github.com/hkjang/openclaw.git", "open_issues": 0, "size_kb": 180006, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "현대적인 TypeScript 스택 기반의 경량 오픈소스 프로젝트", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "✨", "gradient": "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1266195242, "name": "ArgosAISecurity", "title": "Argosaisecurity", "subtitle": "AI 기반 Linux 서버 보안 플랫폼 랜섬웨어 · 이상 행위 · 권한 상승 · 파일 변조 실시간 탐지 · 차단 · 복구", "category": "security_auth", "category_name": "보안 & 인증", "category_icon": "🛡️", "language": "Rust", "lang_color": "#dea584", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-06-11", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/ArgosAISecurity", "clone_url": "https://github.com/hkjang/ArgosAISecurity.git", "open_issues": 0, "size_kb": 1031, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "AI 기반 Linux 서버 보안 플랫폼 랜섬웨어 · 이상 행위 · 권한 상승 · 파일 변조 실시간 탐지 · 차단 · 복구", "features": ["강력한 엔터프라이즈 보안 및 권한(RBAC) 체계", "암호학적 감사 로그 및 변경 이력 추적", "오프라인/폐쇄망 온프레미스 배포 지원", "민감정보 보호 및 실시간 위변조 탐지"], "tech_stack": ["Rust", "Low-Level Engine", "OpenSource"], "icon": "🪐", "gradient": "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1302540636, "name": "goalforge", "title": "Goalforge", "subtitle": "GoalForge is a goal-first development orchestrator", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-16", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/goalforge", "clone_url": "https://github.com/hkjang/goalforge.git", "open_issues": 0, "size_kb": 1083, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "GoalForge is a goal-first development orchestrator. The Go process owns project state, versioned goals, work ordering, verification evidence, and completion; AI sessions (Codex, Claude Code) are execution tools rather than the source of truth.", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1304618211, "name": "AutoForge", "title": "Autoforge", "subtitle": "AutoForge는 자동차 설계 화면을 구현한 데모 수준을 넘어, 요구사항·설계·시뮬레이션·최적화·제조·로봇 시험·승인·릴리스를 하나의 증거 체계로 연결한 자율 엔지니어링 플랫폼 MVP", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "JavaScript", "lang_color": "#F7DF1E", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-07-18", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/AutoForge", "clone_url": "https://github.com/hkjang/AutoForge.git", "open_issues": 0, "size_kb": 1862, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "AutoForge는 자동차 설계 화면을 구현한 데모 수준을 넘어, 요구사항·설계·시뮬레이션·최적화·제조·로봇 시험·승인·릴리스를 하나의 증거 체계로 연결한 자율 엔지니어링 플랫폼 MVP", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["JavaScript", "React", "OpenSource"], "icon": "🌐", "gradient": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1304052235, "name": "GitFrame", "title": "Gitframe", "subtitle": "GitFrame은 웹 프로젝트를 자동으로 실행하고, 정의된 브라우저 시나리오(YAML)에 따라 웹 앱의 동작을 테스트하고 검증하며, 그 과정을 데모 영상(MP4), 자막(SRT), 썸네일, 실행 로그 및 Playwright Trace 등으로 자동 패키징해 주는 로컬 개발자용 CLI 도구입니다", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-07-17", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/GitFrame", "clone_url": "https://github.com/hkjang/GitFrame.git", "open_issues": 0, "size_kb": 74984, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "GitFrame은 웹 프로젝트를 자동으로 실행하고, 정의된 브라우저 시나리오(YAML)에 따라 웹 앱의 동작을 테스트하고 검증하며, 그 과정을 데모 영상(MP4), 자막(SRT), 썸네일, 실행 로그 및 Playwright Trace 등으로 자동 패키징해 주는 로컬 개발자용 CLI 도구입니다.", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "🎯", "gradient": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1304618479, "name": "AgeForge", "title": "Ageforge", "subtitle": "AgeForge BioOS는 일반적인 바이오 대시보드 수준을 넘어, 노화 디지털 트윈·연구 설계·근거 관리·다중 에이전트 검토·안전 승인·학습 계보를 하나의 폐쇄형 루프로", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "JavaScript", "lang_color": "#F7DF1E", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-07-18", "pushed_at": "2026-08-08", "html_url": "https://github.com/hkjang/AgeForge", "clone_url": "https://github.com/hkjang/AgeForge.git", "open_issues": 0, "size_kb": 163, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "AgeForge BioOS는 일반적인 바이오 대시보드 수준을 넘어, 노화 디지털 트윈·연구 설계·근거 관리·다중 에이전트 검토·안전 승인·학습 계보를 하나의 폐쇄형 루프로", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["JavaScript", "React", "OpenSource"], "icon": "📊", "gradient": "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1315552083, "name": "invenqor-agents", "title": "Invenqor Agents", "subtitle": "Invenqor Linux IT asset inventory agents: static Rust binaries, signed updates, and native service packaging", "category": "enterprise_ops", "category_name": "엔터프라이즈 & 운영", "category_icon": "🏢", "language": "Rust", "lang_color": "#dea584", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-07-29", "pushed_at": "2026-07-29", "html_url": "https://github.com/hkjang/invenqor-agents", "clone_url": "https://github.com/hkjang/invenqor-agents.git", "open_issues": 0, "size_kb": 1776, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "Invenqor Linux IT asset inventory agents: static Rust binaries, signed updates, and native service packaging", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["Rust", "Low-Level Engine", "OpenSource", "MCP Protocol"], "icon": "🌱", "gradient": "linear-gradient(135deg, #84cc16 0%, #65a30d 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1237585189, "name": "mattermost-paw-plugin", "title": "Mattermost Paw Plugin", "subtitle": "Mattermost users can talk to their personal QwenPaw agent through the @paw bot", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-05-13", "pushed_at": "2026-05-13", "html_url": "https://github.com/hkjang/mattermost-paw-plugin", "clone_url": "https://github.com/hkjang/mattermost-paw-plugin.git", "open_issues": 0, "size_kb": 332, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "Mattermost users can talk to their personal QwenPaw agent through the @paw bot", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🔮", "gradient": "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1229722540, "name": "qwen-code", "title": "Qwen Code", "subtitle": "qwen-code 오픈소스 프로젝트", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-05-05", "pushed_at": "2026-05-11", "html_url": "https://github.com/hkjang/qwen-code", "clone_url": "https://github.com/hkjang/qwen-code.git", "open_issues": 0, "size_kb": 50175, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "TypeScript 기반의 지능형 AI 에이전트 및 자동화 솔루션", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1225006449, "name": "mattermost-myagents-plugin", "title": "Mattermost Myagents Plugin", "subtitle": "mattermost-myagents-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-04-29", "pushed_at": "2026-05-04", "html_url": "https://github.com/hkjang/mattermost-myagents-plugin", "clone_url": "https://github.com/hkjang/mattermost-myagents-plugin.git", "open_issues": 0, "size_kb": 374, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-myagents-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "💼", "gradient": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1195185445, "name": "mattermost-ocs-plugin", "title": "Mattermost Ocs Plugin", "subtitle": "Mattermost OCS Plugin connects Mattermost bots to an OpenCode Server so teams can run both general-purpose assistant conversations and coding-focused agent workflows inside channels, threads, and direct messages", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-29", "pushed_at": "2026-05-02", "html_url": "https://github.com/hkjang/mattermost-ocs-plugin", "clone_url": "https://github.com/hkjang/mattermost-ocs-plugin.git", "open_issues": 0, "size_kb": 614, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "Mattermost OCS Plugin connects Mattermost bots to an OpenCode Server so teams can run both general-purpose assistant conversations and coding-focused agent workflows inside channels, threads, and direct messages.", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "✨", "gradient": "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1194080811, "name": "playwright-player", "title": "Playwright Player", "subtitle": "playwright-player", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "JavaScript", "lang_color": "#F7DF1E", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-27", "pushed_at": "2026-04-16", "html_url": "https://github.com/hkjang/playwright-player", "clone_url": "https://github.com/hkjang/playwright-player.git", "open_issues": 0, "size_kb": 4924, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "playwright-player", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["JavaScript", "React", "OpenSource"], "icon": "🪐", "gradient": "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1205967825, "name": "openpro", "title": "Openpro", "subtitle": "openpro agent", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-04-09", "pushed_at": "2026-04-10", "html_url": "https://github.com/hkjang/openpro", "clone_url": "https://github.com/hkjang/openpro.git", "open_issues": 0, "size_kb": 10267, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "openpro agent", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1199959106, "name": "mattermost-playwright-plugin", "title": "Mattermost Playwright Plugin", "subtitle": "mattermost-playwright-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-04-02", "pushed_at": "2026-04-02", "html_url": "https://github.com/hkjang/mattermost-playwright-plugin", "clone_url": "https://github.com/hkjang/mattermost-playwright-plugin.git", "open_issues": 0, "size_kb": 266, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-playwright-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🎯", "gradient": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1191307450, "name": "mattermost-pwdhelper-plugin", "title": "Mattermost Pwdhelper Plugin", "subtitle": "mattermost-pwdhelper-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-03-25", "pushed_at": "2026-03-31", "html_url": "https://github.com/hkjang/mattermost-pwdhelper-plugin", "clone_url": "https://github.com/hkjang/mattermost-pwdhelper-plugin.git", "open_issues": 0, "size_kb": 2547, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "mattermost-pwdhelper-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🌱", "gradient": "linear-gradient(135deg, #84cc16 0%, #65a30d 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1194474639, "name": "mattermost-flow-plugin", "title": "Mattermost Flow Plugin", "subtitle": "mattermost-flow-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-28", "pushed_at": "2026-03-30", "html_url": "https://github.com/hkjang/mattermost-flow-plugin", "clone_url": "https://github.com/hkjang/mattermost-flow-plugin.git", "open_issues": 0, "size_kb": 568, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-flow-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🤖", "gradient": "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1191680733, "name": "mattermost-echosummary-plugin", "title": "Mattermost Echosummary Plugin", "subtitle": "mattermost-echosummary-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-25", "pushed_at": "2026-03-29", "html_url": "https://github.com/hkjang/mattermost-echosummary-plugin", "clone_url": "https://github.com/hkjang/mattermost-echosummary-plugin.git", "open_issues": 0, "size_kb": 2579, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-echosummary-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "⚡", "gradient": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1193592663, "name": "mattermost-onboarding-plugin", "title": "Mattermost Onboarding Plugin", "subtitle": "mattermost-onboarding-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-27", "pushed_at": "2026-03-27", "html_url": "https://github.com/hkjang/mattermost-onboarding-plugin", "clone_url": "https://github.com/hkjang/mattermost-onboarding-plugin.git", "open_issues": 0, "size_kb": 2559, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-onboarding-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🔮", "gradient": "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1193147563, "name": "mattermost-rpa-plugin", "title": "Mattermost Rpa Plugin", "subtitle": "mattermost-rpa-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-26", "pushed_at": "2026-03-27", "html_url": "https://github.com/hkjang/mattermost-rpa-plugin", "clone_url": "https://github.com/hkjang/mattermost-rpa-plugin.git", "open_issues": 0, "size_kb": 58628, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-rpa-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1178668585, "name": "mattermost-langflow-plugin", "title": "Mattermost Langflow Plugin", "subtitle": "mattermost-langflow-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-03-11", "pushed_at": "2026-03-25", "html_url": "https://github.com/hkjang/mattermost-langflow-plugin", "clone_url": "https://github.com/hkjang/mattermost-langflow-plugin.git", "open_issues": 0, "size_kb": 616, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "mattermost-langflow-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "💼", "gradient": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1190543728, "name": "mattermost-botman-plugin", "title": "Mattermost Botman Plugin", "subtitle": "mattermost-botman-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-24", "pushed_at": "2026-03-25", "html_url": "https://github.com/hkjang/mattermost-botman-plugin", "clone_url": "https://github.com/hkjang/mattermost-botman-plugin.git", "open_issues": 0, "size_kb": 297, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-botman-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "✨", "gradient": "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1191048507, "name": "mattermost-chatdump-plugin", "title": "Mattermost Chatdump Plugin", "subtitle": "mattermost-chatdump-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-24", "pushed_at": "2026-03-24", "html_url": "https://github.com/hkjang/mattermost-chatdump-plugin", "clone_url": "https://github.com/hkjang/mattermost-chatdump-plugin.git", "open_issues": 0, "size_kb": 2538, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-chatdump-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🪐", "gradient": "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1186872098, "name": "mattermost-upstage-pii-plugin", "title": "Mattermost Upstage Pii Plugin", "subtitle": "mattermost-upstage-pii-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-03-20", "pushed_at": "2026-03-22", "html_url": "https://github.com/hkjang/mattermost-upstage-pii-plugin", "clone_url": "https://github.com/hkjang/mattermost-upstage-pii-plugin.git", "open_issues": 0, "size_kb": 19576, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "mattermost-upstage-pii-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1185085638, "name": "mattermost-tadpole-plugin", "title": "Mattermost Tadpole Plugin", "subtitle": "mattermost-tadpole-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-18", "pushed_at": "2026-03-18", "html_url": "https://github.com/hkjang/mattermost-tadpole-plugin", "clone_url": "https://github.com/hkjang/mattermost-tadpole-plugin.git", "open_issues": 0, "size_kb": 339, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "mattermost-tadpole-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🌐", "gradient": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1180768544, "name": "mattermost-doc2vllm-plugin", "title": "Mattermost Doc2vllm Plugin", "subtitle": "mattermost-doc2vllm-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-03-13", "pushed_at": "2026-03-13", "html_url": "https://github.com/hkjang/mattermost-doc2vllm-plugin", "clone_url": "https://github.com/hkjang/mattermost-doc2vllm-plugin.git", "open_issues": 0, "size_kb": 343, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "mattermost-doc2vllm-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "🎯", "gradient": "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1179649254, "name": "mattermost-upstage-plugin", "title": "Mattermost Upstage Plugin", "subtitle": "mattermost-upstage-plugin", "category": "mattermost", "category_name": "Mattermost 플러그인", "category_icon": "💬", "language": "Go", "lang_color": "#00ADD8", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2026-03-12", "pushed_at": "2026-03-13", "html_url": "https://github.com/hkjang/mattermost-upstage-plugin", "clone_url": "https://github.com/hkjang/mattermost-upstage-plugin.git", "open_issues": 0, "size_kb": 433, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "mattermost-upstage-plugin", "features": ["Mattermost 채널 및 DM 완벽 연동", "슬래시 커맨드 및 인터랙티브 봇 인터페이스", "엔터프라이즈 권한 제어 및 실시간 웹훅 연동", "서버 사이드 플러그인 아키텍처 지원"], "tech_stack": ["Go", "REST API", "OpenSource"], "icon": "📊", "gradient": "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1175926063, "name": "langflower", "title": "Langflower", "subtitle": "langflower 오픈소스 프로젝트", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-03-08", "pushed_at": "2026-03-09", "html_url": "https://github.com/hkjang/langflower", "clone_url": "https://github.com/hkjang/langflower.git", "open_issues": 0, "size_kb": 989, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "현대적인 TypeScript 스택 기반의 경량 오픈소스 프로젝트", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "🌱", "gradient": "linear-gradient(135deg, #84cc16 0%, #65a30d 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1165650043, "name": "confluence-page-ai-generation-addon", "title": "Confluence Page Ai Generation Addon", "subtitle": "AI-powered expert document page generation plugin for Confluence Server", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Java", "lang_color": "#b07219", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-02-24", "pushed_at": "2026-02-25", "html_url": "https://github.com/hkjang/confluence-page-ai-generation-addon", "clone_url": "https://github.com/hkjang/confluence-page-ai-generation-addon.git", "open_issues": 0, "size_kb": 211, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "AI-powered expert document page generation plugin for Confluence Server", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["Java", "OpenSource", "MCP Protocol"], "icon": "🤖", "gradient": "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1163794352, "name": "bitbucket-code-suggestion-addon", "title": "Bitbucket Code Suggestion Addon", "subtitle": "AI 기반 코드 제안 플러그인으로, Pull Request에서 자동으로 코드 리뷰 및 개선 제안을 제공", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "Java", "lang_color": "#b07219", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2026-02-22", "pushed_at": "2026-02-24", "html_url": "https://github.com/hkjang/bitbucket-code-suggestion-addon", "clone_url": "https://github.com/hkjang/bitbucket-code-suggestion-addon.git", "open_issues": 0, "size_kb": 226, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "AI 기반 코드 제안 플러그인으로, Pull Request에서 자동으로 코드 리뷰 및 개선 제안을 제공", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["Java", "OpenSource", "MCP Protocol"], "icon": "⚡", "gradient": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1108236971, "name": "stockboom", "title": "Stockboom", "subtitle": "Stock Trading Automation System", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2025-12-02", "pushed_at": "2026-01-18", "html_url": "https://github.com/hkjang/stockboom", "clone_url": "https://github.com/hkjang/stockboom.git", "open_issues": 0, "size_kb": 2007, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "Stock Trading Automation System", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1122120804, "name": "specflow", "title": "Specflow", "subtitle": "specflow 오픈소스 프로젝트", "category": "devtools", "category_name": "개발 도구 & 인프라", "category_icon": "🛠️", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2025-12-24", "pushed_at": "2025-12-28", "html_url": "https://github.com/hkjang/specflow", "clone_url": "https://github.com/hkjang/specflow.git", "open_issues": 0, "size_kb": 846, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "현대적인 TypeScript 스택 기반의 경량 오픈소스 프로젝트", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "⚡", "gradient": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1119933548, "name": "aura", "title": "Aura", "subtitle": "AI Portal Aura", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2025-12-20", "pushed_at": "2025-12-25", "html_url": "https://github.com/hkjang/aura", "clone_url": "https://github.com/hkjang/aura.git", "open_issues": 0, "size_kb": 11339, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "AI Portal Aura", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "OpenSource", "MCP Protocol"], "icon": "🔮", "gradient": "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1121986396, "name": "autoMCP", "title": "Automcp", "subtitle": "autoMCP 오픈소스 프로젝트", "category": "ai_agents", "category_name": "AI & 에이전트", "category_icon": "🤖", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2025-12-23", "pushed_at": "2025-12-23", "html_url": "https://github.com/hkjang/autoMCP", "clone_url": "https://github.com/hkjang/autoMCP.git", "open_issues": 0, "size_kb": 530, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "현대적인 TypeScript 스택 기반의 경량 오픈소스 프로젝트", "features": ["최신 LLM 모델 및 프롬프트 파이프라인 연계", "작업 컨텍스트 분석 및 자동화 워크플로우", "실시간 스트리밍 및 인터랙티브 터미널 인터페이스", "확장 가능한 에이전트 툴체인 및 MCP 표준 지원"], "tech_stack": ["TypeScript", "React", "MCP Protocol"], "icon": "🛡️", "gradient": "linear-gradient(135deg, #10b981 0%, #059669 100%)", "mockup_type": "standard", "has_mcp": true}, {"id": 1117152101, "name": "taromaster", "title": "Taromaster", "subtitle": "Taro Master", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2025-12-15", "pushed_at": "2025-12-16", "html_url": "https://github.com/hkjang/taromaster", "clone_url": "https://github.com/hkjang/taromaster.git", "open_issues": 0, "size_kb": 59498, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "Taro Master", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "🔑", "gradient": "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1108392749, "name": "tagflow", "title": "Tagflow", "subtitle": "RFID Tag Management System", "category": "productivity_life", "category_name": "생산성 & 라이프", "category_icon": "🎨", "language": "TypeScript", "lang_color": "#3178C6", "stars": 1, "forks": 0, "is_fork": false, "created_at": "2025-12-02", "pushed_at": "2025-12-15", "html_url": "https://github.com/hkjang/tagflow", "clone_url": "https://github.com/hkjang/tagflow.git", "open_issues": 0, "size_kb": 761, "featured": false, "editor_choice": false, "badge": "★ 1 Stars", "description": "RFID Tag Management System", "features": ["직관적인 사용자 인터페이스 및 빠른 응답 속도", "독립 실행 가능한 가벼운 아키텍처", "모듈형 설계로 손쉬운 확장 및 커스터마이징", "철저한 테스트 및 안정적인 배포 지원"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "🌐", "gradient": "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", "mockup_type": "standard", "has_mcp": false}, {"id": 1113389788, "name": "playchroma", "title": "Playchroma", "subtitle": "ChromaDB의 모든 JavaScript/TypeScript API를 테스트할 수 있는 인터랙티브 플레이그라운드입니다", "category": "database_sql", "category_name": "데이터 & SQL", "category_icon": "📊", "language": "TypeScript", "lang_color": "#3178C6", "stars": 0, "forks": 0, "is_fork": false, "created_at": "2025-12-09", "pushed_at": "2025-12-09", "html_url": "https://github.com/hkjang/playchroma", "clone_url": "https://github.com/hkjang/playchroma.git", "open_issues": 0, "size_kb": 31, "featured": false, "editor_choice": false, "badge": "★ 0 Stars", "description": "ChromaDB의 모든 JavaScript/TypeScript API를 테스트할 수 있는 인터랙티브 플레이그라운드입니다.", "features": ["자연어 및 고성능 쿼리 실행/분석 지원", "데이터 스키마 메타데이터 자동 탐색", "실행 전 사전 검증 및 안전한 읽기 전용 가드", "다양한 데이터베이스 드라이버 호환"], "tech_stack": ["TypeScript", "React", "OpenSource"], "icon": "🌱", "gradient": "linear-gradient(135deg, #84cc16 0%, #65a30d 100%)", "mockup_type": "standard", "has_mcp": false}];
+    const CATEGORIES = {
+      "today": { name: "투데이", icon: "🌟", desc: "추천 및 하이라이트 프로젝트" },
+      "all": { name: "모든 앱 (73)", icon: "📱", desc: "최근 1년 동안 개발된 73개의 공개 프로젝트 목록" },
+      "favorites": { name: "찜한 앱", icon: "💖", desc: "내가 보관함에 담아둔 즐겨찾기 프로젝트" },
+      "ai_agents": { name: "AI & 에이전트", icon: "🤖", desc: "AI 에이전트 런타임, LLM 도구, 코딩 어시스턴트" },
+      "enterprise_ops": { name: "엔터프라이즈 & 운영", icon: "🏢", desc: "사내 운영, K8s, 자산 관리, 워크스페이스" },
+      "security_auth": { name: "보안 & 인증", icon: "🛡️", desc: "보안성 심의, SSO/OIDC, PII 마스킹, 감사 추적" },
+      "database_sql": { name: "데이터 & SQL", icon: "📊", desc: "NL2SQL, Postgres 관리, 스프레드시트, 데이터 분석" },
+      "mattermost": { name: "Mattermost 플러그인", icon: "💬", desc: "Mattermost 봇, AI 에이전트, 워크플로우 플러그인" },
+      "devtools": { name: "개발 도구 & 인프라", icon: "🛠️", desc: "IDE, 브라우저, 터미널, 테스트 프레임워크" },
+      "productivity_life": { name: "생산성 & 라이프", icon: "🎨", desc: "메일, 화이트보드, 주식 트레이딩, 지식 허브" }
+    };
+
+    let currentCategory = 'today';
+    let currentLanguage = 'ALL';
+    let currentSort = 'pushed';
+    let currentViewMode = 'grid';
+    let searchQuery = '';
+    let currentActiveApp = null;
+    let favorites = JSON.parse(localStorage.getItem('appstore_favorites') || '[]');
+    let currentSlide = 0;
+    let slideTimer = null;
+
+    
+    // Banner Collapse / Expand Logic
+    let isBannerCollapsed = localStorage.getItem('appstore_banner_collapsed') === 'true';
+
+    function toggleBanner() {
+      isBannerCollapsed = !isBannerCollapsed;
+      applyBannerState();
+      localStorage.setItem('appstore_banner_collapsed', isBannerCollapsed ? 'true' : 'false');
+    }
+
+    function applyBannerState() {
+      const carousel = document.getElementById('heroCarousel');
+      const collapsedBar = document.getElementById('bannerCollapsedBar');
+      
+      if (!carousel || !collapsedBar) return;
+
+      if (isBannerCollapsed) {
+        carousel.classList.add('collapsed');
+        collapsedBar.classList.add('show');
+        if (slideTimer) {
+          clearInterval(slideTimer);
+          slideTimer = null;
+        }
+      } else {
+        carousel.classList.remove('collapsed');
+        collapsedBar.classList.remove('show');
+        startCarouselTimer();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTodayView();
+      renderCatalog();
+      updateFavoriteCount();
+      startCarouselTimer();
+      applyBannerState();
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== document.getElementById('searchInput')) {
+          e.preventDefault();
+          document.getElementById('searchInput').focus();
+        }
+        if (e.key === 'Escape') {
+          closeModal();
+        }
+      });
+    });
+
+    function setSlide(index) {
+      currentSlide = index;
+      const track = document.getElementById('carouselTrack');
+      track.style.transform = `translateX(-${index * 100}%)`;
+      const dots = document.querySelectorAll('.indicator-dot');
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === index);
+      });
+    }
+
+    function startCarouselTimer() {
+      if (slideTimer) clearInterval(slideTimer);
+      slideTimer = setInterval(() => {
+        currentSlide = (currentSlide + 1) % 3;
+        setSlide(currentSlide);
+      }, 5000);
+    }
+
+    function switchCategory(catKey) {
+      currentCategory = catKey;
+      
+      document.querySelectorAll('.nav-item button').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`nav-${catKey}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const viewToday = document.getElementById('view-today');
+      const viewCatalog = document.getElementById('view-catalog');
+
+      if (catKey === 'today') {
+        viewToday.style.display = 'block';
+        viewCatalog.style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        viewToday.style.display = 'none';
+        viewCatalog.style.display = 'block';
+        
+        const catInfo = CATEGORIES[catKey] || { name: catKey, desc: '' };
+        document.getElementById('catalogCategoryTitle').innerHTML = `${catInfo.icon || '📱'} ${catInfo.name}`;
+        document.getElementById('catalogCategoryDesc').textContent = catInfo.desc;
+        renderCatalog();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function renderTodayView() {
+      const editorsList = ALL_APPS.filter(a => a.editor_choice).slice(0, 6);
+      const editorsContainer = document.getElementById('editorsChoiceGrid');
+      editorsContainer.innerHTML = editorsList.map(app => createEditorCardHTML(app)).join('');
+
+      const topCharts = [...ALL_APPS].sort((a, b) => (b.stars || 0) - (a.stars || 0) || b.pushed_at.localeCompare(a.pushed_at)).slice(0, 8);
+      const topChartsContainer = document.getElementById('topChartsGrid');
+      topChartsContainer.innerHTML = topCharts.map((app, idx) => createRankCardHTML(app, idx + 1)).join('');
+
+      const aiHighlight = ALL_APPS.filter(a => a.category === 'ai_agents').slice(0, 6);
+      const aiContainer = document.getElementById('aiHighlightGrid');
+      aiContainer.innerHTML = aiHighlight.map(app => createEditorCardHTML(app)).join('');
+    }
+
+    function createEditorCardHTML(app) {
+      const isFav = favorites.includes(app.name);
+      return `
+        <div class="editor-card" onclick="openAppDetail(${app.id})">
+          <div>
+            <div class="editor-card-header">
+              <div class="app-icon-squircle" style="background: ${app.gradient};">
+                ${app.icon}
+              </div>
+              <div class="editor-header-text">
+                <div class="app-card-title">${app.name}</div>
+                <div class="app-card-subtitle">${app.subtitle || app.description}</div>
+              </div>
+            </div>
+            <div class="editor-card-meta">
+              <span class="meta-pill"><span class="lang-dot" style="background: ${app.lang_color}"></span> ${app.language}</span>
+              <span class="meta-pill">${app.category_icon} ${app.category_name}</span>
+              ${app.has_mcp ? `<span class="badge-pill mcp-pill">⚡ MCP</span>` : ''}
+            </div>
+          </div>
+          <div class="editor-card-footer">
+            <div class="card-stat-stars">
+              <span>★</span> <span>${app.stars}</span>
+              <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">${app.pushed_at}</span>
+            </div>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button class="btn-icon-action favorite ${isFav ? 'active' : ''}" onclick="toggleFavorite('${app.name}')" title="찜하기">
+                ${isFav ? '❤️' : '🤍'}
+              </button>
+              <button class="btn-icon-action" onclick="copyCloneCmd('${app.clone_url}', '${app.name}')" title="Git Clone 복사">
+                📋
+              </button>
+              <button class="btn-appstore-get" onclick="openAppDetail(${app.id})">
+                받기
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function createRankCardHTML(app, rank) {
+      return `
+        <div class="rank-card" onclick="openAppDetail(${app.id})">
+          <div class="rank-number">${rank}</div>
+          <div class="rank-icon" style="background: ${app.gradient}; color: white;">
+            ${app.icon}
+          </div>
+          <div class="rank-info">
+            <div class="rank-title">${app.name}</div>
+            <div class="rank-desc">${app.subtitle || app.description}</div>
+          </div>
+          <button class="rank-get-btn" onclick="event.stopPropagation(); openAppDetail(${app.id})">
+            받기
+          </button>
+        </div>
+      `;
+    }
+
+    function renderCatalog() {
+      let filtered = [...ALL_APPS];
+
+      if (currentCategory === 'favorites') {
+        filtered = filtered.filter(a => favorites.includes(a.name));
+      } else if (currentCategory !== 'all' && currentCategory !== 'today') {
+        filtered = filtered.filter(a => a.category === currentCategory);
+      }
+
+      if (currentLanguage === 'MCP') {
+        filtered = filtered.filter(a => a.has_mcp);
+      } else if (currentLanguage !== 'ALL') {
+        filtered = filtered.filter(a => a.language === currentLanguage);
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter(a => 
+          a.name.toLowerCase().includes(q) ||
+          (a.title && a.title.toLowerCase().includes(q)) ||
+          (a.subtitle && a.subtitle.toLowerCase().includes(q)) ||
+          (a.description && a.description.toLowerCase().includes(q)) ||
+          (a.language && a.language.toLowerCase().includes(q)) ||
+          (q === 'mcp' && a.has_mcp) ||
+          (a.tech_stack && a.tech_stack.some(t => t.toLowerCase().includes(q)))
+        );
+      }
+
+      if (currentSort === 'pushed') {
+        filtered.sort((a, b) => b.pushed_at.localeCompare(a.pushed_at));
+      } else if (currentSort === 'stars') {
+        filtered.sort((a, b) => (b.stars || 0) - (a.stars || 0) || b.pushed_at.localeCompare(a.pushed_at));
+      } else if (currentSort === 'name') {
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (currentSort === 'created') {
+        filtered.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      }
+
+      document.getElementById('resultsCountBadge').textContent = `${filtered.length}개 앱 표시 중`;
+
+      const container = document.getElementById('appsContainer');
+      if (filtered.length === 0) {
+        container.className = '';
+        container.innerHTML = `
+          <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); grid-column: 1 / -1;">
+            <div style="font-size: 48px; margin-bottom: 12px;">🔍</div>
+            <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 6px;">일치하는 앱을 찾을 수 없습니다</h3>
+            <p>검색어나 언어 필터 조건을 변경해 보세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentViewMode === 'grid') {
+        container.className = 'apps-catalog-grid';
+        container.innerHTML = filtered.map(app => createGridCardHTML(app)).join('');
+      } else {
+        container.className = 'apps-catalog-list';
+        container.innerHTML = filtered.map(app => createListRowHTML(app)).join('');
+      }
+    }
+
+    function createGridCardHTML(app) {
+      const isFav = favorites.includes(app.name);
+      return `
+        <div class="app-card" onclick="openAppDetail(${app.id})">
+          <div>
+            <div class="app-card-top">
+              <div class="app-card-icon" style="background: ${app.gradient};">
+                ${app.icon}
+              </div>
+              <div class="app-card-info">
+                <div class="app-name">${app.name}</div>
+                <div class="app-desc">${app.subtitle || app.description}</div>
+              </div>
+            </div>
+            <div class="app-card-badges">
+              <span class="badge-pill"><span class="lang-dot" style="background: ${app.lang_color}"></span> ${app.language}</span>
+              <span class="badge-pill">${app.category_icon} ${app.category_name}</span>
+              ${app.has_mcp ? `<span class="badge-pill mcp-pill">⚡ MCP</span>` : ''}
+            </div>
+          </div>
+          <div class="app-card-bottom">
+            <div class="app-meta-left">
+              <span style="color: var(--accent-amber); font-weight: 700;">★ ${app.stars}</span>
+              <span>•</span>
+              <span>${app.pushed_at}</span>
+            </div>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button class="btn-icon-action favorite ${isFav ? 'active' : ''}" onclick="toggleFavorite('${app.name}')" title="찜하기">
+                ${isFav ? '❤️' : '🤍'}
+              </button>
+              <button class="btn-icon-action" onclick="copyCloneCmd('${app.clone_url}', '${app.name}')" title="Git Clone 복사">
+                📋
+              </button>
+              <button class="btn-appstore-get" onclick="openAppDetail(${app.id})">
+                받기
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function createListRowHTML(app) {
+      const isFav = favorites.includes(app.name);
+      return `
+        <div class="app-list-row" onclick="openAppDetail(${app.id})">
+          <div class="list-icon" style="background: ${app.gradient}; color: white;">
+            ${app.icon}
+          </div>
+          <div class="list-info">
+            <div class="list-title-group">
+              <div class="list-title">${app.name}</div>
+              <div class="list-subtitle">${app.subtitle || app.description}</div>
+            </div>
+            <div class="list-desc">${app.description}</div>
+            <div class="list-meta">
+              ${app.has_mcp ? `<span class="badge-pill mcp-pill">⚡ MCP</span>` : ''}
+              <span class="badge-pill"><span class="lang-dot" style="background: ${app.lang_color}"></span> ${app.language}</span>
+              <span class="badge-pill">${app.category_icon} ${app.category_name}</span>
+              <span style="color: var(--accent-amber); font-weight: 700; font-size: 13px;">★ ${app.stars}</span>
+            </div>
+          </div>
+          <div class="card-actions" onclick="event.stopPropagation()">
+            <button class="btn-icon-action favorite ${isFav ? 'active' : ''}" onclick="toggleFavorite('${app.name}')" title="찜하기">
+              ${isFav ? '❤️' : '🤍'}
+            </button>
+            <button class="btn-icon-action" onclick="copyCloneCmd('${app.clone_url}', '${app.name}')" title="Git Clone 복사">
+              📋
+            </button>
+            <button class="btn-appstore-get" onclick="openAppDetail(${app.id})">
+              받기
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterByLanguage(lang) {
+      currentLanguage = lang;
+      document.querySelectorAll('#langPillGroup .filter-pill').forEach(pill => {
+        if (lang === 'ALL') {
+          pill.classList.toggle('active', pill.textContent.includes('전체'));
+        } else if (lang === 'MCP') {
+          pill.classList.toggle('active', pill.textContent.includes('MCP'));
+        } else {
+          pill.classList.toggle('active', pill.textContent.includes(lang) && !pill.textContent.includes('전체'));
+        }
+      });
+      renderCatalog();
+    }
+
+    function handleSortChange(sortKey) {
+      currentSort = sortKey;
+      renderCatalog();
+    }
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      document.getElementById('viewBtnGrid').classList.toggle('active', mode === 'grid');
+      document.getElementById('viewBtnList').classList.toggle('active', mode === 'list');
+      renderCatalog();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val;
+      if (currentCategory === 'today' && val.trim().length > 0) {
+        switchCategory('all');
+      } else {
+        renderCatalog();
+      }
+    }
+
+    function openAppDetail(appId) {
+      const app = ALL_APPS.find(a => a.id === appId);
+      if (!app) return;
+      currentActiveApp = app;
+
+      const iconElem = document.getElementById('modalIcon');
+      iconElem.textContent = app.icon;
+      iconElem.style.background = app.gradient;
+      document.getElementById('modalTitle').textContent = app.name;
+      document.getElementById('modalSubtitle').textContent = app.subtitle || app.description;
+      document.getElementById('modalCategoryBadge').textContent = `${app.category_icon} ${app.category_name}`;
+      document.getElementById('modalGithubLink').href = app.html_url;
+
+      document.getElementById('modalStars').textContent = `★ ${app.stars}`;
+      document.getElementById('modalLang').textContent = app.language;
+      document.getElementById('modalPushed').textContent = app.pushed_at;
+
+      updateModalFavButton(app.name);
+      populateMockup(app);
+
+      document.getElementById('modalDescription').textContent = app.description;
+      
+      const featContainer = document.getElementById('modalFeaturesList');
+      featContainer.innerHTML = (app.features || []).map(f => `
+        <li class="feature-item">
+          <span class="feature-icon">✔</span>
+          <span>${f}</span>
+        </li>
+      `).join('');
+
+      const techContainer = document.getElementById('modalTechStack');
+      techContainer.innerHTML = (app.tech_stack || [app.language]).map(t => `
+        <span class="tech-pill">${t}</span>
+      `).join('');
+
+      const similar = ALL_APPS.filter(a => a.category === app.category && a.id !== app.id).slice(0, 3);
+      const simContainer = document.getElementById('modalSimilarApps');
+      simContainer.innerHTML = similar.map((sim, idx) => createRankCardHTML(sim, idx + 1)).join('');
+
+      document.getElementById('appDetailModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function openAppDetailByName(name) {
+      const app = ALL_APPS.find(a => a.name.toLowerCase() === name.toLowerCase());
+      if (app) openAppDetail(app.id);
+    }
+
+    function populateMockup(app) {
+      document.getElementById('mockupWindowTitle').textContent = `${app.name.toLowerCase()} — dev@workspace`;
+      const body = document.getElementById('mockupBody');
+
+      let cmdOutput = '';
+      if (app.language === 'Go') {
+        cmdOutput = `
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">git clone ${app.clone_url}</span></div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">cd ${app.name} &amp;&amp; go build -o bin/${app.name} ./...</span></div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">./bin/${app.name} --config=./config.yaml</span></div>
+          <div class="terminal-output">
+            <span class="terminal-success">[INFO]</span> Initializing ${app.name} service v1.0.0...<br>
+            <span class="terminal-success">[INFO]</span> Loading engine components &amp; routes... [OK]<br>
+            <span class="terminal-highlight">[SERVER]</span> Ready and listening on http://localhost:8080 🚀<br>
+            <span class="terminal-success">[AUDIT]</span> Session integrity checked. Hash chain verified.
+          </div>
+        `;
+      } else if (app.language === 'TypeScript' || app.language === 'JavaScript') {
+        cmdOutput = `
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">git clone ${app.clone_url}</span></div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">cd ${app.name} &amp;&amp; pnpm install</span></div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">pnpm dev</span></div>
+          <div class="terminal-output">
+            <span class="terminal-success">Ready in 320ms</span><br>
+            - Local: <span class="terminal-highlight">http://localhost:3000</span><br>
+            - Network: <span class="terminal-highlight">http://192.168.0.42:3000</span><br>
+            <span class="terminal-success">[AI AGENT]</span> Connected to runtime context. Model ready.
+          </div>
+        `;
+      } else if (app.language === 'C++') {
+        cmdOutput = `
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">git clone ${app.clone_url}</span></div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">cd ${app.name} &amp;&amp; gn gen out/Default &amp;&amp; ninja -C out/Default naviq</span></div>
+          <div class="terminal-output">
+            [1/142] LINK naviq.exe<br>
+            <span class="terminal-success">[Naviq Core]</span> Starting Chromium AI-Native Browser engine...<br>
+            <span class="terminal-highlight">[Agent Tab]</span> Initialized agent tab bridge &amp; audit sandbox.
+          </div>
+        `;
+      } else {
+        cmdOutput = `
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">git clone ${app.clone_url}</span></div>
+          <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">cd ${app.name} &amp;&amp; make run</span></div>
+          <div class="terminal-output">
+            <span class="terminal-success">[SUCCESS]</span> ${app.name} operational.<br>
+            <span class="terminal-highlight">[INFO]</span> Listening for incoming requests.
+          </div>
+        `;
+      }
+
+      body.innerHTML = cmdOutput;
+    }
+
+    function closeModal() {
+      document.getElementById('appDetailModal').classList.remove('open');
+      document.body.style.overflow = '';
+      currentActiveApp = null;
+    }
+
+    function closeModalOnBackdrop(e) {
+      if (e.target.id === 'appDetailModal') {
+        closeModal();
+      }
+    }
+
+    function copyCloneCmd(cloneUrl, name) {
+      const cmd = `git clone ${cloneUrl}`;
+      navigator.clipboard.writeText(cmd).then(() => {
+        showToast(`📋 '${name}' 클론 명령어가 복사되었습니다: ${cmd}`);
+      });
+    }
+
+    function copyModalCloneCmd() {
+      if (currentActiveApp) {
+        copyCloneCmd(currentActiveApp.clone_url, currentActiveApp.name);
+      }
+    }
+
+    function toggleFavorite(appName) {
+      const idx = favorites.indexOf(appName);
+      if (idx > -1) {
+        favorites.splice(idx, 1);
+        showToast(`🤍 '${appName}' 찜 목록에서 제거되었습니다.`);
+      } else {
+        favorites.push(appName);
+        showToast(`❤️ '${appName}' 찜 목록에 추가되었습니다!`);
+      }
+      localStorage.setItem('appstore_favorites', JSON.stringify(favorites));
+      updateFavoriteCount();
+      renderTodayView();
+      if (currentCategory === 'favorites' || currentCategory !== 'today') {
+        renderCatalog();
+      }
+      if (currentActiveApp && currentActiveApp.name === appName) {
+        updateModalFavButton(appName);
+      }
+    }
+
+    function toggleModalFavorite() {
+      if (currentActiveApp) {
+        toggleFavorite(currentActiveApp.name);
+      }
+    }
+
+    function updateModalFavButton(appName) {
+      const isFav = favorites.includes(appName);
+      const icon = document.getElementById('modalFavIcon');
+      if (icon) icon.textContent = isFav ? '❤️' : '🤍';
+    }
+
+    function updateFavoriteCount() {
+      const badge = document.getElementById('fav-count-badge');
+      if (badge) badge.textContent = favorites.length;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        html.classList.add('light');
+        localStorage.setItem('appstore_theme', 'light');
+      } else {
+        html.classList.remove('light');
+        html.classList.add('dark');
+        localStorage.setItem('appstore_theme', 'dark');
+      }
+    }
+
+    if (localStorage.getItem('appstore_theme') === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+  </script>
+</body>
+</html>
