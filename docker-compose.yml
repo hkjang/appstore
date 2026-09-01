@@ -1,0 +1,34 @@
+name: appstore
+
+services:
+  appstore:
+    image: appstore:${APPSTORE_VERSION:-v2.0.0}
+    build:
+      context: .
+      args:
+        VERSION: ${APPSTORE_VERSION:-v2.0.0}
+        COMMIT: ${APPSTORE_COMMIT:-local}
+        BUILD_DATE: ${APPSTORE_BUILD_DATE:-unknown}
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_DSN: ${POSTGRES_DSN:?POSTGRES_DSN is required}
+      BOOTSTRAP_ADMIN: ${BOOTSTRAP_ADMIN:?BOOTSTRAP_ADMIN is required}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?BOOTSTRAP_ADMIN_PASSWORD is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "2", "-O", "/dev/null", "http://127.0.0.1:8080/health/ready"]
+      interval: 30s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+    stop_grace_period: 20s

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AppStore 오프라인 설치 가이드 — Docker tar.gz 반입</title>
+    <meta name="description" content="appstore-v버전.tar.gz를 폐쇄망으로 반입해 docker load하고 네 환경변수로 non-root AppStore 서비스를 실행하는 절차입니다.">
+    <meta name="robots" content="index,follow"><link rel="canonical" href="https://hkjang.github.io/appstore/guides/offline/">
+    <link rel="icon" href="../../assets/brand/appstore-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="../../assets/site.css">
+    <meta property="og:type" content="article"><meta property="og:title" content="AppStore 오프라인 설치 가이드"><meta property="og:description" content="Docker image tar.gz 반입, 환경 설정, 상태 확인과 최초 관리자 구성"><meta property="og:url" content="https://hkjang.github.io/appstore/guides/offline/"><meta property="og:image" content="https://hkjang.github.io/appstore/assets/brand/appstore-og.svg">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"AppStore 오프라인 설치","description":"릴리스 Docker image archive를 폐쇄망에 설치하는 절차","inLanguage":"ko-KR","totalTime":"PT30M","step":[{"@type":"HowToStep","name":"선행조건 준비","text":"폐쇄망 Docker host와 PostgreSQL을 준비합니다."},{"@type":"HowToStep","name":"archive 검증과 load","text":"SHA-256을 확인한 뒤 gzip과 docker load로 appstore:v버전을 불러옵니다."},{"@type":"HowToStep","name":"네 환경변수 설정","text":"POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY를 설정합니다."},{"@type":"HowToStep","name":"서비스 시작과 상태 확인","text":"non-root container를 시작하고 /health/ready와 /api/version을 확인합니다."}]}</script>
+  </head>
+  <body>
+    <a class="skip-link" href="#guide">본문으로 건너뛰기</a>
+    <header class="site-header"><div class="header-inner"><a class="brand" href="../../"><img src="../../assets/brand/appstore-mark.svg" alt="" width="38" height="38"><span>AppStore</span></a><button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-navigation">메뉴</button><nav class="site-nav" id="site-navigation" data-site-nav data-open="false" aria-label="가이드 메뉴"><a href="../user/">사용자</a><a href="../admin/">관리자</a><a href="./" aria-current="page">오프라인 설치</a><a href="../upgrade/">업그레이드</a><a href="../backup/">백업</a></nav></div></header>
+    <main id="guide">
+      <header class="section guide-hero"><span class="eyebrow">AIR-GAPPED INSTALLATION</span><h1>tar.gz 한 개로 AppStore 서비스를 폐쇄망에 반입하기</h1><p class="lead">릴리스에는 AppStore 서비스 이미지만 포함됩니다. React UI, Go 서버, 마이그레이션과 초기 카탈로그는 이미지 안에 있으며 PostgreSQL은 폐쇄망에서 별도로 준비합니다.</p></header>
+      <div class="section compact guide-layout">
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#scope">포함 범위</a><a href="#prerequisites">선행조건</a><a href="#transfer">반입·검증</a><a href="#environment">환경변수</a><a href="#run">서비스 실행</a><a href="#compose">Compose</a><a href="#first-login">최초 설정</a><a href="#verify">검증</a><a href="#troubleshoot">문제 해결</a></aside>
+        <article class="guide-content">
+          <section id="scope"><h2>1. 릴리스 포함 범위</h2>
+            <div class="grid two"><article class="card"><h3>포함</h3><ul><li><code>appstore:vX.Y.Z</code> Linux/AMD64 image</li><li>React 정적 자산과 SPA fallback</li><li>Go API, OIDC, SSE와 MCP 서버</li><li>PostgreSQL migration과 초기 seed</li><li>공개 CA와 timezone database</li></ul></article><article class="card"><h3>미포함</h3><ul><li>PostgreSQL image와 데이터</li><li>Keycloak image와 realm</li><li>AI model 또는 provider image</li><li>reverse proxy, DNS와 조직 인증서</li><li>실제 운영 secret</li></ul></article></div>
+            <div class="callout"><strong>v2.0.0 파일 규칙:</strong> custom asset은 <code>appstore-v2.0.0.tar.gz</code>이고, load 후 image는 <code>appstore:v2.0.0</code>입니다.</div>
+          </section>
+          <section id="prerequisites"><h2>2. 선행조건</h2>
+            <ul><li>Linux/AMD64 Docker Engine과 서비스 운영 권한</li><li>접근 가능한 PostgreSQL database와 schema 변경 권한</li><li>container에서 PostgreSQL을 찾을 수 있는 내부 DNS·network</li><li>SSO 사용 시 폐쇄망 Keycloak Issuer와 TLS 신뢰 체계</li><li>AI 사용 시 폐쇄망 OpenAI-compatible, vLLM, Ollama 또는 Custom endpoint</li><li>조직 reverse proxy, HTTPS 인증서와 서비스 FQDN</li></ul>
+            <p>AppStore는 시작할 때 embedded migration을 PostgreSQL advisory lock 아래 자동 적용합니다.</p>
+          </section>
+          <section id="transfer"><h2>3. archive 반입과 검증</h2>
+            <ol class="steps">
+              <li><strong>온라인 구간에서 custom asset을 받습니다.</strong><br><code>appstore-v2.0.0.tar.gz</code>로 표기됩니다. GitHub의 자동 Source code archive와 혼동하지 않습니다.</li>
+              <li><strong>릴리스 본문의 SHA-256과 비교합니다.</strong><pre><code>sha256sum appstore-v2.0.0.tar.gz</code></pre></li>
+              <li><strong>승인된 매체로 폐쇄망에 반입합니다.</strong><br>조직의 악성코드 검사, 반입 결재와 매체 폐기 정책을 따릅니다.</li>
+              <li><strong>gzip과 Docker manifest를 확인하고 load합니다.</strong><pre><code>gzip -t appstore-v2.0.0.tar.gz
+gzip -dc appstore-v2.0.0.tar.gz | docker load
+docker image inspect appstore:v2.0.0 \
+  --format '{{.RepoTags}} user={{.Config.User}} version={{index .Config.Labels "org.opencontainers.image.version"}}'</code></pre></li>
+            </ol>
+            <p>검사 결과에는 <code>appstore:v2.0.0</code>, non-root 사용자 <code>appstore:appstore</code>, 동일한 OCI version label이 보여야 합니다.</p>
+          </section>
+          <section id="environment"><h2>4. 네 환경변수 준비</h2>
+            <p>예제 파일을 복사하고 권한을 제한합니다. 다음 네 이름 외의 서비스 설정은 환경변수로 전달하지 않습니다.</p>
+            <pre><code>install -m 600 .env.example appstore.env
+openssl rand -base64 32
+
+# appstore.env
+POSTGRES_DSN=postgres://appstore:ENCODED_PASSWORD@postgres.internal:5432/appstore?sslmode=require
+BOOTSTRAP_ADMIN=admin
+BOOTSTRAP_ADMIN_PASSWORD=replace-with-a-long-random-password
+ENCRYPTION_KEY=replace-with-the-generated-32-byte-base64-value</code></pre>
+            <div class="table-wrap"><table><thead><tr><th>이름</th><th>용도</th><th>검증</th></tr></thead><tbody><tr><td><code>POSTGRES_DSN</code></td><td>유일한 영속 database 연결</td><td>password 특수문자는 URL encode, TLS 권장</td></tr><tr><td><code>BOOTSTRAP_ADMIN</code></td><td>최초·복구 관리자 식별자</td><td>공유 계정 금지</td></tr><tr><td><code>BOOTSTRAP_ADMIN_PASSWORD</code></td><td>Bootstrap 로그인 원문</td><td>최소 12자, 장기 random 값</td></tr><tr><td><code>ENCRYPTION_KEY</code></td><td>OIDC·AI 등 DB secret 암호화</td><td>32 raw byte/64 hex/base64 32 byte</td></tr></tbody></table></div>
+            <div class="callout warning"><strong>보관:</strong> env 파일은 image나 source에 넣지 말고 host 관리자만 읽게 합니다. <code>ENCRYPTION_KEY</code>는 database backup과 다른 승인 저장소에도 복구 사본을 보관합니다.</div>
+          </section>
+          <section id="run"><h2>5. Docker로 실행</h2>
+            <pre><code>docker run -d \
+  --name appstore \
+  --restart unless-stopped \
+  --read-only \
+  --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --env-file ./appstore.env \
+  -p 127.0.0.1:8080:8080 \
+  appstore:v2.0.0</code></pre>
+            <p>외부 공개가 필요하면 reverse proxy가 <code>127.0.0.1:8080</code>에 연결하도록 구성합니다. Go 서버의 내부 listen port는 8080으로 고정됩니다.</p>
+            <pre><code>docker logs --tail 100 appstore
+curl --fail http://127.0.0.1:8080/health/live
+curl --fail http://127.0.0.1:8080/health/ready
+curl --fail http://127.0.0.1:8080/api/version</code></pre>
+            <p><code>/health/live</code>는 process 응답, <code>/health/ready</code>는 database와 migration 준비 상태입니다. load balancer는 ready endpoint를 사용합니다.</p>
+          </section>
+          <section id="compose"><h2>6. Docker Compose로 실행</h2>
+            <p><code>docker-compose.yml</code>은 PostgreSQL을 번들하지 않고 외부 DSN을 사용합니다. <code>APPSTORE_VERSION</code>은 Compose가 image tag를 고르는 host-side 치환 값이며 application container에는 전달되지 않습니다.</p>
+            <pre><code>cp .env.example .env
+chmod 600 .env
+APPSTORE_VERSION=v2.0.0 docker compose up -d --no-build
+docker compose ps
+docker compose logs --tail 100 appstore</code></pre>
+            <p><code>--no-build</code>는 registry나 build dependency를 찾지 않고 이미 load한 image만 사용하도록 보장합니다. Application 환경에는 승인된 네 값만 전달됩니다.</p>
+          </section>
+          <section id="first-login"><h2>7. 최초 관리자 설정</h2>
+            <ol><li>서비스 로그인 화면에서 Bootstrap 계정으로 로그인합니다.</li><li><strong>Admin → Settings</strong>에서 사이트 이름과 사용자에게 표시할 서비스 URL을 저장합니다.</li><li><strong>Admin → Authentication</strong>에서 Keycloak Issuer, Client ID와 Secret을 입력하고 연결 시험을 실행합니다.</li><li>role/group mapping 후 별도 SSO 관리자 계정으로 <code>/admin</code> 접근을 시험합니다.</li><li>Workflow 기본값 OFF, API·MCP 익명 정책과 Key 수명주기를 확인합니다.</li><li>AI를 사용할 때만 내부 Provider와 모델 limit을 추가합니다.</li></ol>
+          </section>
+          <section id="verify"><h2>8. 오프라인 Acceptance 점검</h2>
+            <ul><li>외부 인터넷 route를 차단해도 <code>/</code>, <code>/apps</code>와 상세 화면 자산이 깨지지 않습니다.</li><li><code>/admin/users</code> 직접 접근과 새로고침이 같은 화면을 반환합니다.</li><li>익명 사용자는 관리자 API에 접근할 수 없고 일반 사용자는 403을 받습니다.</li><li>OIDC discovery는 폐쇄망 Keycloak으로만 요청되고 Secret은 재조회되지 않습니다.</li><li>AI streaming 중 browser를 닫으면 upstream 요청이 취소됩니다.</li><li><code>262144</code> token 값 저장과 provider/model limit 적용을 확인합니다.</li><li>로그인과 profile menu의 version이 image tag와 일치합니다.</li></ul>
+          </section>
+          <section id="troubleshoot"><h2>9. 문제 해결</h2>
+            <div class="table-wrap"><table><thead><tr><th>증상</th><th>원인·조치</th></tr></thead><tbody><tr><td>Container 즉시 종료</td><td>누락 env, password 길이, ENCRYPTION_KEY 형식 확인</td></tr><tr><td>ready만 실패</td><td>PostgreSQL DNS, port, TLS, 권한과 migration 확인</td></tr><tr><td>SSO discovery 실패</td><td>Issuer realm 경로, 내부 DNS, 인증서 chain과 egress 확인</td></tr><tr><td>새 route가 404</td><td>reverse proxy가 모든 비-API route를 Go 서버에 전달하는지 확인</td></tr><tr><td>Secret 복호화 실패</td><td>backup과 짝을 이루는 원래 ENCRYPTION_KEY인지 확인</td></tr></tbody></table></div>
+            <p>지원 요청에는 version endpoint, 발생 시각, Request ID와 redacted log를 포함합니다. DSN, password, token과 Secret은 제외합니다.</p>
+          </section>
+        </article>
+      </div>
+    </main>
+    <footer class="site-footer"><div class="footer-inner"><span>AppStore 오프라인 설치 가이드</span><nav class="footer-links" aria-label="다음 가이드"><a href="../upgrade/">업그레이드</a><a href="../backup/">백업</a><a href="../../">안내 홈</a></nav></div></footer>
+    <script src="../../assets/site.js" defer></script>
+  </body>
+</html>

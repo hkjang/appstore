@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AppStore — 오프라인 사내 개발자 앱 카탈로그</title>
+    <meta name="description" content="AppStore는 공개 탐색, Keycloak SSO 앱 등록, 선택형 승인, 개인 API Key 회전, MCP와 AI 스트리밍을 제공하는 오프라인 운영형 사내 앱 카탈로그입니다.">
+    <meta name="theme-color" content="#3157d5">
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    <link rel="canonical" href="https://hkjang.github.io/appstore/">
+    <link rel="alternate" hreflang="ko" href="https://hkjang.github.io/appstore/">
+    <link rel="alternate" hreflang="x-default" href="https://hkjang.github.io/appstore/">
+    <link rel="icon" href="./assets/brand/appstore-mark.svg" type="image/svg+xml">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="stylesheet" href="./assets/site.css">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="og:site_name" content="AppStore">
+    <meta property="og:title" content="AppStore — 오프라인 사내 개발자 앱 카탈로그">
+    <meta property="og:description" content="보는 것은 자유롭게, 등록부터는 SSO로. 앱·API·MCP·AI를 한 곳에서 안전하게 운영하세요.">
+    <meta property="og:url" content="https://hkjang.github.io/appstore/">
+    <meta property="og:image" content="https://hkjang.github.io/appstore/assets/brand/appstore-og.svg">
+    <meta property="og:image:alt" content="AppStore의 오프라인 운영, SSO, API, MCP, AI 기능 소개">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AppStore — 오프라인 사내 개발자 앱 카탈로그">
+    <meta name="twitter:description" content="공개 탐색과 SSO 기반 셀프서비스 앱 등록을 하나의 오프라인 서비스로 제공합니다.">
+    <meta name="twitter:image" content="https://hkjang.github.io/appstore/assets/brand/appstore-og.svg">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://hkjang.github.io/appstore/#website",
+            "url": "https://hkjang.github.io/appstore/",
+            "name": "AppStore",
+            "inLanguage": "ko-KR",
+            "description": "오프라인 운영 가능한 사내 개발자 앱 카탈로그"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://hkjang.github.io/appstore/#application",
+            "name": "AppStore",
+            "url": "https://hkjang.github.io/appstore/",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Docker-compatible Linux",
+            "browserRequirements": "JavaScript를 지원하는 최신 웹 브라우저",
+            "description": "공개 앱 탐색, Keycloak OIDC 기반 등록, 선택형 승인 워크플로, API Key, REST API, MCP와 AI 스트리밍을 제공하는 오프라인 운영형 앱 카탈로그",
+            "featureList": [
+              "비로그인 앱 탐색과 검색",
+              "Keycloak OIDC SSO",
+              "선택형 팀장 검토와 승인",
+              "개인 API Key 발급과 회전",
+              "REST API와 MCP",
+              "SSE 기반 AI 스트리밍",
+              "오프라인 Docker 이미지 배포"
+            ],
+            "isAccessibleForFree": true,
+            "softwareHelp": { "@id": "https://hkjang.github.io/appstore/#help" }
+          },
+          {
+            "@type": "CreativeWork",
+            "@id": "https://hkjang.github.io/appstore/#help",
+            "name": "AppStore 사용자 및 관리자 가이드",
+            "url": "https://hkjang.github.io/appstore/guides/user/",
+            "inLanguage": "ko-KR"
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://hkjang.github.io/appstore/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "AppStore란 무엇인가요?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "AppStore는 사내 애플리케이션을 누구나 탐색하고, 인증된 사용자가 등록·관리하며, 선택적으로 검토·승인할 수 있는 오프라인 운영형 개발자 앱 카탈로그입니다."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "인터넷이 차단된 환경에서도 운영할 수 있나요?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "가능합니다. GitHub Release의 appstore-v버전.tar.gz를 반입해 docker load로 설치하며, UI 자산과 데이터베이스 마이그레이션은 서비스 이미지에 포함됩니다. PostgreSQL과 선택적 Keycloak·AI 공급자는 폐쇄망 내부에서 별도로 제공해야 합니다."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "일반 사용자는 로그인해야 하나요?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "아닙니다. 앱 탐색, 검색, 상세 확인은 비로그인으로 사용할 수 있습니다. 앱 등록, 개인화, API Key, 검토, 관리 기능을 이용할 때만 인증합니다."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "앱 등록 승인은 항상 필요한가요?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "아닙니다. 승인 워크플로의 기본값은 꺼짐이며 앱은 즉시 게시됩니다. 관리자가 활성화한 경우에만 팀장 또는 Reviewer의 승인·반려 절차가 적용됩니다."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "실행에 필요한 환경변수는 무엇인가요?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "애플리케이션은 POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY 네 가지 환경변수만 읽습니다. OIDC, AI, API, MCP, 워크플로와 서비스 URL은 관리자 화면에서 설정합니다."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="./" aria-label="AppStore 소개 홈">
+          <img src="./assets/brand/appstore-mark.svg" alt="" width="38" height="38">
+          <span>AppStore</span>
+        </a>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-navigation">메뉴</button>
+        <nav class="site-nav" id="site-navigation" data-site-nav data-open="false" aria-label="주요 안내">
+          <a href="#features">기능</a>
+          <a href="#screens">화면</a>
+          <a href="#faq">FAQ</a>
+          <a href="./guides/user/">사용자 가이드</a>
+          <a href="./guides/admin/">관리자 가이드</a>
+          <a href="./guides/offline/">오프라인 설치</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="section hero" aria-labelledby="hero-title">
+        <div>
+          <span class="eyebrow">OFFLINE-READY DEVELOPER CATALOG</span>
+          <h1 id="hero-title">보는 것은 자유롭게,<br>등록부터는 안전하게.</h1>
+          <p class="lead">AppStore는 사내 앱을 누구나 발견하고 실행할 수 있게 하면서, 등록·승인·Key·AI·API·MCP 관리는 SSO와 권한으로 분리하는 셀프서비스 플랫폼입니다.</p>
+          <div class="actions">
+            <a class="button primary" href="./guides/user/">사용 방법 보기</a>
+            <a class="button" href="./guides/offline/">폐쇄망 설치 안내</a>
+          </div>
+        </div>
+        <figure class="hero-visual">
+          <a href="./assets/screenshots/captures/today-desktop.webp" aria-label="AppStore Today 전체 화면 WebP 열기"><img class="capture-preview" src="./assets/screenshots/captures/today-desktop.webp" width="1440" height="1689" alt="추천 배너, 검색, 카테고리와 앱 카드로 구성된 AppStore v2.0.0 공개 카탈로그" fetchpriority="high" decoding="async"></a>
+          <figcaption>v2.0.0 실제 UI · 비식별 데이터로 생성한 desktop 전체 페이지 캡처</figcaption>
+        </figure>
+      </section>
+
+      <section class="section compact" aria-label="핵심 운영 정책">
+        <div class="stat-strip">
+          <div class="stat"><strong>Anonymous</strong><span>탐색·검색·상세</span></div>
+          <div class="stat"><strong>Keycloak SSO</strong><span>등록·개인화</span></div>
+          <div class="stat"><strong>Optional</strong><span>검토·승인 워크플로</span></div>
+          <div class="stat"><strong>4 env</strong><span>최소 런타임 설정</span></div>
+        </div>
+      </section>
+
+      <section class="section" id="features" aria-labelledby="features-title">
+        <div class="section-heading">
+          <span class="pill">핵심 기능</span>
+          <h2 id="features-title">앱 카탈로그부터 Agent 연동까지</h2>
+          <p>일반 사용자, 등록자, Reviewer, 관리자의 업무 경계를 하나의 일관된 UI와 권한 모델로 제공합니다.</p>
+        </div>
+        <div class="grid">
+          <article class="card"><div class="card-icon" aria-hidden="true">01</div><h3>공개 앱 탐색</h3><p>로그인 리디렉션 없이 앱, 카테고리, 검색, 상세와 서비스 URL을 바로 확인합니다.</p></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">02</div><h3>Keycloak OIDC</h3><p>Issuer, Client ID, Client Secret만 입력하면 discovery를 통해 endpoint를 구성하고 연결을 시험합니다.</p></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">03</div><h3>선택형 승인</h3><p>기본은 즉시 게시입니다. 관리자가 켠 경우에만 팀장 검토, 승인, 반려와 재승인을 적용합니다.</p></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">04</div><h3>개인 Key 회전</h3><p>원문을 한 번만 표시하고 해시로 보관합니다. 권한 템플릿, 만료, Grace Period와 폐기를 관리합니다.</p></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">05</div><h3>REST API와 MCP</h3><p>같은 앱 카탈로그와 권한 체계를 사람, 자동화 도구와 AI Agent가 함께 사용합니다.</p></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">06</div><h3>AI Streaming</h3><p>SSE를 기본으로 즉시 출력하고 취소를 백엔드까지 전파합니다. 모델별 최대 262,144 토큰을 관리합니다.</p></article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="architecture-title">
+        <div class="section-heading">
+          <span class="pill">운영 구조</span>
+          <h2 id="architecture-title">한 개의 서비스 이미지, 명확한 외부 경계</h2>
+          <p>React SPA, REST API, OIDC, AI Streaming과 MCP를 하나의 non-root Go 이미지로 제공합니다.</p>
+        </div>
+        <div class="grid two">
+          <article class="card">
+            <h3>이미지 안에 포함</h3>
+            <ul>
+              <li>Go 서버와 React production bundle</li>
+              <li>PostgreSQL 자동 마이그레이션과 초기 앱 seed</li>
+              <li>CA 인증서, 타임존 데이터, 상태 확인 도구</li>
+              <li>버전·커밋·빌드 시각 메타데이터</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>폐쇄망에서 별도 제공</h3>
+            <ul>
+              <li>필수 PostgreSQL 데이터베이스</li>
+              <li>선택적 Keycloak OIDC 서비스</li>
+              <li>선택적 OpenAI-compatible, vLLM 또는 Ollama</li>
+              <li>조직의 TLS 종료, DNS, 백업 저장소</li>
+            </ul>
+          </article>
+        </div>
+        <div class="callout success" style="margin-top: 1rem"><strong>v2.0.0 릴리스:</strong> 이미지 이름은 <code>appstore:v2.0.0</code>, 반입 파일은 <code>appstore-v2.0.0.tar.gz</code>입니다. 이후 버전도 같은 <code>vX.Y.Z</code> 규칙을 따릅니다.</div>
+      </section>
+
+      <section class="section" id="screens" aria-labelledby="screens-title">
+        <div class="section-heading">
+          <span class="pill">제품 화면</span>
+          <h2 id="screens-title">사용자와 관리자의 맥락을 분리</h2>
+          <p>모든 이미지는 v2.0.0 실제 React 화면을 Playwright의 비식별 fixture로 캡처한 WebP입니다. 이미지를 선택하면 잘리지 않은 전체 페이지를 확인할 수 있습니다.</p>
+        </div>
+        <div class="gallery">
+          <figure class="shot"><a href="./assets/screenshots/captures/apps-desktop.webp" aria-label="공개 앱 카탈로그 전체 화면 열기"><img class="capture-preview" src="./assets/screenshots/captures/apps-desktop.webp" width="1440" height="1000" decoding="async" alt="검색과 정렬 상태가 적용된 AppStore 공개 앱 카탈로그 전체 화면"></a><figcaption>Public · 로그인 없는 탐색과 URL 기반 검색 상태</figcaption></figure>
+          <figure class="shot"><a href="./assets/screenshots/captures/app-detail-desktop.webp" aria-label="앱 상세 전체 화면 열기"><img class="capture-preview" src="./assets/screenshots/captures/app-detail-desktop.webp" width="1440" height="1000" decoding="async" alt="Agent Hub 설명과 서비스 접속 URL을 보여 주는 앱 상세 전체 화면"></a><figcaption>App Detail · 설명, 기능, 서비스 접속 URL</figcaption></figure>
+          <figure class="shot"><a href="./assets/screenshots/captures/my-keys-desktop.webp" aria-label="개인 Key 관리 전체 화면 열기"><img class="capture-preview" src="./assets/screenshots/captures/my-keys-desktop.webp" width="1440" height="1000" decoding="async" alt="개인 API 및 MCP Key 목록과 회전 작업 전체 화면"></a><figcaption>Personal · 내 앱과 API·MCP Key 회전</figcaption></figure>
+          <figure class="shot"><a href="./assets/screenshots/captures/admin-dashboard-desktop.webp" aria-label="관리자 대시보드 전체 화면 열기"><img class="capture-preview" src="./assets/screenshots/captures/admin-dashboard-desktop.webp" width="1440" height="1000" decoding="async" alt="앱과 사용자 운영 지표를 보여 주는 관리자 대시보드 전체 화면"></a><figcaption>Admin · 사용자, 설정, 감사와 운영 상태</figcaption></figure>
+          <figure class="shot"><a href="./assets/screenshots/captures/admin-authentication-desktop.webp" aria-label="OIDC 설정 전체 화면 열기"><img class="capture-preview" src="./assets/screenshots/captures/admin-authentication-desktop.webp" width="1440" height="1113" decoding="async" alt="Keycloak OIDC discovery와 역할 매핑 관리자 설정 전체 화면"></a><figcaption>Authentication · OIDC discovery와 역할 매핑</figcaption></figure>
+          <figure class="shot"><a href="./assets/screenshots/captures/today-mobile.webp" aria-label="모바일 Today 전체 화면 열기"><img class="capture-preview mobile" src="./assets/screenshots/captures/today-mobile.webp" width="1082" height="7093" decoding="async" alt="모바일 화면에 맞춘 AppStore Today 전체 페이지"></a><figcaption>Mobile · 가시성 있는 글자와 반응형 메뉴</figcaption></figure>
+        </div>
+      </section>
+
+      <section class="section" id="faq" aria-labelledby="faq-title">
+        <div class="section-heading">
+          <span class="pill">자주 묻는 질문</span>
+          <h2 id="faq-title">AppStore 빠른 답변</h2>
+        </div>
+        <div class="faq">
+          <details open><summary>AppStore란 무엇인가요?</summary><p>AppStore는 사내 애플리케이션을 누구나 탐색하고, 인증된 사용자가 등록·관리하며, 선택적으로 검토·승인할 수 있는 오프라인 운영형 개발자 앱 카탈로그입니다.</p></details>
+          <details><summary>인터넷이 차단된 환경에서도 운영할 수 있나요?</summary><p>가능합니다. GitHub Release의 <code>appstore-v버전.tar.gz</code>를 반입해 <code>docker load</code>로 설치하며, UI 자산과 데이터베이스 마이그레이션은 서비스 이미지에 포함됩니다. PostgreSQL과 선택적 Keycloak·AI 공급자는 폐쇄망 내부에서 별도로 제공해야 합니다.</p></details>
+          <details><summary>일반 사용자는 로그인해야 하나요?</summary><p>아닙니다. 앱 탐색, 검색, 상세 확인은 비로그인으로 사용할 수 있습니다. 앱 등록, 개인화, API Key, 검토, 관리 기능을 이용할 때만 인증합니다.</p></details>
+          <details><summary>앱 등록 승인은 항상 필요한가요?</summary><p>아닙니다. 승인 워크플로의 기본값은 꺼짐이며 앱은 즉시 게시됩니다. 관리자가 활성화한 경우에만 팀장 또는 Reviewer의 승인·반려 절차가 적용됩니다.</p></details>
+          <details><summary>실행에 필요한 환경변수는 무엇인가요?</summary><p>애플리케이션은 <code>POSTGRES_DSN</code>, <code>BOOTSTRAP_ADMIN</code>, <code>BOOTSTRAP_ADMIN_PASSWORD</code>, <code>ENCRYPTION_KEY</code> 네 가지 환경변수만 읽습니다. OIDC, AI, API, MCP, 워크플로와 서비스 URL은 관리자 화면에서 설정합니다.</p></details>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <div class="card" style="text-align: center; padding: 2.25rem">
+          <h2>역할에 맞는 가이드에서 시작하세요</h2>
+          <p>앱을 찾고 등록하려면 사용자 가이드, SSO와 운영 정책을 구성하려면 관리자 가이드를 확인하세요.</p>
+          <div class="actions" style="justify-content: center">
+            <a class="button primary" href="./guides/user/">사용자 가이드</a>
+            <a class="button" href="./guides/admin/">관리자 가이드</a>
+            <a class="button" href="./guides/offline/">오프라인 설치</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>© <span data-current-year>2026</span> AppStore · 오프라인 운영형 개발자 카탈로그</span>
+        <nav class="footer-links" aria-label="보조 안내">
+          <a href="./guides/upgrade/">업그레이드</a>
+          <a href="./guides/backup/">백업</a>
+          <a href="./guides/release/">릴리스</a>
+        </nav>
+      </div>
+    </footer>
+    <script src="./assets/site.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+# AppStore
+
+> AppStore is an offline-ready internal developer application catalog built as a single Go and React service image.
+
+Canonical documentation: https://hkjang.github.io/appstore/
+Primary language: Korean (ko-KR)
+
+## Direct answer
+
+AppStore lets anyone browse, search, and open published internal applications without login. Keycloak OIDC authentication begins only when a user submits or manages an app, creates an API or MCP key, reviews a submission, or enters the administrator area. Approval workflow is disabled by default and is applied only when an administrator enables it.
+
+## Runtime contract
+
+- Required database: PostgreSQL reachable inside the deployment network.
+- Optional integrations: Keycloak OIDC and internal AI providers.
+- Application environment variables: POSTGRES_DSN, BOOTSTRAP_ADMIN, BOOTSTRAP_ADMIN_PASSWORD, ENCRYPTION_KEY only.
+- Fixed HTTP port: 8080.
+- Health endpoints: /health/live and /health/ready.
+- Version endpoint: /api/version.
+- Release image: appstore:vX.Y.Z.
+- Offline archive: appstore-vX.Y.Z.tar.gz.
+
+## Documentation
+
+- User guide: https://hkjang.github.io/appstore/guides/user/
+- Administrator guide: https://hkjang.github.io/appstore/guides/admin/
+- Offline installation: https://hkjang.github.io/appstore/guides/offline/
+- Upgrade and rollback: https://hkjang.github.io/appstore/guides/upgrade/
+- Backup and restore: https://hkjang.github.io/appstore/guides/backup/
+- Release process: https://hkjang.github.io/appstore/guides/release/
+
+Do not infer that PostgreSQL, Keycloak, or AI provider images are bundled with an AppStore release. Only the AppStore service image is uploaded as a custom GitHub Release asset.

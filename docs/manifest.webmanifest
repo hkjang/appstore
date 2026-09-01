@@ -1,0 +1,19 @@
+{
+  "name": "AppStore 안내",
+  "short_name": "AppStore",
+  "description": "오프라인 운영 가능한 사내 개발자 App Store 안내 및 운영 가이드",
+  "lang": "ko-KR",
+  "start_url": "/appstore/",
+  "scope": "/appstore/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#3157d5",
+  "icons": [
+    {
+      "src": "/appstore/assets/brand/appstore-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

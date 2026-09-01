@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AppStore 사용자 가이드 — 탐색, 앱 등록, 개인 Key</title>
+    <meta name="description" content="AppStore에서 로그인 없이 앱을 탐색하고, SSO로 앱을 등록하며, 개인 API·MCP Key를 발급·회전·폐기하는 방법을 안내합니다.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://hkjang.github.io/appstore/guides/user/">
+    <link rel="icon" href="../../assets/brand/appstore-mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../../assets/site.css">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="AppStore 사용자 가이드">
+    <meta property="og:description" content="공개 탐색, SSO 앱 등록, 내 앱과 개인 Key 관리 안내">
+    <meta property="og:url" content="https://hkjang.github.io/appstore/guides/user/">
+    <meta property="og:image" content="https://hkjang.github.io/appstore/assets/brand/appstore-og.svg">
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"TechArticle","headline":"AppStore 사용자 가이드","inLanguage":"ko-KR","description":"공개 앱 탐색, SSO 앱 등록, 개인 API Key와 MCP Key 관리 방법","mainEntityOfPage":"https://hkjang.github.io/appstore/guides/user/","isPartOf":{"@type":"WebSite","name":"AppStore","url":"https://hkjang.github.io/appstore/"}}
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#guide">본문으로 건너뛰기</a>
+    <header class="site-header"><div class="header-inner">
+      <a class="brand" href="../../"><img src="../../assets/brand/appstore-mark.svg" alt="" width="38" height="38"><span>AppStore</span></a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-navigation">메뉴</button>
+      <nav class="site-nav" id="site-navigation" data-site-nav data-open="false" aria-label="가이드 메뉴">
+        <a href="./" aria-current="page">사용자</a><a href="../admin/">관리자</a><a href="../offline/">오프라인 설치</a><a href="../upgrade/">업그레이드</a><a href="../backup/">백업</a>
+      </nav>
+    </div></header>
+
+    <main id="guide">
+      <header class="section guide-hero">
+        <span class="eyebrow">USER GUIDE</span>
+        <h1>앱을 찾고, 등록하고, 내 Key를 안전하게 관리하기</h1>
+        <p class="lead">탐색은 로그인 없이 시작합니다. 본인 소유의 앱과 자격 증명을 다루는 순간에만 조직 SSO로 인증합니다.</p>
+      </header>
+      <div class="section compact guide-layout">
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong>
+          <a href="#access">접근 정책</a><a href="#browse">탐색과 검색</a><a href="#signin">SSO 로그인</a><a href="#submit">앱 등록</a><a href="#workflow">검토 상태</a><a href="#personal">개인화</a><a href="#keys">API·MCP Key</a><a href="#clients">API·MCP·AI 사용</a><a href="#errors">문제 해결</a>
+        </aside>
+        <article class="guide-content">
+          <section id="access"><h2>1. 접근 정책</h2>
+            <p>AppStore는 URL을 인증 경계로 사용합니다. 브라우저 새로고침이나 주소 직접 입력 후에도 같은 메뉴와 필터가 유지됩니다.</p>
+            <div class="table-wrap"><table><thead><tr><th>영역</th><th>로그인</th><th>대표 경로</th></tr></thead><tbody>
+              <tr><td>앱 탐색·검색·상세</td><td>불필요</td><td><code>/apps</code>, <code>/apps/:slug</code></td></tr>
+              <tr><td>즐겨찾기</td><td>불필요, 현재 브라우저에 저장</td><td><code>/favorites</code></td></tr>
+              <tr><td>앱 등록·내 앱·개인 Key</td><td>SSO 필요</td><td><code>/submit</code>, <code>/my/*</code></td></tr>
+              <tr><td>검토</td><td>SSO + Reviewer 권한</td><td><code>/review</code></td></tr>
+              <tr><td>서비스 관리</td><td>SSO + Admin 권한</td><td><code>/admin/*</code></td></tr>
+            </tbody></table></div>
+          </section>
+
+          <section id="browse"><h2>2. 탐색과 검색</h2>
+            <ol class="steps">
+              <li><strong>Today 또는 Apps를 엽니다.</strong><br>Today에는 추천·트렌딩 앱, Apps에는 전체 공개 카탈로그가 표시됩니다.</li>
+              <li><strong>검색어와 필터를 선택합니다.</strong><br>검색어, 카테고리, 언어, MCP 지원, 정렬과 페이지가 URL query에 기록됩니다.</li>
+              <li><strong>앱 카드를 엽니다.</strong><br>설명, 버전, 기술 정보, API·MCP 지원 여부와 관리자가 승인한 서비스 접속 URL을 확인합니다.</li>
+              <li><strong>즐겨찾기를 선택합니다.</strong><br>비로그인 즐겨찾기는 현재 브라우저의 Local Storage에 보관되므로 브라우저 데이터를 삭제하면 함께 사라집니다.</li>
+            </ol>
+            <figure class="shot"><a href="../../assets/screenshots/captures/apps-desktop.webp" aria-label="공개 앱 카탈로그 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/apps-desktop.webp" width="1440" height="1000" decoding="async" alt="검색어와 정렬 상태가 URL에 유지된 공개 앱 카탈로그 전체 화면"></a><figcaption>v2.0.0 실제 화면입니다. 새로고침해도 URL의 검색 상태가 유지됩니다.</figcaption></figure>
+          </section>
+
+          <section id="signin"><h2>3. SSO 로그인</h2>
+            <p><strong>앱 등록</strong>, <strong>내 페이지</strong> 또는 권한이 필요한 기능을 선택하면 로그인 안내 화면이 열립니다. 화면 하단에서 서비스 버전을 확인할 수 있습니다.</p>
+            <ol>
+              <li><strong>회사 계정으로 로그인</strong>을 선택합니다.</li>
+              <li>Keycloak에서 조직 계정으로 인증합니다.</li>
+              <li>인증이 끝나면 처음 요청했던 경로로 돌아옵니다. 예를 들어 앱 등록에서 시작했다면 <code>/submit</code>으로 복귀합니다.</li>
+            </ol>
+            <div class="callout"><strong>보안:</strong> Client Secret과 refresh token은 브라우저에 저장되지 않습니다. 세션 쿠키는 Secure, HttpOnly 정책으로 서버가 관리합니다.</div>
+          </section>
+
+          <section id="submit"><h2>4. 앱 등록과 수정</h2>
+            <p><code>+ 앱 등록</code>에서 이름, slug, 요약, 상세 설명, 아이콘, 서비스 URL, 카테고리와 공개 범위를 입력합니다. Git 저장소 링크는 관리하거나 노출하지 않습니다.</p>
+            <h3>등록 전 확인</h3>
+            <ul>
+              <li>서비스 URL이 사용자가 접근할 수 있는 조직 내부 주소인지 확인합니다.</li>
+              <li>설명에는 대상 사용자, 핵심 기능, 사용 전제조건을 적습니다.</li>
+              <li>아이콘과 스크린샷에는 개인정보, token, 내부 비밀번호를 포함하지 않습니다.</li>
+              <li>MCP 또는 API를 지원하면 실제 제공 범위와 권한 요구를 선택합니다.</li>
+            </ul>
+            <p>내가 등록한 앱은 <code>/my/apps</code>에서 수정합니다. 소유자 또는 관리자만 수정·삭제할 수 있습니다.</p>
+          </section>
+
+          <section id="workflow"><h2>5. 검토·승인 상태 이해하기</h2>
+            <p>관리자가 승인 기능을 설정하지 않았다면 등록 즉시 게시됩니다. 승인 기능이 켜진 조직에서만 다음 상태가 나타납니다.</p>
+            <div class="table-wrap"><table><thead><tr><th>상태</th><th>의미</th><th>할 일</th></tr></thead><tbody>
+              <tr><td>게시됨</td><td>공개 카탈로그에 노출됨</td><td>서비스 URL과 설명을 최신으로 유지</td></tr>
+              <tr><td>검토 대기</td><td>Reviewer 또는 팀장 판단 대기</td><td>필요하면 담당팀에 검토 요청</td></tr>
+              <tr><td>반려</td><td>수정이 필요한 사유가 등록됨</td><td>반려 사유를 반영하고 다시 제출</td></tr>
+              <tr><td>초안</td><td>아직 제출되지 않음</td><td>필수 필드를 완료한 뒤 제출</td></tr>
+            </tbody></table></div>
+          </section>
+
+          <section id="personal"><h2>6. 개인화 영역</h2>
+            <p>프로필 메뉴와 <code>/my</code>는 서비스 관리자 메뉴와 분리되어 있습니다. 내 프로필, 내가 등록한 앱, 내 즐겨찾기, API Key, MCP Key와 활동 내역을 확인합니다.</p>
+            <p>프로필 컨텍스트 메뉴 하단에는 <strong>AppStore v버전</strong>이 표시됩니다. 지원 요청 전 이 버전과 화면 오류의 Request ID를 함께 기록하세요.</p>
+          </section>
+
+          <section id="keys"><h2>7. 개인 API·MCP Key</h2>
+            <figure class="shot"><a href="../../assets/screenshots/captures/my-keys-desktop.webp" aria-label="개인 Key 관리 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/my-keys-desktop.webp" width="1440" height="1000" decoding="async" alt="개인 API 및 MCP Key 목록과 회전 및 폐기 버튼 전체 화면"></a><figcaption>개인 Key는 관리자 Key 목록과 분리되며 원문은 생성 순간 한 번만 표시됩니다.</figcaption></figure>
+            <h3>새 Key 발급</h3>
+            <ol>
+              <li><code>/my/keys</code>에서 <strong>새 Key</strong>를 선택합니다.</li>
+              <li>알아보기 쉬운 이름, 만료일과 필요한 최소 권한 또는 권한 템플릿을 선택합니다.</li>
+              <li>생성 직후 한 번 표시되는 원문을 승인된 비밀 저장소로 옮깁니다.</li>
+              <li>화면을 닫기 전에 저장 여부를 확인합니다. 서버는 원문을 복원할 수 없습니다.</li>
+            </ol>
+            <h3>회전과 폐기</h3>
+            <p>회전하면 새 Key가 즉시 생성되고 구 Key는 관리자가 정한 Grace Period 동안만 유효합니다. 클라이언트 설정을 새 Key로 변경해 시험한 다음 구 Key를 조기 폐기할 수 있습니다. 유출이 의심되면 Grace Period를 기다리지 말고 즉시 폐기하세요.</p>
+            <div class="callout warning"><strong>주의:</strong> Key를 URL query, 브라우저 저장소, 소스 코드, 앱 설명 또는 스크린샷에 넣지 마세요. HTTP <code>Authorization</code> header와 조직 비밀 저장소를 사용하세요.</div>
+          </section>
+
+          <section id="clients"><h2>8. API, MCP와 AI 사용</h2>
+            <h3>REST API</h3><p>관리자가 API를 활성화한 경우 <code>/api/v1</code>을 사용합니다. 공개 조회는 정책에 따라 익명일 수 있으며, 변경 요청에는 필요한 permission을 가진 개인 Key가 필요합니다.</p>
+            <h3>MCP</h3><p>MCP endpoint는 <code>/mcp</code>입니다. 보이는 tool은 익명·인증·관리자 권한에 따라 다릅니다. Key에 <code>mcp:read</code> 또는 <code>mcp:execute</code> 권한이 없다면 실행 tool이 표시되지 않습니다.</p>
+            <h3>AI Streaming</h3><p>AI 응답은 기본적으로 SSE streaming됩니다. 중지 버튼이나 페이지 이동으로 요청을 취소하면 브라우저의 AbortController와 Go context를 통해 upstream 요청도 취소됩니다. 연결이 끊기면 표시된 오류와 Request ID를 기록하세요.</p>
+          </section>
+
+          <section id="errors"><h2>9. 문제 해결</h2>
+            <div class="table-wrap"><table><thead><tr><th>현상</th><th>확인</th></tr></thead><tbody>
+              <tr><td>앱 등록 후 바로 보이지 않음</td><td><code>/my/apps</code>에서 검토 대기 또는 반려 상태인지 확인</td></tr>
+              <tr><td>403 Forbidden</td><td>로그인 계정의 역할과 Key 권한이 작업에 맞는지 관리자에게 확인</td></tr>
+              <tr><td>SSO 후 원래 화면으로 돌아오지 않음</td><td>새 탭 대신 같은 탭에서 재시도하고 Request ID 전달</td></tr>
+              <tr><td>새로고침 후 메뉴가 다름</td><td>주소의 route/query가 유지되는지 확인하고 브라우저 주소를 함께 신고</td></tr>
+              <tr><td>AI 응답이 중단됨</td><td>Provider 상태, timeout, 모델 token 제한과 오류 event 확인</td></tr>
+            </tbody></table></div>
+            <p>White Screen 대신 오류 안내가 표시되어야 합니다. 지원 요청에는 발생 시각, URL, 서비스 버전, Request ID를 포함하고 token이나 비밀번호는 제외하세요.</p>
+          </section>
+        </article>
+      </div>
+    </main>
+    <footer class="site-footer"><div class="footer-inner"><span>AppStore 사용자 가이드</span><nav class="footer-links" aria-label="다음 가이드"><a href="../admin/">관리자 가이드</a><a href="../offline/">오프라인 설치</a><a href="../../">안내 홈</a></nav></div></footer>
+    <script src="../../assets/site.js" defer></script>
+  </body>
+</html>

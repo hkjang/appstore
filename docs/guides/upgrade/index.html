@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AppStore 업그레이드·롤백 가이드</title>
+    <meta name="description" content="오프라인 AppStore Docker image를 안전하게 교체하고 자동 migration, 상태 확인, rollback 가능성을 판단하는 운영 절차입니다.">
+    <meta name="robots" content="index,follow"><link rel="canonical" href="https://hkjang.github.io/appstore/guides/upgrade/">
+    <link rel="icon" href="../../assets/brand/appstore-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="../../assets/site.css">
+    <meta property="og:type" content="article"><meta property="og:title" content="AppStore 업그레이드·롤백 가이드"><meta property="og:description" content="백업, image 교체, migration, smoke test와 rollback 판단"><meta property="og:url" content="https://hkjang.github.io/appstore/guides/upgrade/"><meta property="og:image" content="https://hkjang.github.io/appstore/assets/brand/appstore-og.svg">
+  </head>
+  <body>
+    <a class="skip-link" href="#guide">본문으로 건너뛰기</a>
+    <header class="site-header"><div class="header-inner"><a class="brand" href="../../"><img src="../../assets/brand/appstore-mark.svg" alt="" width="38" height="38"><span>AppStore</span></a><button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-navigation">메뉴</button><nav class="site-nav" id="site-navigation" data-site-nav data-open="false" aria-label="가이드 메뉴"><a href="../user/">사용자</a><a href="../admin/">관리자</a><a href="../offline/">오프라인 설치</a><a href="./" aria-current="page">업그레이드</a><a href="../backup/">백업</a></nav></div></header>
+    <main id="guide">
+      <header class="section guide-hero"><span class="eyebrow">UPGRADE &amp; ROLLBACK</span><h1>데이터를 먼저 지키고, image를 교체하고, 화면까지 확인하기</h1><p class="lead">AppStore migration은 시작 시 자동 실행됩니다. 따라서 새 image를 기동하기 전에 복구 가능한 PostgreSQL 백업과 원래 <code>ENCRYPTION_KEY</code>를 확인하는 것이 가장 중요합니다.</p></header>
+      <div class="section compact guide-layout">
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#plan">변경 계획</a><a href="#backup">사전 백업</a><a href="#load">새 image load</a><a href="#switch">교체</a><a href="#verify">검증</a><a href="#rollback">롤백</a><a href="#cleanup">정리</a></aside>
+        <article class="guide-content">
+          <section id="plan"><h2>1. 변경 계획과 호환성</h2>
+            <ul><li>현재 <code>/api/version</code>, image tag, database backup 시각을 기록합니다.</li><li>릴리스 노트에서 migration, 설정 기본값, API·MCP 변경과 알려진 제한을 확인합니다.</li><li>Linux/AMD64 archive 이름과 SHA-256을 승인된 반입 기록에 연결합니다.</li><li>사용 중인 Keycloak, PostgreSQL, reverse proxy와 AI provider 호환성을 staging에서 시험합니다.</li><li>변경 창, 서비스 영향, 검증 담당자와 중단 기준을 정합니다.</li></ul>
+          </section>
+          <section id="backup"><h2>2. 사전 백업</h2>
+            <p>데이터베이스와 <code>ENCRYPTION_KEY</code>를 한 시점의 복구 세트로 준비하되 서로 다른 승인 저장소에 보관합니다.</p>
+            <pre><code>backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+pg_dump --format=custom --file="appstore-$backup_stamp.dump" "$POSTGRES_DSN"
+pg_restore --list "appstore-$backup_stamp.dump" &gt;/dev/null
+sha256sum "appstore-$backup_stamp.dump"</code></pre>
+            <p>백업 복원 시험이 최근 수행되지 않았다면 production 교체 전에 별도 database로 restore를 시험합니다. 자세한 내용은 <a href="../backup/">백업·복구 가이드</a>를 따릅니다.</p>
+          </section>
+          <section id="load"><h2>3. 새 image 검증과 load</h2>
+            <pre><code>sha256sum appstore-v2.1.0.tar.gz
+gzip -t appstore-v2.1.0.tar.gz
+gzip -dc appstore-v2.1.0.tar.gz | docker load
+docker image inspect appstore:v2.1.0 \
+  --format 'user={{.Config.User}} version={{index .Config.Labels "org.opencontainers.image.version"}} revision={{index .Config.Labels "org.opencontainers.image.revision"}}'</code></pre>
+            <p>version이 archive 이름과 다르거나 user가 root이면 배포하지 않습니다. 기존 image tag는 검증이 끝날 때까지 삭제하지 않습니다.</p>
+          </section>
+          <section id="switch"><h2>4. 서비스 교체</h2>
+            <h3>Compose 사용</h3>
+            <pre><code>APPSTORE_VERSION=v2.1.0 docker compose up -d --no-build
+docker compose ps
+docker compose logs --tail 200 appstore</code></pre>
+            <h3>docker run 사용</h3>
+            <pre><code>docker stop appstore
+docker rename appstore appstore-v2.0.0-stopped
+
+docker run -d --name appstore --restart unless-stopped \
+  --read-only --tmpfs /tmp:size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --env-file ./appstore.env -p 127.0.0.1:8080:8080 \
+  appstore:v2.1.0</code></pre>
+            <p>단일 database를 여러 버전이 동시에 migration하지 않도록 새 container가 ready가 된 후 traffic을 전환합니다. 여러 replica를 운영하면 한 instance만 먼저 올려 migration을 완료한 뒤 나머지를 교체합니다.</p>
+          </section>
+          <section id="verify"><h2>5. 업그레이드 후 검증</h2>
+            <ol class="steps"><li><code>/health/live</code>, <code>/health/ready</code>, <code>/api/version</code>이 정상이고 새 version·commit인지 확인합니다.</li><li>익명 홈, 앱 검색, 상세와 서비스 URL을 확인합니다.</li><li>Bootstrap 또는 SSO 관리자 로그인, OIDC 연결 상태와 profile version을 확인합니다.</li><li><code>/admin/users</code>를 직접 열고 새로고침해 route 복원을 확인합니다.</li><li>Workflow OFF 즉시 게시와, staging에서 Workflow ON 승인·반려를 확인합니다.</li><li>개인 Key 생성·회전·폐기, API/MCP 권한 거부를 확인합니다.</li><li>AI first chunk, cancel, usage와 finish event를 시험합니다.</li><li>Audit Log에 upgrade 시각의 로그인과 설정 동작이 정상 기록되는지 확인합니다.</li></ol>
+          </section>
+          <section id="rollback"><h2>6. 롤백 판단과 절차</h2>
+            <div class="callout warning"><strong>Schema 주의:</strong> AppStore는 migration을 자동으로 올리지만 자동 down migration은 실행하지 않습니다. 새 migration이 이전 binary와 호환되지 않으면 image만 되돌리지 말고 사전 database backup도 함께 복원해야 합니다.</div>
+            <h3>이전 schema와 호환되는 경우</h3><pre><code>docker rm -f appstore
+docker rename appstore-v2.0.0-stopped appstore
+docker start appstore
+curl --fail http://127.0.0.1:8080/health/ready</code></pre>
+            <h3>이전 schema와 호환되지 않는 경우</h3><ol><li>서비스 traffic을 차단하고 새 container를 정지합니다.</li><li>변경 창 직전 dump를 별도 database에 복원합니다.</li><li>원래 <code>ENCRYPTION_KEY</code>와 이전 image를 연결합니다.</li><li>health, version, 로그인과 핵심 화면을 확인한 뒤 traffic을 복구합니다.</li><li>롤백 원인과 유실 가능 구간을 Audit·운영 기록에 남깁니다.</li></ol>
+          </section>
+          <section id="cleanup"><h2>7. 안정화 후 정리</h2>
+            <p>합의한 관찰 기간 동안 error rate, database 연결, OIDC와 AI streaming을 모니터링합니다. 안정화가 확인된 뒤에만 중지한 이전 container와 정책상 보존 기간이 지난 image를 제거합니다.</p>
+            <pre><code>docker rm appstore-v2.0.0-stopped
+docker image rm appstore:v2.0.0</code></pre>
+            <p>삭제한 image는 원본 release archive를 다시 <code>docker load</code>하면 복구할 수 있습니다. archive와 checksum은 조직 보존 정책에 따라 유지합니다.</p>
+          </section>
+        </article>
+      </div>
+    </main>
+    <footer class="site-footer"><div class="footer-inner"><span>AppStore 업그레이드·롤백 가이드</span><nav class="footer-links" aria-label="다음 가이드"><a href="../backup/">백업</a><a href="../release/">릴리스</a><a href="../../">안내 홈</a></nav></div></footer>
+    <script src="../../assets/site.js" defer></script>
+  </body>
+</html>

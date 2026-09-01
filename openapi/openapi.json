@@ -1,0 +1,238 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AppStore API",
+    "version": "2.0.0",
+    "description": "공개형 Developer App Store의 REST API. 브라우저 세션은 CSRF 헤더를 사용하고 자동화 클라이언트는 권한이 제한된 개인 API Key를 사용합니다."
+  },
+  "servers": [{"url": "/", "description": "Same-origin AppStore server"}],
+  "tags": [
+    {"name": "Public"}, {"name": "Authentication"}, {"name": "Personal"},
+    {"name": "Review"}, {"name": "Admin"}, {"name": "AI"}, {"name": "MCP"}
+  ],
+  "paths": {
+    "/api/version": {
+      "get": {"tags":["Public"],"summary":"빌드 버전 조회","operationId":"getVersion","responses":{"200":{"description":"Version","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Version"}}}}}}
+    },
+    "/health/live": {
+      "get": {"tags":["Public"],"summary":"프로세스 상태","operationId":"healthLive","responses":{"200":{"description":"Alive"}}}
+    },
+    "/health/ready": {
+      "get": {"tags":["Public"],"summary":"DB 포함 준비 상태","operationId":"healthReady","responses":{"200":{"description":"Ready"},"503":{"description":"Not ready"}}}
+    },
+    "/api/v1/public/config": {
+      "get": {"tags":["Public"],"summary":"민감정보를 제외한 공개 설정","operationId":"getPublicConfig","responses":{"200":{"description":"Public configuration","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PublicConfig"}}}}}}
+    },
+    "/api/v1/apps": {
+      "get": {
+        "tags":["Public"],"summary":"공개 앱 목록/검색","operationId":"listApps",
+        "parameters":[
+          {"name":"q","in":"query","schema":{"type":"string"}},
+          {"name":"category","in":"query","schema":{"type":"string"}},
+          {"name":"language","in":"query","schema":{"type":"string"}},
+          {"name":"mcp","in":"query","schema":{"type":"boolean"}},
+          {"name":"featured","in":"query","schema":{"type":"boolean"}},
+          {"name":"sort","in":"query","schema":{"type":"string","enum":["updated","trending","name","created"]}},
+          {"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":24}},
+          {"name":"offset","in":"query","schema":{"type":"integer","minimum":0,"default":0}}
+        ],
+        "responses":{"200":{"description":"Application page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppPage"}}}},"400":{"$ref":"#/components/responses/Error"}}
+      },
+      "post": {
+        "tags":["Personal"],"summary":"앱 등록","operationId":"createApp","security":[{"cookieSession":[]},{"apiKey":[]}],
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppInput"}}}},
+        "responses":{"201":{"description":"Created","content":{"application/json":{"schema":{"$ref":"#/components/schemas/App"}}}},"401":{"$ref":"#/components/responses/Error"},"422":{"$ref":"#/components/responses/Error"}}
+      }
+    },
+    "/api/v1/apps/{app}": {
+      "get": {"tags":["Public"],"summary":"slug로 공개 앱 상세 조회","operationId":"getApp","parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"responses":{"200":{"description":"Application","content":{"application/json":{"schema":{"$ref":"#/components/schemas/App"}}}},"404":{"$ref":"#/components/responses/Error"}}},
+      "put": {"tags":["Personal"],"summary":"ID로 소유 앱 수정","operationId":"updateApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppInput"}}}},"responses":{"200":{"description":"Updated"},"403":{"$ref":"#/components/responses/Error"}}},
+      "delete": {"tags":["Personal"],"summary":"ID로 소유 앱 보관 처리","operationId":"archiveApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"responses":{"204":{"description":"Archived"},"403":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/categories": {
+      "get": {"tags":["Public"],"summary":"카테고리 목록","operationId":"listCategories","responses":{"200":{"description":"Categories","content":{"application/json":{"schema":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/Category"}}}}}}}}}
+    },
+    "/api/v1/auth/session": {
+      "get": {"tags":["Authentication"],"summary":"현재 세션","operationId":"getSession","responses":{"200":{"description":"Session state","content":{"application/json":{"schema":{"type":"object","required":["authenticated"],"properties":{"authenticated":{"type":"boolean"},"user":{"$ref":"#/components/schemas/User"},"oidcEnabled":{"type":"boolean"}}}}}}}}
+    },
+    "/api/v1/auth/bootstrap/login": {
+      "post": {"tags":["Authentication"],"summary":"초기/복구 관리자 로그인","operationId":"bootstrapLogin","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["username","password"],"properties":{"username":{"type":"string"},"password":{"type":"string","format":"password","minLength":12}}}}}},"responses":{"200":{"description":"Authenticated"},"401":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/auth/oidc/login": {
+      "get": {"tags":["Authentication"],"summary":"Keycloak Authorization Code + PKCE 시작","operationId":"oidcLogin","parameters":[{"name":"returnTo","in":"query","schema":{"type":"string"}}],"responses":{"302":{"description":"Redirect to OIDC provider"},"503":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/auth/oidc/callback": {
+      "get": {"tags":["Authentication"],"summary":"OIDC callback","operationId":"oidcCallback","parameters":[{"name":"code","in":"query","required":true,"schema":{"type":"string"}},{"name":"state","in":"query","required":true,"schema":{"type":"string"}}],"responses":{"302":{"description":"Return to requested route"},"400":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/auth/logout": {
+      "post": {"tags":["Authentication"],"summary":"세션 종료","operationId":"logout","security":[{"cookieSession":[]}],"responses":{"204":{"description":"Logged out"}}}
+    },
+    "/api/v1/me": {
+      "get": {"tags":["Personal"],"summary":"내 프로필","operationId":"getMe","security":[{"cookieSession":[]},{"apiKey":[]}],"responses":{"200":{"description":"User","content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}}},"401":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/me/apps": {
+      "get": {"tags":["Personal"],"summary":"내가 등록한 앱","operationId":"listMyApps","security":[{"cookieSession":[]},{"apiKey":[]}],"responses":{"200":{"description":"Application page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppPage"}}}}}}
+    },
+    "/api/v1/me/keys": {
+      "get": {"tags":["Personal"],"summary":"개인 키 목록(원문 제외)","operationId":"listMyKeys","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Keys"}}},
+      "post": {"tags":["Personal"],"summary":"개인 키 생성(원문 1회 반환)","operationId":"createMyKey","security":[{"cookieSession":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","permissions"],"properties":{"name":{"type":"string"},"permissions":{"type":"array","items":{"type":"string"}}}}}}},"responses":{"201":{"description":"Created key with one-time secret"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/me/keys/{id}/rotate": {
+      "post": {"tags":["Personal"],"summary":"Grace period를 적용해 키 회전","operationId":"rotateMyKey","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"201":{"description":"Rotated key with one-time secret"},"404":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/me/keys/{id}/revoke": {
+      "post": {"tags":["Personal"],"summary":"키 폐기","operationId":"revokeMyKey","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Revoked"},"404":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/me/key-permissions": {
+      "get": {"tags":["Personal"],"summary":"발급 가능한 Key 권한·Template·정책","operationId":"listMyKeyPermissions","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Permissions, templates and policy"}}}
+    },
+    "/api/v1/me/activity": {
+      "get": {"tags":["Personal"],"summary":"내 활동 내역","operationId":"listMyActivity","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Audit page"}}}
+    },
+    "/api/v1/me/settings": {
+      "get": {"tags":["Personal"],"summary":"개인화 설정","operationId":"getMySettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Preferences"}}},
+      "put": {"tags":["Personal"],"summary":"개인화 설정 변경","operationId":"updateMySettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated preferences"}}}
+    },
+    "/api/v1/me/favorites": {
+      "get": {"tags":["Personal"],"summary":"SSO 즐겨찾기 목록","operationId":"listMyFavorites","security":[{"cookieSession":[]},{"apiKey":[]}],"responses":{"200":{"description":"Application page"}}}
+    },
+    "/api/v1/me/favorites/{id}": {
+      "put": {"tags":["Personal"],"summary":"즐겨찾기 추가","operationId":"addFavorite","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Added"}}},
+      "delete": {"tags":["Personal"],"summary":"즐겨찾기 삭제","operationId":"removeFavorite","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Removed"}}}
+    },
+    "/api/v1/reviews": {
+      "get": {"tags":["Review"],"summary":"검토 대기 목록","operationId":"listReviews","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Reviews"},"403":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/reviews/{id}": {
+      "get": {"tags":["Review"],"summary":"검토 상세","operationId":"getReview","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Review"},"403":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/reviews/{id}/approve": {
+      "post": {"tags":["Review"],"summary":"승인","operationId":"approveReview","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Approved"},"403":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/reviews/{id}/reject": {
+      "post": {"tags":["Review"],"summary":"반려","operationId":"rejectReview","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string"}}}}}},"responses":{"200":{"description":"Rejected"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/ai/chat/stream": {
+      "post": {"tags":["AI"],"summary":"기본 SSE AI chat stream","operationId":"streamAIChat","security":[{"cookieSession":[]},{"apiKey":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ChatRequest"}}}},"responses":{"200":{"description":"token, usage, finish, error events","content":{"text/event-stream":{"schema":{"type":"string"}}}},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {"tags":["Admin"],"summary":"운영 Dashboard 통계","operationId":"getAdminDashboard","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Dashboard"}}}
+    },
+    "/api/v1/admin/apps": {
+      "get": {"tags":["Admin"],"summary":"모든 상태의 앱 목록","operationId":"listAdminApps","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Application page"}}}
+    },
+    "/api/v1/admin/apps/{id}/status": {
+      "put": {"tags":["Admin"],"summary":"앱 게시 상태 변경","operationId":"setAdminAppStatus","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated application"}}}
+    },
+    "/api/v1/admin/categories": {
+      "get": {"tags":["Admin"],"summary":"비활성 포함 카테고리 목록","operationId":"listAdminCategories","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Categories"}}},
+      "post": {"tags":["Admin"],"summary":"카테고리 생성","operationId":"createAdminCategory","security":[{"cookieSession":[]}],"responses":{"201":{"description":"Created"}}}
+    },
+    "/api/v1/admin/categories/{id}": {
+      "put": {"tags":["Admin"],"summary":"카테고리 변경","operationId":"updateAdminCategory","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated"}}},
+      "delete": {"tags":["Admin"],"summary":"미사용 카테고리 삭제","operationId":"deleteAdminCategory","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Deleted"}}}
+    },
+    "/api/v1/admin/settings": {
+      "get": {"tags":["Admin"],"summary":"시스템 설정","operationId":"getSystemSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Settings"},"403":{"$ref":"#/components/responses/Error"}}},
+      "put": {"tags":["Admin"],"summary":"시스템 설정 변경","operationId":"updateSystemSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"},"403":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/authentication": {
+      "get": {"tags":["Admin"],"summary":"마스킹된 OIDC 설정","operationId":"getOIDCSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"OIDC settings without secret"}}},
+      "put": {"tags":["Admin"],"summary":"OIDC 설정 변경","operationId":"updateOIDCSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated without secret"}}}
+    },
+    "/api/v1/admin/authentication/test": {
+      "post": {"tags":["Admin"],"summary":"OIDC discovery 연결 시험","operationId":"testOIDC","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Endpoint status"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/workflow": {
+      "get": {"tags":["Admin"],"summary":"Workflow 정책","operationId":"getWorkflow","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Workflow"}}},
+      "put": {"tags":["Admin"],"summary":"Workflow 정책 변경","operationId":"updateWorkflow","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"}}}
+    },
+    "/api/v1/admin/ai": {
+      "get": {"tags":["Admin"],"summary":"AI Provider 목록(API Key 원문 제외)","operationId":"listAIProviders","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Providers"}}},
+      "put": {"tags":["Admin"],"summary":"기본 AI Provider 생성 또는 변경","operationId":"updateAIProvider","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Saved"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/ai/models": {
+      "get": {"tags":["Admin"],"summary":"Provider별 Model limit 목록","operationId":"listAIModels","security":[{"cookieSession":[]}],"parameters":[{"name":"providerId","in":"query","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Models"}}},
+      "put": {"tags":["Admin"],"summary":"Model별 context/input/output limit 저장","operationId":"upsertAIModel","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Saved model"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/ai/models/{id}": {
+      "delete": {"tags":["Admin"],"summary":"AI Model limit 삭제","operationId":"deleteAIModel","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Deleted"}}}
+    },
+    "/api/v1/admin/users": {
+      "get": {"tags":["Admin"],"summary":"사용자 목록","operationId":"listUsers","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Users"}}}
+    },
+    "/api/v1/admin/users/{id}": {
+      "put": {"tags":["Admin"],"summary":"사용자 정보·활성 상태 변경","operationId":"updateUser","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated user"}}},
+      "delete": {"tags":["Admin"],"summary":"감사 이력을 보존하며 사용자 접근 제거","operationId":"deleteUser","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Access removed"}}}
+    },
+    "/api/v1/admin/users/{id}/roles": {
+      "put": {"tags":["Admin"],"summary":"사용자 역할 배정","operationId":"updateUserRoles","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated user"}}}
+    },
+    "/api/v1/admin/roles": {
+      "get": {"tags":["Admin"],"summary":"변경 가능한 Role/Permission 목록","operationId":"listRoles","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Roles"}}},
+      "put": {"tags":["Admin"],"summary":"Role/Permission 정의 일괄 변경","operationId":"replaceRoles","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated roles"}}},
+      "post": {"tags":["Admin"],"summary":"사용자 정의 역할 생성","operationId":"createRole","security":[{"cookieSession":[]}],"responses":{"201":{"description":"Created role"}}}
+    },
+    "/api/v1/admin/roles/{id}": {
+      "put": {"tags":["Admin"],"summary":"역할·권한 변경","operationId":"updateRole","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated role"}}},
+      "delete": {"tags":["Admin"],"summary":"사용자 정의 역할 삭제","operationId":"deleteRole","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Deleted"}}}
+    },
+    "/api/v1/admin/api": {
+      "get": {"tags":["Admin"],"summary":"REST API 정책","operationId":"getAPISettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"API settings"}}},
+      "put": {"tags":["Admin"],"summary":"REST API 정책 변경","operationId":"updateAPISettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"}}}
+    },
+    "/api/v1/admin/mcp": {
+      "get": {"tags":["Admin"],"summary":"MCP 2026-07-28 정책","operationId":"getMCPSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"MCP settings"}}},
+      "put": {"tags":["Admin"],"summary":"MCP 정책 변경","operationId":"updateMCPSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"}}}
+    },
+    "/api/v1/admin/security": {
+      "get": {"tags":["Admin"],"summary":"Key 회전 정책·권한·Template","operationId":"getKeySecurity","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Key policy"}}},
+      "put": {"tags":["Admin"],"summary":"Key 회전 정책 변경","operationId":"updateKeySecurity","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"}}}
+    },
+    "/api/v1/admin/security/permissions/{key}": {
+      "put": {"tags":["Admin"],"summary":"Key 권한 정의 생성·변경·비활성화","operationId":"upsertKeyPermission","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/Key"}],"responses":{"200":{"description":"Saved definition"}}}
+    },
+    "/api/v1/admin/security/templates": {
+      "post": {"tags":["Admin"],"summary":"Key 권한 Template 생성","operationId":"createKeyTemplate","security":[{"cookieSession":[]}],"responses":{"201":{"description":"Created template"}}}
+    },
+    "/api/v1/admin/security/templates/{id}": {
+      "put": {"tags":["Admin"],"summary":"Key 권한 Template 변경","operationId":"updateKeyTemplate","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated template"}}},
+      "delete": {"tags":["Admin"],"summary":"Key 권한 Template 삭제","operationId":"deleteKeyTemplate","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Deleted"}}}
+    },
+    "/api/v1/admin/api-keys": {
+      "get": {"tags":["Admin"],"summary":"원문 없는 전체 Key inventory","operationId":"listAdminAPIKeys","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Key inventory"}}}
+    },
+    "/api/v1/admin/audit": {
+      "get": {"tags":["Admin"],"summary":"삭제 불가능한 Audit Log","operationId":"listAudit","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Audit logs"}}}
+    },
+    "/mcp": {
+      "post": {"tags":["MCP"],"summary":"MCP 2026-07-28 stateless Streamable HTTP","operationId":"mcp","parameters":[{"name":"MCP-Protocol-Version","in":"header","required":true,"schema":{"const":"2026-07-28"}},{"name":"Mcp-Method","in":"header","required":true,"schema":{"type":"string"}},{"name":"Mcp-Name","in":"header","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object"}}}},"responses":{"200":{"description":"JSON-RPC response or request-scoped SSE"},"202":{"description":"Notification accepted"},"400":{"description":"Protocol/header validation error"}}}
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieSession": {"type":"apiKey","in":"cookie","name":"appstore_session"},
+      "apiKey": {"type":"http","scheme":"bearer","bearerFormat":"aps_..."}
+    },
+    "parameters": {
+      "ID": {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}},
+      "Slug": {"name":"slug","in":"path","required":true,"schema":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"}},
+      "AppIdentifier": {"name":"app","in":"path","required":true,"description":"GET은 slug, PUT/DELETE는 UUID","schema":{"type":"string"}},
+      "Key": {"name":"key","in":"path","required":true,"schema":{"type":"string"}}
+    },
+    "responses": {
+      "Error": {"description":"Standard error envelope","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}}
+    },
+    "schemas": {
+      "Version": {"type":"object","required":["version","commit","buildDate","goVersion","environment"],"properties":{"version":{"type":"string"},"commit":{"type":"string"},"buildDate":{"type":"string"},"goVersion":{"type":"string"},"environment":{"type":"string"}}},
+      "PublicConfig": {"type":"object","required":["siteName","siteUrl","theme","publicMode","oidcEnabled","workflowEnabled"],"properties":{"siteName":{"type":"string"},"siteUrl":{"type":"string"},"theme":{"type":"string"},"publicMode":{"type":"boolean"},"oidcEnabled":{"type":"boolean"},"workflowEnabled":{"type":"boolean"}}},
+      "Category": {"type":"object","required":["id","slug","name","icon","appCount"],"properties":{"id":{"type":"string","format":"uuid"},"slug":{"type":"string"},"name":{"type":"string"},"icon":{"type":"string"},"description":{"type":"string"},"position":{"type":"integer"},"appCount":{"type":"integer"}}},
+      "User": {"type":"object","required":["id","username","displayName","authSource","active","roles","permissions"],"properties":{"id":{"type":"string","format":"uuid"},"username":{"type":"string"},"email":{"type":"string"},"displayName":{"type":"string"},"team":{"type":"string"},"authSource":{"type":"string"},"active":{"type":"boolean"},"roles":{"type":"array","items":{"type":"string"}},"permissions":{"type":"array","items":{"type":"string"}}}},
+      "App": {"type":"object","required":["id","name","slug","summary","description","icon","categoryId","tags","screenshots","supportsMcp","supportsApi","visibility","status"],"properties":{"id":{"type":"string","format":"uuid"},"name":{"type":"string"},"slug":{"type":"string"},"summary":{"type":"string"},"description":{"type":"string"},"icon":{"type":"string"},"gradient":{"type":"string"},"serviceUrl":{"type":"string","format":"uri"},"category":{"$ref":"#/components/schemas/Category"},"categoryId":{"type":"string","format":"uuid"},"tags":{"type":"array","items":{"type":"string"}},"screenshots":{"type":"array","items":{"type":"string"}},"language":{"type":"string"},"framework":{"type":"string"},"supportsMcp":{"type":"boolean"},"supportsApi":{"type":"boolean"},"ownerId":{"type":"string","format":"uuid"},"team":{"type":"string"},"version":{"type":"string"},"visibility":{"type":"string","enum":["public","private"]},"status":{"type":"string","enum":["draft","pending_review","published","rejected","archived"]},"featured":{"type":"boolean"},"trendingScore":{"type":"integer"}}},
+      "AppInput": {"type":"object","required":["name","slug","summary","description","icon","serviceUrl","categoryId","visibility"],"properties":{"name":{"type":"string","minLength":2,"maxLength":120},"slug":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"summary":{"type":"string","maxLength":240},"description":{"type":"string","maxLength":20000},"icon":{"type":"string"},"gradient":{"type":"string"},"serviceUrl":{"type":"string","format":"uri"},"categoryId":{"type":"string","format":"uuid"},"tags":{"type":"array","maxItems":30,"items":{"type":"string"}},"screenshots":{"type":"array","maxItems":12,"items":{"type":"string"}},"language":{"type":"string"},"framework":{"type":"string"},"supportsMcp":{"type":"boolean"},"supportsApi":{"type":"boolean"},"team":{"type":"string"},"version":{"type":"string"},"visibility":{"type":"string","enum":["public","private"]}}},
+      "AppPage": {"type":"object","required":["items","total","limit","offset"],"properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/App"}},"total":{"type":"integer"},"limit":{"type":"integer"},"offset":{"type":"integer"}}},
+      "ChatRequest": {"type":"object","required":["messages"],"properties":{"providerId":{"type":"string","format":"uuid"},"model":{"type":"string"},"messages":{"type":"array","minItems":1,"items":{"type":"object","required":["role","content"],"properties":{"role":{"type":"string","enum":["system","user","assistant"]},"content":{}}}},"maxTokens":{"type":"integer","minimum":0,"maximum":262144},"temperature":{"type":"number","minimum":0,"maximum":2}}},
+      "Error": {"type":"object","required":["error"],"properties":{"error":{"type":"object","required":["code","message","requestId"],"properties":{"code":{"type":"string"},"message":{"type":"string"},"requestId":{"type":"string"},"details":{"type":"object","additionalProperties":true}}}}}
+    }
+  }
+}

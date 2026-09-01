@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AppStore 백업·복구 가이드 — PostgreSQL과 암호화 Key</title>
+    <meta name="description" content="AppStore PostgreSQL 데이터, 암호화된 설정과 ENCRYPTION_KEY를 안전하게 백업하고 격리 환경에서 복구를 검증하는 절차입니다.">
+    <meta name="robots" content="index,follow"><link rel="canonical" href="https://hkjang.github.io/appstore/guides/backup/">
+    <link rel="icon" href="../../assets/brand/appstore-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="../../assets/site.css">
+    <meta property="og:type" content="article"><meta property="og:title" content="AppStore 백업·복구 가이드"><meta property="og:description" content="PostgreSQL dump, ENCRYPTION_KEY 보관과 복구 시험"><meta property="og:url" content="https://hkjang.github.io/appstore/guides/backup/"><meta property="og:image" content="https://hkjang.github.io/appstore/assets/brand/appstore-og.svg">
+  </head>
+  <body>
+    <a class="skip-link" href="#guide">본문으로 건너뛰기</a>
+    <header class="site-header"><div class="header-inner"><a class="brand" href="../../"><img src="../../assets/brand/appstore-mark.svg" alt="" width="38" height="38"><span>AppStore</span></a><button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-navigation">메뉴</button><nav class="site-nav" id="site-navigation" data-site-nav data-open="false" aria-label="가이드 메뉴"><a href="../user/">사용자</a><a href="../admin/">관리자</a><a href="../offline/">오프라인 설치</a><a href="../upgrade/">업그레이드</a><a href="./" aria-current="page">백업</a></nav></div></header>
+    <main id="guide">
+      <header class="section guide-hero"><span class="eyebrow">BACKUP &amp; RESTORE</span><h1>Database와 암호화 Key를 함께 복구 가능한 상태로 유지하기</h1><p class="lead">AppStore의 앱, 사용자, 권한, 설정, 암호화된 OIDC·AI secret과 Audit Log는 PostgreSQL에 있습니다. 하지만 이를 복호화하는 <code>ENCRYPTION_KEY</code>는 database 밖에서 별도로 보호해야 합니다.</p></header>
+      <div class="section compact guide-layout">
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#inventory">백업 대상</a><a href="#policy">RPO·RTO</a><a href="#database">DB 백업</a><a href="#key">Key 보관</a><a href="#restore">복원 시험</a><a href="#disaster">장애 복구</a><a href="#evidence">검증 기록</a></aside>
+        <article class="guide-content">
+          <section id="inventory"><h2>1. 백업 대상과 제외 대상</h2>
+            <div class="table-wrap"><table><thead><tr><th>대상</th><th>방법</th><th>중요성</th></tr></thead><tbody>
+              <tr><td>PostgreSQL database</td><td>조직 표준 snapshot + 정기 <code>pg_dump</code></td><td>앱·사용자·권한·설정·Audit 전체</td></tr>
+              <tr><td><code>ENCRYPTION_KEY</code></td><td>승인된 secret vault/오프라인 복구 봉투</td><td>암호화된 OIDC·AI secret 복원 필수</td></tr>
+              <tr><td>배포 env와 reverse proxy 설정</td><td>구성 관리 저장소, secret 값은 별도 vault</td><td>동일 network·TLS 구성 재현</td></tr>
+              <tr><td>릴리스 image archive와 checksum</td><td>승인된 binary 보관소</td><td>database schema와 맞는 binary 복구</td></tr>
+              <tr><td>Bootstrap password 원문</td><td>백업 dump에 포함하지 않음, vault에서 관리</td><td>복구 관리자 로그인</td></tr>
+            </tbody></table></div>
+            <p>Container writable layer는 백업 대상이 아닙니다. AppStore는 read-only root filesystem으로 실행하고 영속 상태를 PostgreSQL에 둡니다.</p>
+          </section>
+          <section id="policy"><h2>2. RPO, RTO와 보존 정책</h2>
+            <ul><li><strong>RPO</strong>: 허용 가능한 데이터 유실 시간을 기준으로 PostgreSQL snapshot·WAL 보관 주기를 정합니다.</li><li><strong>RTO</strong>: 새 Docker host, database restore, image load, DNS·TLS 전환과 acceptance test 시간을 포함합니다.</li><li><strong>보존</strong>: 일·주·월별 세대를 분리하고 Audit Log의 조직 보존 의무보다 짧지 않게 합니다.</li><li><strong>불변성</strong>: 운영 계정 침해가 backup까지 삭제하지 못하도록 별도 계정·보관소와 immutability를 사용합니다.</li><li><strong>암호화</strong>: backup at rest와 전송 매체를 암호화하고 접근·복원 기록을 남깁니다.</li></ul>
+          </section>
+          <section id="database"><h2>3. PostgreSQL 논리 백업</h2>
+            <p>조직의 physical backup을 기본으로 두고, release 전에는 이식 가능한 custom-format dump도 생성하는 것을 권장합니다.</p>
+            <pre><code>backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+backup_file="appstore-$backup_stamp.dump"
+
+pg_dump \
+  --format=custom \
+  --no-owner \
+  --no-privileges \
+  --file="$backup_file" \
+  "$POSTGRES_DSN"
+
+pg_restore --list "$backup_file" &gt;/dev/null
+sha256sum "$backup_file" &gt;"$backup_file.sha256"</code></pre>
+            <p>command history나 CI log에 DSN을 직접 출력하지 않습니다. backup 파일 권한을 제한하고 checksum과 database server version, AppStore version, migration 목록을 복구 기록에 함께 남깁니다.</p>
+          </section>
+          <section id="key"><h2>4. ENCRYPTION_KEY 보관</h2>
+            <div class="callout warning"><strong>Database dump만으로는 완전한 복구가 아닙니다.</strong> OIDC Client Secret과 AI API Key는 <code>ENCRYPTION_KEY</code>로 인증 암호화되어 있어 원래 Key가 없으면 복호화할 수 없습니다.</div>
+            <ul><li>Key 원문은 source, image, release asset, screenshot과 database에 넣지 않습니다.</li><li>운영 host의 제한된 env 파일과 별도 secret vault에 최소 두 복구 사본을 둡니다.</li><li>database backup 접근자와 Key 접근자를 분리하고 복구 시 이중 승인을 적용합니다.</li><li>복구 시험에서는 Key 원문을 출력하지 않고 OIDC·AI 연결 시험의 성공으로 일치 여부를 확인합니다.</li><li>Key가 유실된 경우 기존 secret 복원은 불가능합니다. 새 Key로 서비스를 시작하기 전에 영향 분석과 secret 재입력 계획을 승인받습니다.</li></ul>
+          </section>
+          <section id="restore"><h2>5. 격리 환경 복원 시험</h2>
+            <ol class="steps">
+              <li><strong>격리 PostgreSQL database를 만듭니다.</strong><br>production application이 연결할 수 없는 host와 credential을 사용합니다.</li>
+              <li><strong>dump를 복원합니다.</strong><pre><code>createdb appstore_restore_test
+pg_restore \
+  --clean --if-exists --no-owner --no-privileges \
+  --dbname="$RESTORE_POSTGRES_DSN" \
+  appstore-20260901T080000Z.dump</code></pre></li>
+              <li><strong>짝이 맞는 AppStore image와 ENCRYPTION_KEY로 시작합니다.</strong><br>복원 전 version과 동일한 image를 먼저 사용합니다.</li>
+              <li><strong>ready와 version을 확인합니다.</strong><br>자동 migration이 예상하지 않은 변경을 만들지 않았는지 log와 <code>schema_migrations</code>를 확인합니다.</li>
+              <li><strong>기능 복구를 확인합니다.</strong><br>앱 수, 사용자·역할, OIDC·AI 연결 시험, Key metadata와 Audit Log 기간을 비교합니다.</li>
+              <li><strong>시험 자료를 폐기합니다.</strong><br>검증 결과는 보존하되 restore database와 임시 env는 승인 절차로 제거합니다.</li>
+            </ol>
+          </section>
+          <section id="disaster"><h2>6. 장애 복구 순서</h2>
+            <ol><li>장애 범위와 마지막 정상 backup 시각을 확정하고 쓰기 traffic을 차단합니다.</li><li>새 PostgreSQL에 snapshot 또는 dump를 복원합니다.</li><li>복원 시점에 대응하는 <code>appstore:vX.Y.Z</code> image를 load합니다.</li><li>별도 vault에서 원래 <code>ENCRYPTION_KEY</code>와 bootstrap credential을 승인받습니다.</li><li>새 <code>POSTGRES_DSN</code>으로 container를 시작하고 ready를 확인합니다.</li><li>공개 탐색, SSO, Admin, API Key, MCP, AI와 Audit를 검증합니다.</li><li>DNS 또는 reverse proxy를 전환하고 사용자에게 데이터 복구 시점을 알립니다.</li></ol>
+          </section>
+          <section id="evidence"><h2>7. 복구 가능성 증거</h2>
+            <p>각 시험마다 다음을 기록합니다.</p><ul><li>backup 식별자, SHA-256, 생성·복원 시각</li><li>PostgreSQL과 AppStore version·commit</li><li>복원 담당자와 승인자, 격리 환경</li><li>복원된 row 수와 핵심 acceptance 결과</li><li>OIDC·AI secret을 노출하지 않은 연결 시험 결과</li><li>실제 RPO·RTO와 개선 작업</li></ul>
+            <div class="callout success"><strong>권장 주기:</strong> backup 성공 알림만 확인하지 말고 조직의 RTO에 맞는 정기 restore drill을 수행하세요.</div>
+          </section>
+        </article>
+      </div>
+    </main>
+    <footer class="site-footer"><div class="footer-inner"><span>AppStore 백업·복구 가이드</span><nav class="footer-links" aria-label="다음 가이드"><a href="../upgrade/">업그레이드</a><a href="../release/">릴리스</a><a href="../../">안내 홈</a></nav></div></footer>
+    <script src="../../assets/site.js" defer></script>
+  </body>
+</html>

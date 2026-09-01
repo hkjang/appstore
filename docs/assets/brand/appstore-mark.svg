@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">AppStore</title>
+  <desc id="desc">Blue rounded square with a white application grid</desc>
+  <defs>
+    <linearGradient id="g" x1="7" y1="6" x2="57" y2="59" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3157d5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="17" fill="url(#g)"/>
+  <g fill="#fff">
+    <rect x="15" y="15" width="14" height="14" rx="4"/>
+    <rect x="35" y="15" width="14" height="14" rx="4" opacity=".94"/>
+    <rect x="15" y="35" width="14" height="14" rx="4" opacity=".94"/>
+    <path d="M42 34a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 3.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">AppStore — 사내 개발자 앱 카탈로그</title>
+  <desc id="desc">오프라인 운영, Keycloak SSO, 승인 워크플로, API, MCP, AI를 제공하는 AppStore 소개 이미지</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10182d"/>
+      <stop offset=".6" stop-color="#263f9e"/>
+      <stop offset="1" stop-color="#6d28d9"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="20" stdDeviation="25" flood-opacity=".25"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1050" cy="40" r="300" fill="#fff" opacity=".06"/>
+  <circle cx="110" cy="620" r="260" fill="#7dd3fc" opacity=".08"/>
+  <g transform="translate(90 100)" filter="url(#shadow)">
+    <rect width="120" height="120" rx="31" fill="#fff" opacity=".98"/>
+    <g fill="#3157d5">
+      <rect x="27" y="27" width="27" height="27" rx="7"/>
+      <rect x="66" y="27" width="27" height="27" rx="7"/>
+      <rect x="27" y="66" width="27" height="27" rx="7"/>
+      <circle cx="79.5" cy="79.5" r="13.5" fill="none" stroke="#7c3aed" stroke-width="7"/>
+    </g>
+  </g>
+  <text x="90" y="300" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="76" font-weight="800">AppStore</text>
+  <text x="90" y="375" fill="#dce5ff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="34" font-weight="600">공개 탐색 · SSO 등록 · 안전한 관리</text>
+  <text x="90" y="455" fill="#c5d2f5" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="25">오프라인 운영 · Keycloak OIDC · API · MCP · AI Streaming</text>
+  <g transform="translate(90 505)" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="20" font-weight="700">
+    <rect width="180" height="48" rx="24" fill="#fff" opacity=".14"/><text x="24" y="31">Go + React</text>
+    <rect x="195" width="210" height="48" rx="24" fill="#fff" opacity=".14"/><text x="219" y="31">Offline-ready</text>
+    <rect x="420" width="220" height="48" rx="24" fill="#fff" opacity=".14"/><text x="444" y="31">PostgreSQL</text>
+  </g>
+</svg>

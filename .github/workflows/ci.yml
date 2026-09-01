@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Go, React, E2E, and offline checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+
+      - name: Check formatting and lint
+        run: |
+          unformatted="$(find . -path './web' -prune -o -path './.git' -prune -o -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
+          test -z "$unformatted"
+          npm --prefix web run lint
+
+      - name: Run Go tests
+        run: go test -race . ./cmd/... ./internal/... ./migrations/... ./openapi/...
+
+      - name: Run React tests
+        run: npm --prefix web test
+
+      - name: Build and check offline frontend
+        run: |
+          npm --prefix web run build
+          ./scripts/check-offline-assets.sh web/dist
+          ./scripts/embed-web.sh
+
+      - name: Build Go service
+        run: go build -trimpath -buildvcs=false -o /tmp/appstore-ci ./cmd/server
+
+      - name: Validate environment and documentation contracts
+        run: |
+          ./scripts/check-env-contract.sh
+          ./scripts/check-docs.sh
+
+      - name: Install Playwright browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop and mobile E2E tests
+        working-directory: web
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  image:
+    name: Non-root offline image smoke test
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build CI image
+        run: |
+          docker build --platform linux/amd64 --load \
+            --build-arg VERSION=v0.0.0 \
+            --build-arg COMMIT="${GITHUB_SHA}" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --tag appstore:v0.0.0 .
+
+      - name: Verify non-root image and embedded UI
+        run: |
+          test "$(docker image inspect --format '{{ .Config.User }}' appstore:v0.0.0)" = "appstore:appstore"
+          ./scripts/smoke-image.sh appstore:v0.0.0
