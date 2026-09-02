@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	appcrypto "github.com/hkjang/appstore/internal/crypto"
 	"github.com/hkjang/appstore/internal/model"
@@ -113,9 +114,15 @@ func (s *Streamer) Stream(ctx context.Context, provider model.AIProvider, input 
 		return fmt.Errorf("decrypt provider API key: %w", err)
 	}
 	payload := map[string]any{
-		"model": modelName, "messages": input.Messages, "max_tokens": input.MaxTokens,
+		"model": modelName, "messages": input.Messages,
 		"temperature": temperature, "stream": true,
 		"stream_options": map[string]any{"include_usage": true},
+	}
+	// Zero means "no AppStore-side output limit" everywhere else in the
+	// configuration, but OpenAI-compatible servers reject an explicit
+	// max_tokens of 0, so the field is omitted instead of sent as 0.
+	if input.MaxTokens > 0 {
+		payload["max_tokens"] = input.MaxTokens
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -267,6 +274,16 @@ func sanitizeProviderError(value []byte) string {
 	text = strings.ReplaceAll(text, "\n", " ")
 	if len(text) > 512 {
 		text = text[:512]
+		// Drop the trailing bytes of a rune that the byte cut split, so a
+		// Korean provider message never ends in mojibake.
+		for len(text) > 0 {
+			last, size := utf8.DecodeLastRuneInString(text)
+			if last != utf8.RuneError || size > 1 {
+				break
+			}
+			text = text[:len(text)-1]
+		}
+		text = strings.TrimRight(text, " ")
 	}
 	return text
 }
