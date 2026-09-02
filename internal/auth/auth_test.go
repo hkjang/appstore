@@ -7,13 +7,21 @@ import (
 )
 
 func TestSafeReturnTo(t *testing.T) {
-	for _, unsafe := range []string{"", "https://evil.test", "//evil.test", "/ok\r\nLocation: evil"} {
+	unsafeValues := []string{
+		"", "https://evil.test", "//evil.test", "/ok\r\nLocation: evil",
+		`/\evil.test`, `\\evil.test`, `/apps\..\..`,
+		"/\t/evil.test", "/\n/evil.test", "/\x7f/evil.test",
+		"/\v/evil.test", "/\x00/evil.test",
+	}
+	for _, unsafe := range unsafeValues {
 		if got := SafeReturnTo(unsafe); got != "/" {
 			t.Fatalf("SafeReturnTo(%q) = %q", unsafe, got)
 		}
 	}
-	if got := SafeReturnTo("/submit?draft=1"); got != "/submit?draft=1" {
-		t.Fatalf("valid return path = %q", got)
+	for _, safe := range []string{"/submit?draft=1", "/apps/my-app", "/search?q=%2F%5C", "/apps/my-app#top"} {
+		if got := SafeReturnTo(safe); got != safe {
+			t.Fatalf("SafeReturnTo(%q) = %q", safe, got)
+		}
 	}
 }
 

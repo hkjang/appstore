@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/subtle"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -82,10 +83,26 @@ func VerifyCSRF(r *http.Request, expectedHash []byte, box *appcrypto.SecretBox) 
 	return subtle.ConstantTimeCompare(actual, expectedHash) == 1
 }
 
+// SafeReturnTo keeps the post-login redirect on this origin. Browsers normalize
+// a backslash to a slash and strip tab, CR and LF from a URL before resolving
+// it, so "/\evil.test" and "/<TAB>/evil.test" would otherwise reach the browser
+// as the protocol-relative "//evil.test". Legitimate values arrive percent
+// encoded, so rejecting backslashes and control characters costs nothing.
 func SafeReturnTo(value string) string {
 	value = strings.TrimSpace(value)
-	if value == "" || !strings.HasPrefix(value, "/") || strings.HasPrefix(value, "//") || strings.ContainsAny(value, "\r\n") {
+	if value == "" || !strings.HasPrefix(value, "/") || strings.HasPrefix(value, "//") {
+		return "/"
+	}
+	if strings.ContainsRune(value, '\\') || strings.IndexFunc(value, isControl) >= 0 {
+		return "/"
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme != "" || parsed.Host != "" || parsed.User != nil {
 		return "/"
 	}
 	return value
+}
+
+func isControl(value rune) bool {
+	return value < 0x20 || value == 0x7f
 }
