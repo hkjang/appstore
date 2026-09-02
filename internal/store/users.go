@@ -153,8 +153,8 @@ func (r *Repository) ListUsers(ctx context.Context, options UserListOptions) (mo
 		return fmt.Sprintf("$%d", len(args))
 	}
 	if query := strings.TrimSpace(options.Query); query != "" {
-		parameter := add("%" + query + "%")
-		where = append(where, `(u.username ILIKE `+parameter+` OR u.email ILIKE `+parameter+` OR u.display_name ILIKE `+parameter+`)`)
+		parameter := add(likePattern(query))
+		where = append(where, `(u.username ILIKE `+parameter+` ESCAPE '\' OR u.email ILIKE `+parameter+` ESCAPE '\' OR u.display_name ILIKE `+parameter+` ESCAPE '\')`)
 	}
 	if role := normalizeKey(options.Role); role != "" {
 		parameter := add(role)
