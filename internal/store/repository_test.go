@@ -29,6 +29,22 @@ func TestNormalizePage(t *testing.T) {
 	}
 }
 
+func TestLikePattern(t *testing.T) {
+	for pattern, want := range map[string]string{
+		"app":    `%app%`,
+		"100%":   `%100\%%`,
+		"a_b":    `%a\_b%`,
+		`C:\bin`: `%C:\\bin%`,
+		"%":      `%\%%`,
+		`\%_`:    `%\\\%\_%`,
+		"한글 검색":  `%한글 검색%`,
+	} {
+		if got := likePattern(pattern); got != want {
+			t.Fatalf("likePattern(%q) = %q, want %q", pattern, got, want)
+		}
+	}
+}
+
 func TestUniqueStrings(t *testing.T) {
 	got := uniqueStrings([]string{" apps:read ", "apps:read", "", "mcp:read"})
 	if len(got) != 2 || got[0] != "apps:read" || got[1] != "mcp:read" {

@@ -108,12 +108,13 @@ func (r *Repository) ListApps(ctx context.Context, options model.AppListOptions)
 	}
 	if query := strings.TrimSpace(options.Query); query != "" {
 		parameter := add(query)
+		pattern := add(likePattern(query))
 		where = append(where, `(to_tsvector('simple', a.name || ' ' || a.slug || ' ' || a.summary || ' ' || a.description || ' ' || a.tags::text) @@ plainto_tsquery('simple', `+parameter+`)
-			OR a.name ILIKE '%' || `+parameter+` || '%'
-			OR a.slug ILIKE '%' || `+parameter+` || '%'
-			OR a.summary ILIKE '%' || `+parameter+` || '%'
-			OR a.description ILIKE '%' || `+parameter+` || '%'
-			OR a.tags::text ILIKE '%' || `+parameter+` || '%')`)
+			OR a.name ILIKE `+pattern+` ESCAPE '\'
+			OR a.slug ILIKE `+pattern+` ESCAPE '\'
+			OR a.summary ILIKE `+pattern+` ESCAPE '\'
+			OR a.description ILIKE `+pattern+` ESCAPE '\'
+			OR a.tags::text ILIKE `+pattern+` ESCAPE '\')`)
 	}
 	if category := strings.TrimSpace(options.Category); category != "" {
 		where = append(where, `c.slug = `+add(category))

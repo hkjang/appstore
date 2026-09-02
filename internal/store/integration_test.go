@@ -121,6 +121,10 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	if err != nil || users.Total != 1 || users.Items[0].ID != user.ID {
 		t.Fatalf("list users = %#v err=%v", users, err)
 	}
+	wildcard, err := repository.ListUsers(ctx, UserListOptions{Query: "%", Limit: 10})
+	if err != nil || wildcard.Total != 0 {
+		t.Fatalf("wildcard user search = %#v err=%v", wildcard, err)
+	}
 	user, err = repository.ReplaceUserRoles(ctx, user.ID, []string{"user", "contributor"})
 	if err != nil {
 		t.Fatal(err)
@@ -229,6 +233,12 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	})
 	if err != nil || listedApps.Total != 1 || listedApps.Items[0].ID != app.ID {
 		t.Fatalf("list apps = %#v err=%v", listedApps, err)
+	}
+	wildcardApps, err := repository.ListApps(ctx, model.AppListOptions{
+		Query: "%", Category: category.Slug, IncludeAll: true, Limit: 10,
+	})
+	if err != nil || wildcardApps.Total != 0 {
+		t.Fatalf("wildcard app search = %#v err=%v", wildcardApps, err)
 	}
 	if err := repository.AddFavorite(ctx, user.ID, app.ID); err != nil {
 		t.Fatal(err)

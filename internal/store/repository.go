@@ -72,6 +72,18 @@ func normalizeKey(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
+// likeEscaper neutralizes the PostgreSQL LIKE metacharacters. The backslash
+// replacement must stay first so that the escapes added for % and _ are not
+// escaped again.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// likePattern wraps a user supplied search term in a substring pattern. Without
+// escaping, a query such as "100%" or "a_b" would be read as wildcards and match
+// unrelated rows, so callers pair this with an explicit ESCAPE '\' clause.
+func likePattern(value string) string {
+	return "%" + likeEscaper.Replace(value) + "%"
+}
+
 func uniqueStrings(values []string) []string {
 	seen := make(map[string]struct{}, len(values))
 	result := make([]string, 0, len(values))
