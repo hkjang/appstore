@@ -45,12 +45,29 @@ type OIDCIdentity struct {
 }
 
 type DiscoveryResult struct {
-	Issuer                string `json:"issuer"`
-	AuthorizationEndpoint string `json:"authorizationEndpoint"`
-	TokenEndpoint         string `json:"tokenEndpoint"`
-	UserInfoEndpoint      string `json:"userInfoEndpoint"`
-	EndSessionEndpoint    string `json:"endSessionEndpoint"`
-	JWKSURI               string `json:"jwksUri"`
+	Issuer                string   `json:"issuer"`
+	DocumentURL           string   `json:"documentUrl"`
+	AuthorizationEndpoint string   `json:"authorizationEndpoint"`
+	TokenEndpoint         string   `json:"tokenEndpoint"`
+	UserInfoEndpoint      string   `json:"userInfoEndpoint"`
+	EndSessionEndpoint    string   `json:"endSessionEndpoint"`
+	JWKSURI               string   `json:"jwksUri"`
+	ScopesSupported       []string `json:"scopesSupported,omitempty"`
+	CodeChallengeMethods  []string `json:"codeChallengeMethods,omitempty"`
+}
+
+// discoveryDocument mirrors the snake_case wire format defined by OpenID
+// Connect Discovery 1.0. DiscoveryResult keeps the camelCase names the REST
+// API exposes, so the two shapes must stay separate.
+type discoveryDocument struct {
+	Issuer                string   `json:"issuer"`
+	AuthorizationEndpoint string   `json:"authorization_endpoint"`
+	TokenEndpoint         string   `json:"token_endpoint"`
+	UserInfoEndpoint      string   `json:"userinfo_endpoint"`
+	EndSessionEndpoint    string   `json:"end_session_endpoint"`
+	JWKSURI               string   `json:"jwks_uri"`
+	ScopesSupported       []string `json:"scopes_supported"`
+	CodeChallengeMethods  []string `json:"code_challenge_methods_supported"`
 }
 
 func (c *OIDCClient) Start(ctx context.Context, settings model.OIDCSettings, redirectURL, returnTo string) (LoginRequest, error) {
@@ -127,35 +144,89 @@ func (c *OIDCClient) Complete(ctx context.Context, settings model.OIDCSettings, 
 	return identity, nil
 }
 
+func DiscoveryDocumentURL(issuer string) string {
+	return strings.TrimRight(strings.TrimSpace(issuer), "/") + "/.well-known/openid-configuration"
+}
+
 func (c *OIDCClient) Discover(ctx context.Context, issuer string) (DiscoveryResult, error) {
 	issuer = strings.TrimRight(strings.TrimSpace(issuer), "/")
 	if _, err := validateIssuer(issuer); err != nil {
 		return DiscoveryResult{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, issuer+"/.well-known/openid-configuration", nil)
+	documentURL := DiscoveryDocumentURL(issuer)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, documentURL, nil)
 	if err != nil {
 		return DiscoveryResult{}, err
 	}
+	req.Header.Set("Accept", "application/json")
 	client := c.HTTPClient
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return DiscoveryResult{}, fmt.Errorf("fetch OIDC discovery document: %w", err)
+		return DiscoveryResult{}, fmt.Errorf("%s에 연결하지 못했습니다: %w", documentURL, err)
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return DiscoveryResult{}, fmt.Errorf("%s 응답을 읽지 못했습니다: %w", documentURL, err)
+	}
 	if resp.StatusCode != http.StatusOK {
-		return DiscoveryResult{}, fmt.Errorf("OIDC discovery returned HTTP %d", resp.StatusCode)
+		return DiscoveryResult{}, fmt.Errorf("%s 요청이 HTTP %d를 반환했습니다%s", documentURL, resp.StatusCode, bodyHint(body))
 	}
-	var result DiscoveryResult
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
-		return DiscoveryResult{}, fmt.Errorf("decode OIDC discovery document: %w", err)
+	var document discoveryDocument
+	if err := json.Unmarshal(body, &document); err != nil {
+		return DiscoveryResult{}, fmt.Errorf("%s 응답을 OIDC discovery 문서로 해석하지 못했습니다%s", documentURL, bodyHint(body))
 	}
-	if result.Issuer != issuer || result.AuthorizationEndpoint == "" || result.TokenEndpoint == "" || result.JWKSURI == "" {
-		return DiscoveryResult{}, errors.New("OIDC discovery document is incomplete or issuer does not match")
+	if missing := missingDiscoveryFields(document); len(missing) > 0 {
+		return DiscoveryResult{}, fmt.Errorf("discovery 문서에 필수 항목이 없습니다: %s", strings.Join(missing, ", "))
 	}
-	return result, nil
+	if !sameIssuer(document.Issuer, issuer) {
+		return DiscoveryResult{}, fmt.Errorf("discovery 문서의 issuer(%s)가 입력한 Issuer URL(%s)과 다릅니다. Keycloak의 frontend URL 설정을 확인하세요", document.Issuer, issuer)
+	}
+	return DiscoveryResult{
+		Issuer: document.Issuer, DocumentURL: documentURL,
+		AuthorizationEndpoint: document.AuthorizationEndpoint, TokenEndpoint: document.TokenEndpoint,
+		UserInfoEndpoint: document.UserInfoEndpoint, EndSessionEndpoint: document.EndSessionEndpoint,
+		JWKSURI: document.JWKSURI, ScopesSupported: document.ScopesSupported,
+		CodeChallengeMethods: document.CodeChallengeMethods,
+	}, nil
+}
+
+func missingDiscoveryFields(document discoveryDocument) []string {
+	missing := []string{}
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"issuer", document.Issuer},
+		{"authorization_endpoint", document.AuthorizationEndpoint},
+		{"token_endpoint", document.TokenEndpoint},
+		{"jwks_uri", document.JWKSURI},
+	} {
+		if strings.TrimSpace(field.value) == "" {
+			missing = append(missing, field.name)
+		}
+	}
+	return missing
+}
+
+// sameIssuer compares issuers the way providers publish them: identical apart
+// from a trailing slash.
+func sameIssuer(document, configured string) bool {
+	return strings.TrimRight(strings.TrimSpace(document), "/") == strings.TrimRight(strings.TrimSpace(configured), "/")
+}
+
+func bodyHint(body []byte) string {
+	hint := strings.TrimSpace(string(body))
+	if hint == "" {
+		return ""
+	}
+	if len([]rune(hint)) > 200 {
+		hint = string([]rune(hint)[:200]) + "…"
+	}
+	return " (" + strings.Join(strings.Fields(hint), " ") + ")"
 }
 
 func (c *OIDCClient) provider(ctx context.Context, issuer string) (*oidc.Provider, error) {

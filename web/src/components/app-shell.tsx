@@ -53,6 +53,37 @@ interface NavItem {
   icon: LucideIcon;
   end?: boolean;
 }
+
+// Query parameters that give a path its own nav entry.
+const NAV_VARIANT_PARAMS = ["mcp"];
+
+/**
+ * Marks a nav entry active from the whole URL, query string included.
+ *
+ * NavLink's own `isActive` only looks at the pathname, so `/apps` and
+ * `/apps?mcp=true` would light up together. Every query parameter an entry
+ * declares must match, and an entry that declares none must not match a URL
+ * that carries one of its siblings' parameters.
+ */
+export function navItemActive(
+  to: string,
+  pathname: string,
+  search: string,
+  end = false,
+): boolean {
+  const [targetPath = "", targetSearch = ""] = to.split("?");
+  const current = new URLSearchParams(search);
+  const target = new URLSearchParams(targetSearch);
+  const pathMatches =
+    end || targetSearch
+      ? pathname === targetPath
+      : pathname === targetPath || pathname.startsWith(`${targetPath}/`);
+  if (!pathMatches) return false;
+  if (targetSearch)
+    return [...target].every(([key, value]) => current.get(key) === value);
+  return !NAV_VARIANT_PARAMS.some((key) => current.has(key));
+}
+
 interface NavGroup {
   label: string;
   items: NavItem[];
@@ -293,28 +324,22 @@ function Sidebar({
             </h2>
             {group.items.map((item) => {
               const Icon = item.icon;
-              const [targetPath = "", targetSearch = ""] = item.to.split("?");
-              const targetParams = new URLSearchParams(targetSearch);
-              const exactQueryMatch = [...targetParams].every(
-                ([key, value]) =>
-                  new URLSearchParams(location.search).get(key) === value,
+              const isActive = navItemActive(
+                item.to,
+                location.pathname,
+                location.search,
+                item.end,
               );
-              const isActive = targetSearch
-                ? location.pathname === targetPath && exactQueryMatch
-                : item.to === "/apps"
-                  ? location.pathname === "/apps" &&
-                    !new URLSearchParams(location.search).has("mcp")
-                  : item.end
-                    ? location.pathname === targetPath
-                    : location.pathname === targetPath ||
-                      location.pathname.startsWith(`${targetPath}/`);
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.end}
                   onClick={close}
-                  className={`nav-link${isActive ? " active" : ""}`}
+                  aria-current={isActive ? "page" : undefined}
+                  // The callback form keeps NavLink from appending its own
+                  // pathname-only "active" class on top of ours.
+                  className={() => `nav-link${isActive ? " active" : ""}`}
                 >
                   <Icon aria-hidden="true" />
                   <span>{item.label}</span>

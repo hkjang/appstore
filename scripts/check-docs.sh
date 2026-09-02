@@ -38,8 +38,8 @@ const path = require("node:path");
 const docs = process.argv[2];
 const manifestPath = path.join(docs, "assets/screenshots/manifest.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-if (manifest.schemaVersion !== 2 || manifest.generatedForVersion !== "v2.0.0") {
-  throw new Error("screenshot manifest must identify the v2.0.0 capture schema");
+if (manifest.schemaVersion !== 2 || !/^v\d+\.\d+\.\d+$/.test(manifest.generatedForVersion ?? "")) {
+  throw new Error("screenshot manifest must identify the released capture schema and version");
 }
 if (!Array.isArray(manifest.captures) || manifest.captures.length < 76) {
   throw new Error("screenshot manifest must contain desktop and mobile captures for every route");

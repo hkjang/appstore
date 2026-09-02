@@ -141,6 +141,9 @@ func (s *Server) Handler() (http.Handler, error) {
 func (s *Server) adminRoutes(r chi.Router) {
 	r.With(permission("settings:read")).Get("/admin/dashboard", s.adminDashboard)
 	r.With(permission("apps:manage")).Get("/admin/apps", s.adminApps)
+	r.With(permission("apps:manage")).Get("/admin/apps/{id}", s.adminApp)
+	r.With(permission("apps:manage")).Put("/admin/apps/{id}", s.adminUpdateApp)
+	r.With(permission("apps:manage")).Delete("/admin/apps/{id}", s.adminDeleteApp)
 	r.With(permission("apps:manage")).Put("/admin/apps/{id}/status", s.adminSetAppStatus)
 	r.With(permission("apps:manage")).Get("/admin/categories", s.adminCategories)
 	r.With(permission("apps:manage")).Post("/admin/categories", s.adminCreateCategory)

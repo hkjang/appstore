@@ -4,12 +4,14 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/hkjang/appstore/internal/ai"
+	appauth "github.com/hkjang/appstore/internal/auth"
 	"github.com/hkjang/appstore/internal/mcp"
 	"github.com/hkjang/appstore/internal/model"
 )
@@ -103,24 +105,57 @@ func (s *Server) adminTestAuthentication(w http.ResponseWriter, r *http.Request)
 		WriteError(w, r, err)
 		return
 	}
-	if settings.IssuerURL == "" || settings.ClientID == "" {
-		WriteError(w, r, Validation("Issuer URL과 Client ID를 먼저 저장하세요.", nil))
+	// The admin can try an Issuer URL straight from the form, before saving it.
+	var input struct {
+		IssuerURL string `json:"issuerUrl"`
+		ClientID  string `json:"clientId"`
+	}
+	if r.ContentLength > 0 {
+		if err := DecodeJSON(w, r, &input); err != nil {
+			WriteError(w, r, err)
+			return
+		}
+	}
+	issuer := strings.TrimSpace(input.IssuerURL)
+	if issuer == "" {
+		issuer = strings.TrimSpace(settings.IssuerURL)
+	}
+	clientID := strings.TrimSpace(input.ClientID)
+	if clientID == "" {
+		clientID = strings.TrimSpace(settings.ClientID)
+	}
+	if issuer == "" {
+		WriteError(w, r, Validation("Issuer URL을 입력한 뒤 다시 시도하세요.", map[string]any{"issuerUrl": "Issuer URL이 비어 있습니다."}))
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
-	discovery, err := s.oidc.Discover(ctx, settings.IssuerURL)
+	discovery, err := s.oidc.Discover(ctx, issuer)
 	if err != nil {
-		s.logger.WarnContext(r.Context(), "OIDC connection test failed", "error", err, "request_id", RequestID(r.Context()))
-		WriteError(w, r, &APIError{Status: http.StatusBadGateway, Code: "OIDC_DISCOVERY_FAILED", Message: "OIDC discovery 연결 테스트에 실패했습니다."})
+		s.logger.WarnContext(r.Context(), "OIDC connection test failed", "error", err, "issuer", issuer, "request_id", RequestID(r.Context()))
+		WriteError(w, r, &APIError{
+			Status: http.StatusBadGateway, Code: "OIDC_DISCOVERY_FAILED",
+			Message: "OIDC discovery 연결 테스트에 실패했습니다. " + err.Error(),
+			Details: map[string]any{
+				"issuerUrl":    issuer,
+				"discoveryUrl": appauth.DiscoveryDocumentURL(issuer),
+				"reason":       err.Error(),
+			},
+		})
 		return
 	}
 	result := map[string]any{
-		"ok": true, "issuer": discovery.Issuer,
-		"authorization": discovery.AuthorizationEndpoint != "",
-		"token":         discovery.TokenEndpoint != "", "userInfo": discovery.UserInfoEndpoint != "",
-		"logout": discovery.EndSessionEndpoint != "", "jwks": discovery.JWKSURI != "",
-		"redirectUrl": s.oidcRedirectURL(r),
+		"ok": true, "issuer": discovery.Issuer, "discoveryUrl": discovery.DocumentURL,
+		"authorizationEndpoint": discovery.AuthorizationEndpoint,
+		"tokenEndpoint":         discovery.TokenEndpoint,
+		"userInfoEndpoint":      discovery.UserInfoEndpoint,
+		"endSessionEndpoint":    discovery.EndSessionEndpoint,
+		"jwksUri":               discovery.JWKSURI,
+		"scopesSupported":       discovery.ScopesSupported,
+		"pkceSupported":         slices.Contains(discovery.CodeChallengeMethods, "S256"),
+		"clientId":              clientID,
+		"clientSecretSet":       settings.ClientSecretSet,
+		"redirectUrl":           s.oidcRedirectURL(r),
 	}
 	s.recordAudit(r, "oidc.connection.test", "oidc_settings", "default", nil, map[string]any{"ok": true, "issuer": discovery.Issuer})
 	WriteJSON(w, http.StatusOK, result)

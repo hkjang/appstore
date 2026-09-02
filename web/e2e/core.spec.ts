@@ -111,3 +111,58 @@ test("모바일 메뉴는 키보드와 명시적 버튼으로 접근 가능하�
   ).toHaveClass(/open/);
   await expect(page.getByRole("link", { name: /MCP Apps/ })).toBeVisible();
 });
+
+test("관리자는 앱 상세를 수정하고 삭제 확인 후 목록으로 돌아온다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/apps");
+  await page.getByRole("link", { name: "Agent Hub" }).click();
+  await expect(page).toHaveURL(
+    "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+  await expect(page.getByLabel("앱 이름")).toHaveValue("Agent Hub");
+  await page.getByLabel("게시 상태").selectOption("archived");
+  await page.getByRole("button", { name: "변경 저장" }).click();
+  await expect(page.getByText("앱 정보가 저장되었습니다.")).toBeVisible();
+
+  await page.getByRole("button", { name: "앱 삭제" }).click();
+  const dialog = page.getByRole("dialog", { name: "앱을 영구 삭제할까요?" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "영구 삭제" }).click();
+  await expect(page).toHaveURL("/admin/apps");
+});
+
+test("SSO 연결 테스트는 discovery endpoint를 표시한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/authentication");
+  await page.getByRole("button", { name: "SSO 연결 테스트" }).click();
+  await expect(page.getByText("discovery 문서를 정상적으로")).toBeVisible();
+  await expect(
+    page.getByText(
+      "https://sso.example.internal/realms/company/protocol/openid-connect/token",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("지원", { exact: true })).toBeVisible();
+});
+
+test("스토어 메뉴는 Apps와 MCP Apps를 동시에 선택하지 않는다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  const menu = page.getByRole("navigation").or(page.locator(".sidebar-scroll"));
+  await page.goto("/apps");
+  await expect(
+    menu.getByRole("link", { name: "Apps", exact: true }),
+  ).toHaveClass(/active/);
+  await expect(menu.getByRole("link", { name: "MCP Apps" })).not.toHaveClass(
+    /active/,
+  );
+  await page.goto("/apps?mcp=true");
+  await expect(menu.getByRole("link", { name: "MCP Apps" })).toHaveClass(
+    /active/,
+  );
+  await expect(
+    menu.getByRole("link", { name: "Apps", exact: true }),
+  ).not.toHaveClass(/active/);
+});

@@ -3,36 +3,49 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Activity,
   AppWindow,
+  ArrowLeft,
   Bot,
   CheckCircle2,
   ClipboardCheck,
+  ExternalLink,
   Plus,
   Play,
   RefreshCw,
   Save,
   Search,
+  ServerCog,
   Settings,
   ShieldCheck,
   Square,
+  Star,
   Trash2,
+  TriangleAlert,
   Users,
   Workflow,
 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { api, streamAiChat } from "../lib/api";
 import { clampToken, formatDateTime } from "../lib/utils";
 import type {
   AiModelLimit,
+  AppStatus,
   AuditEntry,
   Category,
   KeyPermissionDefinition,
   KeyPermissionTemplate,
+  OidcTestResult,
   PersonalKey,
   StoreApp,
   User,
 } from "../types";
 import {
+  AppIcon,
   Badge,
   Button,
   Card,
@@ -267,35 +280,230 @@ function Meta({ label, value }: { label: string; value: string }) {
   );
 }
 
+const APP_STATUSES = [
+  { value: "draft", label: "초안", tone: undefined },
+  { value: "pending_review", label: "검토 대기", tone: "warning" },
+  { value: "published", label: "게시됨", tone: "positive" },
+  { value: "rejected", label: "반려", tone: "danger" },
+  { value: "archived", label: "보관됨", tone: undefined },
+] as const;
+
+function AppStatusBadge({ status }: { status?: string }) {
+  const entry = APP_STATUSES.find((item) => item.value === status);
+  return <Badge tone={entry?.tone}>{entry?.label ?? status ?? "—"}</Badge>;
+}
+
+function AppDeleteDialog({
+  app,
+  pending,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  app?: StoreApp;
+  pending: boolean;
+  error: unknown;
+  onCancel: () => void;
+  onConfirm: (app: StoreApp) => void;
+}) {
+  return (
+    <Dialog
+      open={!!app}
+      title="앱을 영구 삭제할까요?"
+      description="앱과 함께 즐겨찾기, 검토 이력, 버전 기록이 모두 삭제되며 되돌릴 수 없습니다."
+      onClose={onCancel}
+    >
+      {app && (
+        <>
+          <div className="notice notice-danger" role="alert">
+            <TriangleAlert size={19} />
+            <span>
+              <strong>{app.name}</strong> (/{app.slug})을(를) 삭제합니다. 게시를
+              중단만 하려면 상태를 <strong>보관됨</strong>으로 바꾸세요.
+            </span>
+          </div>
+          {!!error && (
+            <p className="field-error mt-5" role="alert">
+              {error instanceof Error ? error.message : "삭제하지 못했습니다."}
+            </p>
+          )}
+          <div className="form-actions mt-6">
+            <Button variant="secondary" onClick={onCancel}>
+              취소
+            </Button>
+            <Button
+              variant="danger"
+              disabled={pending}
+              onClick={() => onConfirm(app)}
+            >
+              <Trash2 size={17} /> {pending ? "삭제 중…" : "영구 삭제"}
+            </Button>
+          </div>
+        </>
+      )}
+    </Dialog>
+  );
+}
+
 export function AdminAppsPage() {
   const client = useQueryClient();
+  const [params, setParams] = useSearchParams();
+  const q = params.get("q") ?? "";
+  const status = params.get("status") ?? "";
+  const sort = params.get("sort") ?? "updated";
+  const mcpOnly = params.get("mcp") === "true";
+  const [draft, setDraft] = useState(q);
+  const [pendingDelete, setPendingDelete] = useState<StoreApp>();
+  useEffect(() => setDraft(q), [q]);
+
   const apps = useQuery({
-    queryKey: ["admin", "apps"],
-    queryFn: ({ signal }) => api.admin<unknown>("apps", signal),
+    queryKey: ["admin", "apps", { q, status, sort, mcpOnly }],
+    queryFn: ({ signal }) =>
+      api.adminApps(
+        { q, status, sort, mcp: mcpOnly || undefined, pageSize: 200 },
+        signal,
+      ),
   });
-  const rows = arrayFrom<StoreApp>(apps.data, ["apps"]);
+  const rows = apps.data?.items ?? [];
+  const invalidate = async () => {
+    await client.invalidateQueries({ queryKey: ["admin", "apps"] });
+    await client.invalidateQueries({ queryKey: ["apps"] });
+  };
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.setAdminAppStatus(id, status),
+    onSuccess: invalidate,
+  });
+  const removeApp = useMutation({
+    mutationFn: (id: string) => api.deleteAdminApp(id),
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ["admin", "apps"] });
-      await client.invalidateQueries({ queryKey: ["apps"] });
+      setPendingDelete(undefined);
+      await invalidate();
     },
   });
+  const update = (key: string, value?: string) =>
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    });
+
   return (
     <div className="page">
       <PageHeader
         eyebrow="Catalog management"
         title="Apps"
-        description="등록된 모든 앱과 게시 상태를 관리합니다."
+        description="등록된 모든 앱을 검색하고 상세 정보를 수정하거나 삭제합니다."
+        actions={
+          <Button
+            variant="secondary"
+            disabled={apps.isFetching}
+            onClick={() => void apps.refetch()}
+          >
+            <RefreshCw size={17} /> 새로고침
+          </Button>
+        }
       />
+      <form
+        className="toolbar"
+        role="search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          update("q", draft.trim());
+        }}
+      >
+        <div className="field field-grow">
+          <label htmlFor="admin-app-search">앱 검색</label>
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-3 text-[var(--text-muted)]"
+              size={19}
+              aria-hidden="true"
+            />
+            <input
+              id="admin-app-search"
+              className="input !pl-10"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="이름, 설명, 태그"
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="admin-app-status">상태</label>
+          <Select
+            id="admin-app-status"
+            value={status}
+            onChange={(event) => update("status", event.target.value)}
+          >
+            <option value="">전체 상태</option>
+            {APP_STATUSES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="field">
+          <label htmlFor="admin-app-sort">정렬</label>
+          <Select
+            id="admin-app-sort"
+            value={sort}
+            onChange={(event) => update("sort", event.target.value)}
+          >
+            <option value="updated">최근 업데이트</option>
+            <option value="created">최근 등록</option>
+            <option value="name">이름</option>
+            <option value="trending">인기</option>
+          </Select>
+        </div>
+        <div className="field">
+          <span className="field-label">지원</span>
+          <div className="tabs" role="group" aria-label="지원 기능 필터">
+            <button
+              className={`tab${mcpOnly ? "" : " active"}`}
+              type="button"
+              aria-pressed={!mcpOnly}
+              onClick={() => update("mcp")}
+            >
+              전체
+            </button>
+            <button
+              className={`tab${mcpOnly ? " active" : ""}`}
+              type="button"
+              aria-pressed={mcpOnly}
+              onClick={() => update("mcp", "true")}
+            >
+              MCP만
+            </button>
+          </div>
+        </div>
+        <Button type="submit">검색</Button>
+      </form>
       {apps.isPending && <LoadingState />}
       {apps.error && (
         <ErrorState error={apps.error} retry={() => void apps.refetch()} />
       )}
-      {!!apps.data && !rows.length && <EmptyState />}
+      {!!apps.data && !rows.length && (
+        <EmptyState
+          title="조건에 맞는 앱이 없습니다"
+          description="검색어나 상태 필터를 바꾸어 보세요."
+          actions={<Button onClick={() => setParams({})}>필터 초기화</Button>}
+        />
+      )}
       {!!rows.length && (
         <Card className="data-card">
+          <div className="data-toolbar">
+            <span aria-live="polite">
+              {apps.data?.total ?? rows.length}개 앱
+            </span>
+            {removeApp.isSuccess && (
+              <span className="text-[var(--text-muted)]">
+                앱이 삭제되었습니다.
+              </span>
+            )}
+          </div>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
@@ -303,20 +511,51 @@ export function AdminAppsPage() {
                   <th>앱</th>
                   <th>담당팀</th>
                   <th>카테고리</th>
+                  <th>지원</th>
                   <th>상태</th>
                   <th>버전</th>
                   <th>업데이트</th>
+                  <th className="text-right">관리</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((app) => (
                   <tr key={app.id}>
                     <td>
-                      <strong>{app.name}</strong>
-                      <div className="field-help">/{app.slug}</div>
+                      <div className="table-app">
+                        <AppIcon app={app} />
+                        <div className="min-w-0">
+                          <Link
+                            className="table-link"
+                            to={`/admin/apps/${app.id}`}
+                          >
+                            {app.name}
+                          </Link>
+                          <div className="field-help">/{app.slug}</div>
+                        </div>
+                      </div>
                     </td>
                     <td>{app.team || "—"}</td>
                     <td>{app.category?.name || app.categoryName || "—"}</td>
+                    <td>
+                      <div className="badge-row">
+                        {app.supportsMcp && (
+                          <Badge tone="primary">
+                            <ServerCog size={13} /> MCP
+                          </Badge>
+                        )}
+                        {app.supportsApi && <Badge tone="positive">API</Badge>}
+                        {app.featured && (
+                          <Badge tone="warning">
+                            <Star size={13} /> 추천
+                          </Badge>
+                        )}
+                        {!app.supportsMcp &&
+                          !app.supportsApi &&
+                          !app.featured &&
+                          "—"}
+                      </div>
+                    </td>
                     <td>
                       <Select
                         aria-label={`${app.name} 상태`}
@@ -329,15 +568,35 @@ export function AdminAppsPage() {
                           })
                         }
                       >
-                        <option value="draft">draft</option>
-                        <option value="pending_review">pending_review</option>
-                        <option value="published">published</option>
-                        <option value="rejected">rejected</option>
-                        <option value="archived">archived</option>
+                        {APP_STATUSES.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
                       </Select>
                     </td>
                     <td>{app.version || "—"}</td>
-                    <td>{formatDateTime(app.updatedAt)}</td>
+                    <td className="whitespace-nowrap">
+                      {formatDateTime(app.updatedAt)}
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <Link
+                          className="button button-secondary button-sm"
+                          to={`/admin/apps/${app.id}`}
+                        >
+                          상세 · 수정
+                        </Link>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          aria-label={`${app.name} 삭제`}
+                          onClick={() => setPendingDelete(app)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -345,8 +604,434 @@ export function AdminAppsPage() {
           </div>
         </Card>
       )}
+      {updateStatus.error && (
+        <div className="notice notice-danger mt-5" role="alert">
+          {updateStatus.error.message}
+        </div>
+      )}
+      <AppDeleteDialog
+        app={pendingDelete}
+        pending={removeApp.isPending}
+        error={removeApp.error}
+        onCancel={() => setPendingDelete(undefined)}
+        onConfirm={(app) => removeApp.mutate(app.id)}
+      />
     </div>
   );
+}
+
+interface AdminAppForm {
+  name: string;
+  slug: string;
+  summary: string;
+  description: string;
+  icon: string;
+  serviceUrl: string;
+  categoryId: string;
+  tags: string;
+  screenshots: string;
+  team: string;
+  language: string;
+  framework: string;
+  version: string;
+  supportsMcp: boolean;
+  supportsApi: boolean;
+  visibility: "public" | "private";
+  status: AppStatus;
+  featured: boolean;
+}
+
+function formFromApp(app: StoreApp): AdminAppForm {
+  return {
+    name: app.name,
+    slug: app.slug,
+    summary: app.summary,
+    description: app.description ?? "",
+    icon: app.icon ?? "📦",
+    serviceUrl: app.serviceUrl ?? "",
+    categoryId: app.category?.id ?? app.categoryId ?? "",
+    tags: app.tags?.join(", ") ?? "",
+    screenshots: app.screenshots?.join(", ") ?? "",
+    team: app.team ?? "",
+    language: app.language ?? "",
+    framework: app.framework ?? "",
+    version: app.version ?? "",
+    supportsMcp: !!app.supportsMcp,
+    supportsApi: !!app.supportsApi,
+    visibility: app.visibility ?? "public",
+    status: app.status ?? "draft",
+    featured: !!app.featured,
+  };
+}
+
+export function AdminAppDetailPage() {
+  const { id = "" } = useParams();
+  const client = useQueryClient();
+  const navigate = useNavigate();
+  const app = useQuery({
+    queryKey: ["admin", "app", id],
+    queryFn: ({ signal }) => api.adminApp(id, signal),
+  });
+  const categories = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: ({ signal }) => api.admin<unknown>("categories", signal),
+  });
+  const categoryOptions = arrayFrom<Category>(categories.data, ["categories"]);
+  const [form, setForm] = useState<AdminAppForm>();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    if (app.data) setForm(formFromApp(app.data));
+  }, [app.data]);
+
+  const save = useMutation({
+    mutationFn: (input: AdminAppForm) =>
+      api.updateAdminApp(id, {
+        ...input,
+        tags: splitList(input.tags),
+        screenshots: splitList(input.screenshots),
+      }),
+    onSuccess: async (updated) => {
+      setForm(formFromApp(updated));
+      await client.invalidateQueries({ queryKey: ["admin", "app", id] });
+      await client.invalidateQueries({ queryKey: ["admin", "apps"] });
+      await client.invalidateQueries({ queryKey: ["apps"] });
+    },
+  });
+  const removeApp = useMutation({
+    mutationFn: () => api.deleteAdminApp(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["admin", "apps"] });
+      await client.invalidateQueries({ queryKey: ["apps"] });
+      navigate("/admin/apps");
+    },
+  });
+  const set = <K extends keyof AdminAppForm>(key: K, value: AdminAppForm[K]) =>
+    setForm((current) => (current ? { ...current, [key]: value } : current));
+
+  if (app.isPending)
+    return (
+      <div className="page">
+        <LoadingState />
+      </div>
+    );
+  if (app.error)
+    return (
+      <div className="page">
+        <ErrorState error={app.error} retry={() => void app.refetch()} />
+      </div>
+    );
+  if (!app.data || !form)
+    return (
+      <div className="page">
+        <EmptyState title="앱을 찾을 수 없습니다" />
+      </div>
+    );
+
+  const current = app.data;
+  return (
+    <div className="page">
+      <PageHeader
+        eyebrow="Application detail"
+        title={current.name}
+        description={`/${current.slug} · 앱의 모든 정보와 게시 상태를 수정합니다.`}
+        actions={
+          <>
+            <Link className="button button-secondary" to="/admin/apps">
+              <ArrowLeft size={17} /> 목록
+            </Link>
+            <Link
+              className="button button-secondary"
+              to={`/apps/${encodeURIComponent(current.slug)}`}
+            >
+              <ExternalLink size={17} /> 스토어에서 보기
+            </Link>
+          </>
+        }
+      />
+      <div className="detail-body">
+        <Card className="form-section">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              save.mutate(form);
+            }}
+          >
+            <div className="form-grid">
+              <Field label="앱 이름" id="admin-app-name">
+                <Input
+                  id="admin-app-name"
+                  value={form.name}
+                  onChange={(event) => set("name", event.target.value)}
+                  required
+                  maxLength={120}
+                />
+              </Field>
+              <Field label="Slug" id="admin-app-slug" help="URL 식별자">
+                <Input
+                  id="admin-app-slug"
+                  value={form.slug}
+                  onChange={(event) =>
+                    set(
+                      "slug",
+                      event.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, "-"),
+                    )
+                  }
+                  required
+                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                />
+              </Field>
+              <Field label="한 줄 설명" id="admin-app-summary">
+                <Input
+                  id="admin-app-summary"
+                  value={form.summary}
+                  onChange={(event) => set("summary", event.target.value)}
+                  required
+                  maxLength={240}
+                />
+              </Field>
+              <Field
+                label="앱 아이콘"
+                id="admin-app-icon"
+                help="Emoji 또는 짧은 문자"
+              >
+                <Input
+                  id="admin-app-icon"
+                  value={form.icon}
+                  onChange={(event) => set("icon", event.target.value)}
+                  required
+                  maxLength={16}
+                />
+              </Field>
+              <Field label="서비스 URL" id="admin-app-url">
+                <Input
+                  id="admin-app-url"
+                  type="url"
+                  value={form.serviceUrl}
+                  onChange={(event) => set("serviceUrl", event.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="카테고리" id="admin-app-category">
+                <Select
+                  id="admin-app-category"
+                  value={form.categoryId}
+                  onChange={(event) => set("categoryId", event.target.value)}
+                  required
+                >
+                  <option value="">선택</option>
+                  {categoryOptions.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="게시 상태" id="admin-app-detail-status">
+                <Select
+                  id="admin-app-detail-status"
+                  value={form.status}
+                  onChange={(event) =>
+                    set("status", event.target.value as AppStatus)
+                  }
+                >
+                  {APP_STATUSES.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="공개 범위" id="admin-app-visibility">
+                <Select
+                  id="admin-app-visibility"
+                  value={form.visibility}
+                  onChange={(event) =>
+                    set(
+                      "visibility",
+                      event.target.value as "public" | "private",
+                    )
+                  }
+                >
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                </Select>
+              </Field>
+              <Field label="담당팀" id="admin-app-team">
+                <Input
+                  id="admin-app-team"
+                  value={form.team}
+                  onChange={(event) => set("team", event.target.value)}
+                />
+              </Field>
+              <Field label="개발 언어" id="admin-app-language">
+                <Input
+                  id="admin-app-language"
+                  value={form.language}
+                  onChange={(event) => set("language", event.target.value)}
+                />
+              </Field>
+              <Field label="Framework" id="admin-app-framework">
+                <Input
+                  id="admin-app-framework"
+                  value={form.framework}
+                  onChange={(event) => set("framework", event.target.value)}
+                />
+              </Field>
+              <Field label="앱 버전" id="admin-app-version">
+                <Input
+                  id="admin-app-version"
+                  value={form.version}
+                  onChange={(event) => set("version", event.target.value)}
+                  placeholder="1.0.0"
+                />
+              </Field>
+              <Field label="태그" id="admin-app-tags" help="쉼표로 구분">
+                <Input
+                  id="admin-app-tags"
+                  value={form.tags}
+                  onChange={(event) => set("tags", event.target.value)}
+                />
+              </Field>
+              <Field
+                label="Screenshot URL"
+                id="admin-app-screenshots"
+                help="쉼표로 구분"
+              >
+                <Input
+                  id="admin-app-screenshots"
+                  value={form.screenshots}
+                  onChange={(event) => set("screenshots", event.target.value)}
+                />
+              </Field>
+            </div>
+            <Field label="상세 설명" id="admin-app-description">
+              <Textarea
+                id="admin-app-description"
+                value={form.description}
+                onChange={(event) => set("description", event.target.value)}
+                required
+              />
+            </Field>
+            <div className="switch-row">
+              <div>
+                <strong>MCP 지원</strong>
+                <div className="field-help">
+                  MCP client에서 사용할 수 있는 앱입니다.
+                </div>
+              </div>
+              <Switch
+                checked={form.supportsMcp}
+                onChange={(value) => set("supportsMcp", value)}
+                label="MCP 지원"
+              />
+            </div>
+            <div className="switch-row">
+              <div>
+                <strong>API 지원</strong>
+                <div className="field-help">REST API를 제공하는 앱입니다.</div>
+              </div>
+              <Switch
+                checked={form.supportsApi}
+                onChange={(value) => set("supportsApi", value)}
+                label="API 지원"
+              />
+            </div>
+            <div className="switch-row">
+              <div>
+                <strong>추천 앱</strong>
+                <div className="field-help">Today 화면 상단에 노출합니다.</div>
+              </div>
+              <Switch
+                checked={form.featured}
+                onChange={(value) => set("featured", value)}
+                label="추천 앱"
+              />
+            </div>
+            {save.error && (
+              <p className="field-error mt-5" role="alert">
+                {save.error.message}
+              </p>
+            )}
+            {save.isSuccess && (
+              <div className="notice mt-5">
+                <CheckCircle2 size={19} /> 앱 정보가 저장되었습니다.
+              </div>
+            )}
+            <div className="form-actions mt-6">
+              <Button variant="danger" onClick={() => setConfirmDelete(true)}>
+                <Trash2 size={17} /> 앱 삭제
+              </Button>
+              <Button type="submit" disabled={save.isPending}>
+                <Save size={18} /> {save.isPending ? "저장 중…" : "변경 저장"}
+              </Button>
+            </div>
+          </form>
+        </Card>
+        <Card className="prose-card">
+          <h2>앱 상태</h2>
+          <div className="badge-row">
+            <AppStatusBadge status={current.status} />
+            {current.featured && (
+              <Badge tone="warning">
+                <Star size={13} /> 추천
+              </Badge>
+            )}
+            <Badge>
+              {current.visibility === "private" ? "Private" : "Public"}
+            </Badge>
+          </div>
+          <dl className="meta-list mt-5">
+            <div className="meta-row">
+              <dt>등록자</dt>
+              <dd>{current.ownerName || "—"}</dd>
+            </div>
+            <div className="meta-row">
+              <dt>담당팀</dt>
+              <dd>{current.team || "—"}</dd>
+            </div>
+            <div className="meta-row">
+              <dt>등록일</dt>
+              <dd>{formatDateTime(current.createdAt)}</dd>
+            </div>
+            <div className="meta-row">
+              <dt>최근 수정</dt>
+              <dd>{formatDateTime(current.updatedAt)}</dd>
+            </div>
+            <div className="meta-row">
+              <dt>인기 점수</dt>
+              <dd>{current.trendingScore ?? 0}</dd>
+            </div>
+          </dl>
+          {current.serviceUrl && (
+            <a
+              className="button button-secondary w-full mt-5"
+              href={current.serviceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={17} /> 서비스 열기
+            </a>
+          )}
+        </Card>
+      </div>
+      <AppDeleteDialog
+        app={confirmDelete ? current : undefined}
+        pending={removeApp.isPending}
+        error={removeApp.error}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => removeApp.mutate()}
+      />
+    </div>
+  );
+}
+
+function splitList(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export function AdminCategoriesPage() {
@@ -959,6 +1644,25 @@ export function AdminWorkflowPage() {
   );
 }
 
+type DiscoveryRowKey = Extract<
+  keyof OidcTestResult,
+  | "discoveryUrl"
+  | "authorizationEndpoint"
+  | "tokenEndpoint"
+  | "userInfoEndpoint"
+  | "endSessionEndpoint"
+  | "jwksUri"
+>;
+
+const DISCOVERY_ROWS: ReadonlyArray<readonly [DiscoveryRowKey, string]> = [
+  ["discoveryUrl", "Discovery 문서"],
+  ["authorizationEndpoint", "Authorization"],
+  ["tokenEndpoint", "Token"],
+  ["userInfoEndpoint", "UserInfo"],
+  ["endSessionEndpoint", "End Session"],
+  ["jwksUri", "JWKS"],
+];
+
 export function AdminAuthenticationPage() {
   const state = useAdminSettings("authentication", {
     enabled: false,
@@ -978,8 +1682,12 @@ export function AdminAuthenticationPage() {
     scopes: ["openid", "profile", "email"],
   });
   const [secret, setSecret] = useState("");
+  const issuerUrl = text(state.settings.issuerUrl);
+  const clientId = text(state.settings.clientId);
+  // Test the Issuer URL currently in the form so it can be verified before it
+  // is saved.
   const test = useMutation({
-    mutationFn: () => api.adminAction<SettingsRecord>("authentication/test"),
+    mutationFn: () => api.testOidc({ issuerUrl, clientId }),
   });
   return (
     <SettingsShell
@@ -1003,11 +1711,15 @@ export function AdminAuthenticationPage() {
     >
       <SettingSwitch state={state} name="enabled" label="OIDC 활성화" />
       <div className="form-grid">
-        <Field label="Issuer URL" id="oidc-issuer">
+        <Field
+          label="Issuer URL"
+          id="oidc-issuer"
+          help="Keycloak realm의 기준 URL. discovery 문서는 /.well-known/openid-configuration에서 읽습니다."
+        >
           <Input
             id="oidc-issuer"
             type="url"
-            value={text(state.settings.issuerUrl)}
+            value={issuerUrl}
             onChange={(event) => state.set("issuerUrl", event.target.value)}
             placeholder="https://sso.example.com/realms/company"
           />
@@ -1015,7 +1727,7 @@ export function AdminAuthenticationPage() {
         <Field label="Client ID" id="oidc-client">
           <Input
             id="oidc-client"
-            value={text(state.settings.clientId, "appstore")}
+            value={clientId || "appstore"}
             onChange={(event) => state.set("clientId", event.target.value)}
           />
         </Field>
@@ -1087,12 +1799,43 @@ export function AdminAuthenticationPage() {
         ))}
       </div>
       {test.data && (
-        <div className="notice mt-5">
-          <CheckCircle2 /> 연결 테스트가 정상 완료되었습니다.
+        <div className="mt-5">
+          <div className="notice">
+            <CheckCircle2 />
+            <span>
+              discovery 문서를 정상적으로 읽었습니다. Issuer{" "}
+              <code>{test.data.issuer}</code>
+            </span>
+          </div>
+          <dl className="meta-list mt-4">
+            {DISCOVERY_ROWS.map(([key, label]) => (
+              <div className="meta-row" key={key}>
+                <dt>{label}</dt>
+                <dd className="break-all">
+                  {test.data[key] || "제공되지 않음"}
+                </dd>
+              </div>
+            ))}
+            <div className="meta-row">
+              <dt>PKCE (S256)</dt>
+              <dd>{test.data.pkceSupported ? "지원" : "미지원"}</dd>
+            </div>
+            <div className="meta-row">
+              <dt>Client Secret</dt>
+              <dd>{test.data.clientSecretSet ? "저장됨" : "미저장"}</dd>
+            </div>
+            <div className="meta-row">
+              <dt>Redirect URL</dt>
+              <dd className="break-all">{test.data.redirectUrl}</dd>
+            </div>
+          </dl>
         </div>
       )}
       {test.error && (
-        <div className="notice notice-danger mt-5">{test.error.message}</div>
+        <div className="notice notice-danger mt-5" role="alert">
+          <TriangleAlert size={19} />
+          <span>{test.error.message}</span>
+        </div>
       )}
     </SettingsShell>
   );

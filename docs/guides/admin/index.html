@@ -25,7 +25,7 @@
     <main id="guide">
       <header class="section guide-hero"><span class="eyebrow">ADMINISTRATOR GUIDE</span><h1>인증부터 AI까지, 운영 설정을 화면에서 관리하기</h1><p class="lead">환경변수는 설치에 필요한 네 값으로 고정합니다. 운영 중 변경하는 서비스 URL, OIDC, 역할, Workflow, Key 정책, AI, API와 MCP는 관리자 화면과 감사 로그로 관리합니다.</p></header>
       <div class="section compact guide-layout">
-        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#bootstrap">최초 Bootstrap</a><a href="#system">시스템 설정</a><a href="#oidc">Keycloak OIDC</a><a href="#roles">역할과 권한</a><a href="#workflow">승인 Workflow</a><a href="#keys">Key 정책</a><a href="#ai">AI 공급자</a><a href="#api-mcp">API와 MCP</a><a href="#users">사용자·감사</a><a href="#security">보안 점검</a></aside>
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#bootstrap">최초 Bootstrap</a><a href="#system">시스템 설정</a><a href="#oidc">Keycloak OIDC</a><a href="#roles">역할과 권한</a><a href="#workflow">승인 Workflow</a><a href="#keys">Key 정책</a><a href="#ai">AI 공급자</a><a href="#api-mcp">API와 MCP</a><a href="#apps">앱 카탈로그</a><a href="#users">사용자·감사</a><a href="#security">보안 점검</a></aside>
         <article class="guide-content">
           <section id="bootstrap"><h2>1. 최초 Bootstrap 관리자</h2>
             <p>OIDC가 아직 설정되지 않은 첫 실행에서는 <code>BOOTSTRAP_ADMIN</code>과 <code>BOOTSTRAP_ADMIN_PASSWORD</code>로 로컬 Super Admin을 준비합니다. 이 계정은 Keycloak 장애 시 복구 경로이므로 일상 계정으로 공유하지 않습니다.</p>
@@ -49,7 +49,7 @@
           </section>
 
           <section id="oidc"><h2>3. Keycloak OIDC 연결</h2>
-            <figure class="shot"><a href="../../assets/screenshots/captures/admin-authentication-desktop.webp" aria-label="Keycloak OIDC 관리자 설정 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-authentication-desktop.webp" width="1440" height="1113" decoding="async" alt="Issuer, Client ID, 가려진 Secret, 역할 매핑과 SSO 연결 시험이 있는 OIDC 설정 전체 화면"></a><figcaption>v2.0.0 실제 화면입니다. Secret은 설정할 수 있지만 다시 조회할 수 없습니다.</figcaption></figure>
+            <figure class="shot"><a href="../../assets/screenshots/captures/admin-authentication-desktop.webp" aria-label="Keycloak OIDC 관리자 설정 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-authentication-desktop.webp" width="1440" height="1161" decoding="async" alt="Issuer, Client ID, 가려진 Secret, 역할 매핑과 SSO 연결 시험이 있는 OIDC 설정 전체 화면"></a><figcaption>v2.1.0 실제 화면입니다. Secret은 설정할 수 있지만 다시 조회할 수 없습니다.</figcaption></figure>
             <h3>Keycloak에서 준비</h3>
             <ul>
               <li>표준 Authorization Code Flow를 허용하는 confidential client를 만듭니다.</li>
@@ -60,10 +60,18 @@
             <ol>
               <li><strong>Issuer URL</strong>: 예를 들어 <code>https://sso.example.internal/realms/company</code>처럼 realm까지 입력합니다.</li>
               <li><strong>Client ID</strong>와 <strong>Client Secret</strong>을 입력합니다. 저장 후 Secret은 가려지고 원문 조회 API가 제공되지 않습니다.</li>
-              <li><strong>SSO 연결 테스트</strong>를 실행해 issuer, authorization, token, userinfo, logout discovery 결과를 확인합니다.</li>
+              <li><strong>SSO 연결 테스트</strong>를 실행해 discovery 문서 URL과 issuer, authorization, token, userinfo, logout, JWKS endpoint, PKCE 지원 여부를 확인합니다. 저장하기 전 화면에 입력한 Issuer URL을 그대로 시험하므로 값을 확정하기 전에 오타와 연결을 검증할 수 있습니다.</li>
               <li>테스트가 성공한 뒤 OIDC를 활성화하고 새 private 창에서 로그인·로그아웃을 확인합니다.</li>
             </ol>
             <div class="callout"><strong>Discovery:</strong> AppStore는 Issuer의 <code>/.well-known/openid-configuration</code>을 사용합니다. authorization, token, userinfo endpoint를 각각 입력하지 않습니다.</div>
+            <h3>연결 테스트가 실패할 때</h3>
+            <p>실패 메시지는 원인을 그대로 표시합니다. 아래 순서로 확인하세요.</p>
+            <ul>
+              <li><strong>연결하지 못했습니다</strong>: 폐쇄망에서 AppStore container가 Keycloak host와 통신 가능한지, TLS 인증서를 신뢰하는지 확인합니다.</li>
+              <li><strong>HTTP 404</strong>: realm 경로가 틀렸습니다. Issuer는 realm까지 포함해야 하며 <code>/.well-known/...</code>은 붙이지 않습니다.</li>
+              <li><strong>필수 항목이 없습니다</strong>: 응답이 discovery 문서가 아닙니다. reverse proxy가 로그인 화면이나 오류 페이지를 대신 반환하고 있는지 확인합니다.</li>
+              <li><strong>issuer가 다릅니다</strong>: Keycloak이 내부 hostname으로 issuer를 발행하고 있습니다. Keycloak의 frontend URL(<code>KC_HOSTNAME</code>)을 사용자에게 노출되는 주소로 맞춥니다.</li>
+            </ul>
           </section>
 
           <section id="roles"><h2>4. 역할과 권한 매핑</h2>
@@ -120,7 +128,18 @@
             <p>설정 변경 뒤 익명 요청, read-only Key, Contributor Key, Admin Key로 tool 목록과 실행 거부를 각각 시험합니다.</p>
           </section>
 
-          <section id="users"><h2>9. 사용자, 메뉴와 Audit Log</h2>
+          <section id="apps"><h2>9. 앱 카탈로그 관리</h2>
+            <figure class="shot"><a href="../../assets/screenshots/captures/admin-app-detail-desktop.webp" aria-label="관리자 앱 상세 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-app-detail-desktop.webp" width="1440" height="1511" decoding="async" alt="앱 상세 정보와 게시 상태를 수정하고 삭제하는 관리자 상세 전체 화면"></a><figcaption>v2.1.0 실제 화면입니다. 등록자가 아니어도 관리자는 모든 앱의 상세 정보를 수정할 수 있습니다.</figcaption></figure>
+            <ul>
+              <li><code>/admin/apps</code>에서 이름·설명·태그 검색, 게시 상태, MCP 지원과 정렬로 카탈로그를 좁힙니다. 조건은 URL에 유지됩니다.</li>
+              <li>목록의 상태 select는 게시 상태만 즉시 바꿉니다. 나머지 정보는 <strong>상세 · 수정</strong>에서 편집합니다.</li>
+              <li>상세 화면에서 이름, Slug, 설명, 서비스 URL, 카테고리, 담당팀, 태그, 스크린샷, MCP·API 지원, 공개 범위, 게시 상태와 추천 노출을 한 번에 저장합니다.</li>
+              <li>게시를 멈추기만 하려면 상태를 <strong>보관됨</strong>으로 바꿉니다. 카탈로그에서 사라지지만 기록은 남습니다.</li>
+              <li><strong>앱 삭제</strong>는 영구 삭제입니다. 확인 대화 상자를 거치며 즐겨찾기, 검토 이력과 버전 기록이 함께 삭제됩니다. 모든 수정과 삭제는 Audit Log에 남습니다.</li>
+            </ul>
+          </section>
+
+          <section id="users"><h2>10. 사용자, 메뉴와 Audit Log</h2>
             <figure class="shot"><a href="../../assets/screenshots/captures/admin-users-desktop.webp" aria-label="관리자 사용자 목록 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-users-desktop.webp" width="1440" height="1040" decoding="async" alt="150명의 사용자와 역할을 스크롤 가능한 목록으로 표시하는 관리자 전체 화면"></a><figcaption>관리자 메뉴는 URL route와 연결되어 새로고침 후에도 같은 화면과 스크롤 맥락을 복원합니다.</figcaption></figure>
             <ul>
               <li>사용자 목록은 대량 데이터에서 virtualization을 사용하고 8px theme-aware scrollbar를 제공합니다.</li>
@@ -131,7 +150,7 @@
             </ul>
           </section>
 
-          <section id="security"><h2>10. 운영 전 보안 점검</h2>
+          <section id="security"><h2>11. 운영 전 보안 점검</h2>
             <ul class="steps">
               <li>Bootstrap과 SSO Super Admin을 서로 다른 승인된 계정으로 관리합니다.</li>
               <li>OIDC·AI Secret이 재조회되지 않고 변경만 가능한지 확인합니다.</li>

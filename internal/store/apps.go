@@ -283,6 +283,42 @@ func (r *Repository) UpdateApp(ctx context.Context, id uuid.UUID, input model.Ap
 	return r.GetAppByID(ctx, id)
 }
 
+// AdminUpdateApp writes the whole catalog record in one statement, including
+// the status and featured flags that owners cannot change themselves.
+func (r *Repository) AdminUpdateApp(ctx context.Context, id uuid.UUID, input model.AppInput, status string, featured bool) (model.App, error) {
+	input, err := validateAppInput(input)
+	if err != nil {
+		return model.App{}, err
+	}
+	categoryID, err := uuid.Parse(input.CategoryID)
+	if err != nil {
+		return model.App{}, fmt.Errorf("update app category: %w", ErrInvalid)
+	}
+	if !validAppStatus(status) {
+		return model.App{}, fmt.Errorf("update app status: %w", ErrInvalid)
+	}
+	result, err := r.pool.Exec(ctx, `
+		UPDATE apps SET category_id = $2, name = $3, slug = $4, summary = $5,
+			description = $6, icon = $7, gradient = $8, service_url = $9,
+			tags = $10, screenshots = $11, language = $12, framework = $13,
+			supports_mcp = $14, supports_api = $15, team = $16,
+			app_version = $17, visibility = $18, status = $19, featured = $20,
+			updated_at = now(),
+			published_at = CASE WHEN $19 = 'published' THEN COALESCE(published_at, now()) ELSE published_at END
+		WHERE id = $1`, id, categoryID, input.Name, input.Slug, input.Summary,
+		input.Description, input.Icon, input.Gradient, input.ServiceURL,
+		jsonValue(input.Tags), jsonValue(input.Screenshots), input.Language,
+		input.Framework, input.SupportsMCP, input.SupportsAPI, input.Team,
+		input.Version, input.Visibility, status, featured)
+	if err != nil {
+		return model.App{}, normalizeError("admin update app", err)
+	}
+	if result.RowsAffected() == 0 {
+		return model.App{}, fmt.Errorf("admin update app: %w", ErrNotFound)
+	}
+	return r.GetAppByID(ctx, id)
+}
+
 func (r *Repository) DeleteApp(ctx context.Context, id uuid.UUID) error {
 	result, err := r.pool.Exec(ctx, `DELETE FROM apps WHERE id = $1`, id)
 	if err != nil {

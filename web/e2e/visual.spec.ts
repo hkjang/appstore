@@ -51,6 +51,11 @@ const adminRoutes: CaptureRoute[] = [
   { name: "admin-dashboard", path: "/admin", heading: "Dashboard" },
   { name: "admin-apps", path: "/admin/apps", heading: "Apps" },
   {
+    name: "admin-app-detail",
+    path: "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    heading: "Agent Hub",
+  },
+  {
     name: "admin-categories",
     path: "/admin/categories",
     heading: "Categories",

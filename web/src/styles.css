@@ -669,6 +669,11 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 18px;
 }
+/* Keep every control the same height when only one field in a row has help
+   text below it. */
+.form-grid > .field {
+  align-content: start;
+}
 .form-section {
   padding: clamp(20px, 3vw, 30px);
 }
@@ -1012,6 +1017,45 @@ button {
 }
 .data-table tr:hover td {
   background: var(--bg-hover);
+}
+.data-table .app-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  border-radius: 11px;
+}
+.table-app {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.data-table .select {
+  min-width: 128px;
+  min-height: 38px;
+  font-size: 14px;
+}
+.table-link {
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+.table-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  white-space: nowrap;
+}
+.data-table .badge-row {
+  margin: 0;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 .virtual-list {
   height: 620px;

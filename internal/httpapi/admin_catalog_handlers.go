@@ -78,6 +78,80 @@ func (s *Server) adminSetAppStatus(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, after)
 }
 
+// adminAppRequest carries the full catalog record an administrator edits,
+// including the status and featured flags owners cannot set themselves.
+type adminAppRequest struct {
+	model.AppInput
+	Status   string `json:"status"`
+	Featured bool   `json:"featured"`
+}
+
+func (s *Server) adminApp(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"), "앱")
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	app, err := s.repository.GetAppByID(r.Context(), id)
+	if err != nil {
+		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 찾을 수 없습니다."))
+		return
+	}
+	WriteJSON(w, http.StatusOK, app)
+}
+
+func (s *Server) adminUpdateApp(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"), "앱")
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	before, err := s.repository.GetAppByID(r.Context(), id)
+	if err != nil {
+		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 찾을 수 없습니다."))
+		return
+	}
+	var input adminAppRequest
+	if err := DecodeJSON(w, r, &input); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	if err := ValidateAppInput(&input.AppInput); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	status := strings.TrimSpace(input.Status)
+	if status == "" {
+		status = before.Status
+	}
+	after, err := s.repository.AdminUpdateApp(r.Context(), id, input.AppInput, status, input.Featured)
+	if err != nil {
+		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 찾을 수 없습니다."))
+		return
+	}
+	s.recordAudit(r, "app.update", "app", id.String(), before, after)
+	WriteJSON(w, http.StatusOK, after)
+}
+
+func (s *Server) adminDeleteApp(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"), "앱")
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	before, err := s.repository.GetAppByID(r.Context(), id)
+	if err != nil {
+		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 찾을 수 없습니다."))
+		return
+	}
+	if err := s.repository.DeleteApp(r.Context(), id); err != nil {
+		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 찾을 수 없습니다."))
+		return
+	}
+	s.recordAudit(r, "app.delete", "app", id.String(), before, nil)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) adminCategories(w http.ResponseWriter, r *http.Request) {
 	items, err := s.repository.ListCategories(r.Context(), true)
 	if err != nil {

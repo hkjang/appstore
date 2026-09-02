@@ -121,6 +121,11 @@
     "/api/v1/admin/apps": {
       "get": {"tags":["Admin"],"summary":"모든 상태의 앱 목록","operationId":"listAdminApps","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Application page"}}}
     },
+    "/api/v1/admin/apps/{id}": {
+      "get": {"tags":["Admin"],"summary":"앱 상세(모든 상태)","operationId":"getAdminApp","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Application"},"404":{"$ref":"#/components/responses/Error"}}},
+      "put": {"tags":["Admin"],"summary":"앱 상세 정보·상태·추천 변경","operationId":"updateAdminApp","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated application"},"404":{"$ref":"#/components/responses/Error"},"422":{"$ref":"#/components/responses/Error"}}},
+      "delete": {"tags":["Admin"],"summary":"앱 영구 삭제","operationId":"deleteAdminApp","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"204":{"description":"Deleted"},"404":{"$ref":"#/components/responses/Error"}}}
+    },
     "/api/v1/admin/apps/{id}/status": {
       "put": {"tags":["Admin"],"summary":"앱 게시 상태 변경","operationId":"setAdminAppStatus","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Updated application"}}}
     },
@@ -141,7 +146,7 @@
       "put": {"tags":["Admin"],"summary":"OIDC 설정 변경","operationId":"updateOIDCSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated without secret"}}}
     },
     "/api/v1/admin/authentication/test": {
-      "post": {"tags":["Admin"],"summary":"OIDC discovery 연결 시험","operationId":"testOIDC","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Endpoint status"},"422":{"$ref":"#/components/responses/Error"}}}
+      "post": {"tags":["Admin"],"summary":"OIDC discovery 연결 시험","description":"본문 없이 호출하면 저장된 Issuer URL을, issuerUrl을 보내면 저장 전 값을 시험합니다.","operationId":"testOIDC","security":[{"cookieSession":[]}],"requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"issuerUrl":{"type":"string","format":"uri"},"clientId":{"type":"string"}}}}}},"responses":{"200":{"description":"Discovery endpoints"},"422":{"$ref":"#/components/responses/Error"},"502":{"$ref":"#/components/responses/Error"}}}
     },
     "/api/v1/admin/workflow": {
       "get": {"tags":["Admin"],"summary":"Workflow 정책","operationId":"getWorkflow","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Workflow"}}},

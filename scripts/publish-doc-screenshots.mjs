@@ -267,6 +267,15 @@ const pages = [
     alt: "모든 등록 앱을 관리하는 관리자 목록 전체 화면",
   },
   {
+    id: "admin-app-detail",
+    screen: "admin-app-detail",
+    route: "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    routePattern: "/admin/apps/:id",
+    access: "admin",
+    title: "Admin app detail",
+    alt: "앱 상세 정보와 게시 상태를 수정하고 삭제하는 관리자 상세 전체 화면",
+  },
+  {
     id: "admin-categories",
     screen: "admin-categories",
     route: "/admin/categories",
@@ -441,7 +450,9 @@ function pngDimensions(buffer) {
 }
 
 const require = createRequire(import.meta.url);
-const { chromium } = require(join(repositoryRoot, "web/node_modules/playwright"));
+const { chromium } = require(
+  join(repositoryRoot, "web/node_modules/playwright"),
+);
 const browser = await chromium.launch({ headless: true });
 const converter = await browser.newPage();
 const outputDirectory = join(

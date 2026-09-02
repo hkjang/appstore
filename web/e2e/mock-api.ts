@@ -292,8 +292,64 @@ export async function installMockApi(
         aiStreaming: true,
       });
     }
-    if (path === "/api/v1/admin/apps")
-      return json({ items: apps, total: apps.length, limit: 24, offset: 0 });
+    if (path === "/api/v1/admin/apps") {
+      const q = (url.searchParams.get("q") ?? "").toLowerCase();
+      const status = url.searchParams.get("status") ?? "";
+      const mcpOnly = url.searchParams.get("mcp") === "true";
+      const filtered = apps.filter(
+        (app) =>
+          (!q || `${app.name} ${app.summary}`.toLowerCase().includes(q)) &&
+          (!status || app.status === status) &&
+          (!mcpOnly || app.supportsMcp),
+      );
+      return json({
+        items: filtered,
+        total: filtered.length,
+        limit: 200,
+        offset: 0,
+      });
+    }
+    if (path.startsWith("/api/v1/admin/apps/")) {
+      const id = decodeURIComponent(path.split("/").pop() ?? "");
+      const app = apps.find((item) => item.id === id);
+      if (!app)
+        return json(
+          {
+            error: {
+              code: "APP_NOT_FOUND",
+              message: "앱을 찾을 수 없습니다.",
+            },
+          },
+          404,
+        );
+      if (request.method() === "DELETE")
+        return route.fulfill({ status: 204, body: "" });
+      if (request.method() === "PUT")
+        return json({ ...app, ...(request.postDataJSON() ?? {}) });
+      return json(app);
+    }
+    if (
+      path === "/api/v1/admin/authentication/test" &&
+      request.method() === "POST"
+    ) {
+      const issuer = "https://sso.example.internal/realms/company";
+      return json({
+        ok: true,
+        issuer,
+        discoveryUrl: `${issuer}/.well-known/openid-configuration`,
+        authorizationEndpoint: `${issuer}/protocol/openid-connect/auth`,
+        tokenEndpoint: `${issuer}/protocol/openid-connect/token`,
+        userInfoEndpoint: `${issuer}/protocol/openid-connect/userinfo`,
+        endSessionEndpoint: `${issuer}/protocol/openid-connect/logout`,
+        jwksUri: `${issuer}/protocol/openid-connect/certs`,
+        scopesSupported: ["openid", "profile", "email"],
+        pkceSupported: true,
+        clientId: "appstore",
+        clientSecretSet: true,
+        redirectUrl:
+          "https://appstore.example.internal/api/v1/auth/oidc/callback",
+      });
+    }
     if (path === "/api/v1/admin/categories") return json([category]);
     if (path === "/api/v1/admin/users") {
       const users = Array.from({ length: 150 }, (_, index) => ({

@@ -7,6 +7,7 @@ import type {
   KeyPermissionDefinition,
   KeyPermissionOptions,
   KeyPermissionTemplate,
+  OidcTestResult,
   PageResult,
   PersonalKey,
   PublicConfig,
@@ -309,6 +310,35 @@ export const api = {
     }),
   admin: <T>(resource: string, signal?: AbortSignal) =>
     apiFetch<T>(`/api/v1/admin/${resource}`, { signal }),
+  adminApps: async (
+    params: Record<string, string | number | boolean | undefined>,
+    signal?: AbortSignal,
+  ) => {
+    const payload = await apiFetch<unknown>(
+      `/api/v1/admin/apps${toQuery(pagedParams(params))}`,
+      { signal },
+    );
+    return pageFrom<StoreApp>(payload, ["apps", "applications"]);
+  },
+  adminApp: (id: string, signal?: AbortSignal) =>
+    apiFetch<StoreApp>(`/api/v1/admin/apps/${encodeURIComponent(id)}`, {
+      signal,
+    }),
+  updateAdminApp: (id: string, input: unknown) =>
+    apiFetch<StoreApp>(`/api/v1/admin/apps/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
+  deleteAdminApp: (id: string) =>
+    apiFetch<void>(`/api/v1/admin/apps/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  testOidc: (input: { issuerUrl?: string; clientId?: string }) =>
+    apiFetch<OidcTestResult>("/api/v1/admin/authentication/test", {
+      method: "POST",
+      body: JSON.stringify(input),
+      timeoutMs: 25_000,
+    }),
   updateAdmin: <T>(resource: string, input: unknown) =>
     apiFetch<T>(`/api/v1/admin/${resource}`, {
       method: "PUT",

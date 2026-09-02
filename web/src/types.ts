@@ -43,6 +43,7 @@ export interface StoreApp {
   icon?: string;
   serviceUrl?: string;
   category?: Category;
+  categoryId?: string;
   categorySlug?: string;
   categoryName?: string;
   tags?: string[];
@@ -188,4 +189,20 @@ export interface AiModelLimit {
   maxInputTokens: number;
   maxOutputTokens: number;
   enabled: boolean;
+}
+
+export interface OidcTestResult {
+  ok: boolean;
+  issuer: string;
+  discoveryUrl: string;
+  authorizationEndpoint: string;
+  tokenEndpoint: string;
+  userInfoEndpoint?: string;
+  endSessionEndpoint?: string;
+  jwksUri: string;
+  scopesSupported?: string[];
+  pkceSupported: boolean;
+  clientId?: string;
+  clientSecretSet?: boolean;
+  redirectUrl?: string;
 }
