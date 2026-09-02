@@ -58,6 +58,17 @@ export function appGlyph(name: string, icon?: string): string {
   return initials(name);
 }
 
+// Mirrors the backend SafeReturnTo contract. Browsers normalize a backslash to
+// a slash and strip tab, CR and LF before resolving a URL, so "/\evil.test" and
+// "/<TAB>/evil.test" would otherwise become the protocol-relative "//evil.test".
+export function safeReturnTo(value: string | null | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return "/";
+  // eslint-disable-next-line no-control-regex
+  if (/[\\\u0000-\u001f\u007f]/.test(trimmed)) return "/";
+  return trimmed;
+}
+
 export function clampToken(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(262_144, Math.max(0, Math.round(value)));

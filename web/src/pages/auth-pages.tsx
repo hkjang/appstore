@@ -5,10 +5,7 @@ import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../app/providers";
 import { api } from "../lib/api";
 import { Button, Card, ErrorState, Field, Input } from "../components/ui";
-
-function safeReturnTo(value: string | null): string {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
+import { safeReturnTo } from "../lib/utils";
 
 export function LoginPage() {
   const [params] = useSearchParams();
