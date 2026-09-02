@@ -113,3 +113,56 @@ func TestSanitizeProviderErrorKeepsRuneBoundary(t *testing.T) {
 		t.Fatalf("sanitizeProviderError = %d bytes, %d runes", len(long), len([]rune(long)))
 	}
 }
+
+func collectStream(t *testing.T, body string) ([]Event, error) {
+	t.Helper()
+	var events []Event
+	err := consumeOpenAIStream(context.Background(), strings.NewReader(body), func(event Event) error {
+		events = append(events, event)
+		return nil
+	})
+	return events, err
+}
+
+func TestConsumeOpenAIStreamJoinsMultiLineData(t *testing.T) {
+	body := ": keepalive\n" +
+		"event: chunk\n" +
+		"id: 1\n" +
+		"data: {\"choices\":[{\"delta\":\n" +
+		"data: {\"content\":\"안녕\"}}]}\n" +
+		"\n" +
+		"data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n" +
+		"\n" +
+		"data: [DONE]\n" +
+		"\n"
+	events, err := collectStream(t, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 2 || events[0].Text != "안녕" || events[1].FinishReason != "stop" {
+		t.Fatalf("events = %#v", events)
+	}
+}
+
+func TestConsumeOpenAIStreamHandlesCarriageReturnsAndFinalEvent(t *testing.T) {
+	// No blank line closes the last event and the provider never sends [DONE].
+	body := "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\r\n" +
+		"\r\n" +
+		"data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}"
+	events, err := collectStream(t, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 2 || events[0].Text != "hi" || events[1].FinishReason != "length" {
+		t.Fatalf("events = %#v", events)
+	}
+}
+
+func TestConsumeOpenAIStreamRequiresFinish(t *testing.T) {
+	if _, err := collectStream(t, "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n"); err == nil {
+		t.Fatal("expected an error when the stream ends without a finish event")
+	}
+	if _, err := collectStream(t, "data: not json\n\n"); err == nil {
+		t.Fatal("expected a decode error for a non-JSON chunk")
+	}
+}

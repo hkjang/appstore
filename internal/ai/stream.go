@@ -213,31 +213,34 @@ type openAIChunk struct {
 	} `json:"usage"`
 }
 
+// consumeOpenAIStream parses the response as Server-Sent Events rather than as
+// one JSON chunk per line: an event ends at a blank line and its "data" fields
+// are joined with newlines. Providers that wrap a long chunk across several
+// "data:" lines are spec compliant, and reading each line on its own made the
+// whole stream fail with a JSON decode error.
 func consumeOpenAIStream(ctx context.Context, reader io.Reader, emit func(Event) error) error {
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
 	finishSent := false
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, ":") || !strings.HasPrefix(line, "data:") {
-			continue
-		}
-		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		if data == "[DONE]" {
-			if !finishSent {
-				if err := emit(Event{Type: "finish", FinishReason: "stop"}); err != nil {
-					return err
-				}
-			}
+	streamDone := false
+	var data strings.Builder
+
+	dispatch := func() error {
+		payload := strings.TrimSpace(data.String())
+		data.Reset()
+		if payload == "" {
 			return nil
 		}
+		if payload == "[DONE]" {
+			streamDone = true
+			if finishSent {
+				return nil
+			}
+			finishSent = true
+			return emit(Event{Type: "finish", FinishReason: "stop"})
+		}
 		var chunk openAIChunk
-		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+		if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
 			return fmt.Errorf("decode AI stream chunk: %w", err)
 		}
 		if chunk.Usage != nil {
@@ -258,9 +261,43 @@ func consumeOpenAIStream(ctx context.Context, reader io.Reader, emit func(Event)
 				}
 			}
 		}
+		return nil
+	}
+
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		line := scanner.Text()
+		if strings.TrimSpace(line) == "" {
+			if err := dispatch(); err != nil {
+				return err
+			}
+			if streamDone {
+				return nil
+			}
+			continue
+		}
+		// A comment line starts with ":" and yields an empty field name, so
+		// the "data" check below already skips it.
+		name, value, found := strings.Cut(line, ":")
+		if !found || strings.TrimSpace(name) != "data" {
+			continue
+		}
+		if data.Len() > 0 {
+			data.WriteByte('\n')
+		}
+		data.WriteString(strings.TrimPrefix(value, " "))
 	}
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("read AI stream: %w", err)
+	}
+	// A provider may close the connection without the blank line that ends the
+	// last event; that event still carries the finish reason.
+	if err := dispatch(); err != nil {
+		return err
 	}
 	if !finishSent {
 		return errors.New("AI stream ended before a finish event")
