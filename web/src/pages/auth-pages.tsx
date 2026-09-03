@@ -1,5 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Boxes, LockKeyhole, LogIn, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  Boxes,
+  ChevronDown,
+  LockKeyhole,
+  LogIn,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../app/providers";
@@ -25,6 +32,7 @@ export function LoginPage() {
   });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [localLoginOpen, setLocalLoginOpen] = useState(false);
   const bootstrap = useMutation({
     mutationFn: () => api.bootstrapLogin(username, password),
     onSuccess: async () => {
@@ -38,9 +46,15 @@ export function LoginPage() {
   }, [config.data?.siteName]);
 
   if (auth.session?.authenticated) return <Navigate to={returnTo} replace />;
-  const showBootstrap =
-    auth.session?.bootstrapRequired || !config.data?.oidcConfigured;
   const oidcEnabled = config.data?.oidcEnabled && config.data?.oidcConfigured;
+  // The local admin remains the recovery path when the identity provider is
+  // unreachable, so it stays reachable after SSO is configured. Older servers
+  // that predate bootstrapAvailable fall back to the SSO-not-configured test.
+  const showBootstrap =
+    auth.session?.bootstrapAvailable ??
+    (auth.session?.bootstrapRequired || !config.data?.oidcConfigured);
+  const bootstrapIsFallback = showBootstrap && oidcEnabled;
+  const bootstrapOpen = !bootstrapIsFallback || localLoginOpen;
   const oidcUrl = `/api/v1/auth/oidc/login?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
@@ -87,19 +101,38 @@ export function LoginPage() {
               <ShieldCheck size={19} /> 회사 계정으로 SSO 로그인
             </a>
           )}
-          {showBootstrap && (
+          {bootstrapIsFallback && (
+            <button
+              type="button"
+              className="local-login-toggle"
+              aria-expanded={localLoginOpen}
+              aria-controls="local-login-form"
+              onClick={() => setLocalLoginOpen((open) => !open)}
+            >
+              <LockKeyhole size={17} />
+              <span>관리자 계정으로 로그인</span>
+              <ChevronDown
+                size={17}
+                className={localLoginOpen ? "rotate-180" : ""}
+              />
+            </button>
+          )}
+          {showBootstrap && bootstrapOpen && (
             <form
-              className={
-                oidcEnabled ? "mt-7 pt-7 border-t border-[var(--line)]" : ""
-              }
+              id="local-login-form"
+              className={oidcEnabled ? "mt-5" : ""}
               onSubmit={(event) => {
                 event.preventDefault();
                 bootstrap.mutate();
               }}
             >
               <div className="notice mb-5">
-                <LockKeyhole size={20} /> 최초 설치 관리자만 사용하세요. OIDC
-                설정 후 Bootstrap 로그인은 제한됩니다.
+                <LockKeyhole size={20} />
+                <span>
+                  {oidcEnabled
+                    ? "SSO를 사용할 수 없을 때를 위한 복구용 관리자 계정입니다. 평소에는 회사 계정으로 로그인하세요."
+                    : "최초 설치 관리자 계정입니다. SSO를 설정한 뒤에도 복구용으로 계속 사용할 수 있습니다."}
+                </span>
               </div>
               <Field label="Bootstrap 관리자" id="bootstrap-user">
                 <Input

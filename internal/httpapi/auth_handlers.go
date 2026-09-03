@@ -19,17 +19,29 @@ type bootstrapLoginInput struct {
 }
 
 type sessionResponse struct {
-	Authenticated     bool        `json:"authenticated"`
-	BootstrapRequired bool        `json:"bootstrapRequired"`
-	OIDCConfigured    bool        `json:"oidcConfigured"`
-	CSRFToken         string      `json:"csrfToken,omitempty"`
-	User              *model.User `json:"user,omitempty"`
+	Authenticated bool `json:"authenticated"`
+	// BootstrapRequired means SSO is not configured yet, so the local admin is
+	// the only way in. BootstrapAvailable means the local admin can sign in at
+	// all, which stays true after SSO is configured.
+	BootstrapRequired  bool        `json:"bootstrapRequired"`
+	BootstrapAvailable bool        `json:"bootstrapAvailable"`
+	OIDCConfigured     bool        `json:"oidcConfigured"`
+	CSRFToken          string      `json:"csrfToken,omitempty"`
+	User               *model.User `json:"user,omitempty"`
 }
 
 func (s *Server) sessionState(w http.ResponseWriter, r *http.Request) {
 	settings, _ := s.loadOIDCSettings(r)
 	configured := settings.IssuerURL != "" && settings.ClientID != "" && settings.ClientSecretSet
-	response := sessionResponse{OIDCConfigured: configured, BootstrapRequired: !configured}
+	bootstrapAvailable, err := s.repository.HasBootstrapCredential(r.Context())
+	if err != nil {
+		s.logger.WarnContext(r.Context(), "bootstrap credential lookup failed", "error", err, "request_id", RequestID(r.Context()))
+		bootstrapAvailable = !configured
+	}
+	response := sessionResponse{
+		OIDCConfigured: configured, BootstrapRequired: !configured,
+		BootstrapAvailable: bootstrapAvailable,
+	}
 	if principal := CurrentPrincipal(r.Context()); principal != nil {
 		response.Authenticated = true
 		response.User = &principal.User

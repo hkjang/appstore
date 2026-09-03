@@ -54,7 +54,7 @@ export function AppCard({ app }: { app: StoreApp }) {
             <Heart size={17} fill={favorite ? "currentColor" : "none"} />
           </Button>
           <Link
-            className="button button-primary button-sm"
+            className="button button-secondary button-sm"
             to={`/apps/${encodeURIComponent(app.slug)}`}
           >
             자세히 <ExternalLink size={15} aria-hidden="true" />

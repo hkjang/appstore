@@ -161,6 +161,8 @@ export async function installMockApi(
       return json({
         authenticated,
         oidcConfigured: true,
+        bootstrapRequired: false,
+        bootstrapAvailable: true,
         csrfToken: authenticated ? "csrf-e2e" : undefined,
         user: authenticated ? user : undefined,
       });

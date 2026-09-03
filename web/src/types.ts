@@ -83,6 +83,7 @@ export interface User {
 export interface Session {
   authenticated: boolean;
   bootstrapRequired?: boolean;
+  bootstrapAvailable?: boolean;
   oidcConfigured?: boolean;
   csrfToken?: string;
   user?: User;

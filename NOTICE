@@ -21,6 +21,14 @@ components include:
 - golang.org/x/crypto and golang.org/x/oauth2 — BSD-style licenses
 - google/uuid — BSD 3-Clause License
 
+The user interface is set in Pretendard (Copyright (c) 2022 Kil Hyung-jin),
+licensed under the SIL Open Font License, Version 1.1. The bundled files under
+web/src/assets/fonts are WOFF2 subsets limited to Latin, punctuation, symbols
+and the Hangul syllable range; each file keeps the upstream copyright and
+license notice in its own name table. The license and its FAQ are published at
+https://scripts.sil.org/OFL. Pretendard is not sold on its own, is not bundled
+under any other name, and is served only from this application's own origin.
+
 The production application and the GitHub Pages site do not fetch fonts,
 scripts, stylesheets, or promotional images from third-party CDNs at runtime.
 The Pages illustrations and screenshot placeholders are original local SVG

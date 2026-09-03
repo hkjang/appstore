@@ -590,6 +590,7 @@ export function AdminAppsPage() {
                         <Button
                           size="sm"
                           variant="danger"
+                          className="button-quiet"
                           aria-label={`${app.name} 삭제`}
                           onClick={() => setPendingDelete(app)}
                         >
@@ -960,7 +961,11 @@ export function AdminAppDetailPage() {
               </div>
             )}
             <div className="form-actions mt-6">
-              <Button variant="danger" onClick={() => setConfirmDelete(true)}>
+              <Button
+                variant="danger"
+                className="button-quiet"
+                onClick={() => setConfirmDelete(true)}
+              >
                 <Trash2 size={17} /> 앱 삭제
               </Button>
               <Button type="submit" disabled={save.isPending}>

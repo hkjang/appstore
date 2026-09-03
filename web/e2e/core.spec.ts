@@ -166,3 +166,25 @@ test("스토어 메뉴는 Apps와 MCP Apps를 동시에 선택하지 않는다",
     menu.getByRole("link", { name: "Apps", exact: true }),
   ).not.toHaveClass(/active/);
 });
+
+test("SSO를 설정해도 복구용 관리자 로그인을 계속 사용할 수 있다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  await page.goto("/login");
+  await expect(
+    page.getByRole("link", { name: "회사 계정으로 SSO 로그인" }),
+  ).toBeVisible();
+
+  const toggle = page.getByRole("button", { name: "관리자 계정으로 로그인" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByLabel("Bootstrap 관리자")).toBeHidden();
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByLabel("Bootstrap 관리자")).toBeVisible();
+  await expect(page.getByLabel("비밀번호")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "관리자 로그인" }),
+  ).toBeVisible();
+});

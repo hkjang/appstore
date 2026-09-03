@@ -84,6 +84,22 @@ func (r *Repository) GetUserByUsername(ctx context.Context, username string) (mo
 	return user, normalizeError("get user by username", err)
 }
 
+// HasBootstrapCredential reports whether a local admin account can still sign
+// in. It stays true once SSO is configured: the local account is the documented
+// recovery path for when the identity provider is unreachable.
+func (r *Repository) HasBootstrapCredential(ctx context.Context) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM users
+			WHERE auth_source = 'bootstrap' AND active AND password_hash <> ''
+		)`).Scan(&exists)
+	if err != nil {
+		return false, normalizeError("check bootstrap credential", err)
+	}
+	return exists, nil
+}
+
 func (r *Repository) GetBootstrapCredential(ctx context.Context, username string) (BootstrapCredential, error) {
 	var result BootstrapCredential
 	var id uuid.UUID
