@@ -15,7 +15,7 @@ const publicRoutes: CaptureRoute[] = [
   { name: "categories", path: "/categories", heading: "카테고리" },
   { name: "category-detail", path: "/categories/ai", heading: "ai 앱" },
   { name: "search-alias", path: "/search?q=agent", heading: "모든 앱" },
-  { name: "mcp-apps", path: "/apps?mcp=true", heading: "MCP Apps" },
+  { name: "mcp-apps", path: "/apps?mcp=true", heading: "MCP 앱" },
   { name: "favorites", path: "/favorites", heading: "즐겨찾기" },
   { name: "forbidden", path: "/403", heading: "접근 권한이 없습니다" },
   {
@@ -33,7 +33,7 @@ const personalRoutes: CaptureRoute[] = [
     path: "/my/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/edit",
     heading: "앱 수정",
   },
-  { name: "my-keys", path: "/my/keys", heading: "API · MCP Keys" },
+  { name: "my-keys", path: "/my/keys", heading: "API · MCP 키" },
   { name: "my-profile", path: "/my/profile", heading: "내 프로필" },
   { name: "my-activity", path: "/my/activity", heading: "내 활동 내역" },
   { name: "my-settings", path: "/my/settings", heading: "개인 설정" },
@@ -48,8 +48,8 @@ const personalRoutes: CaptureRoute[] = [
 ];
 
 const adminRoutes: CaptureRoute[] = [
-  { name: "admin-dashboard", path: "/admin", heading: "Dashboard" },
-  { name: "admin-apps", path: "/admin/apps", heading: "Apps" },
+  { name: "admin-dashboard", path: "/admin", heading: "대시보드" },
+  { name: "admin-apps", path: "/admin/apps", heading: "앱 관리" },
   {
     name: "admin-app-detail",
     path: "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -58,31 +58,31 @@ const adminRoutes: CaptureRoute[] = [
   {
     name: "admin-categories",
     path: "/admin/categories",
-    heading: "Categories",
+    heading: "카테고리",
   },
-  { name: "admin-users", path: "/admin/users", heading: "Users" },
-  { name: "admin-roles", path: "/admin/roles", heading: "Roles & Permissions" },
+  { name: "admin-users", path: "/admin/users", heading: "사용자" },
+  { name: "admin-roles", path: "/admin/roles", heading: "역할·권한" },
   { name: "admin-reviews", path: "/admin/reviews", heading: "검토 대기" },
-  { name: "admin-workflow", path: "/admin/workflow", heading: "Workflow" },
-  { name: "admin-ai", path: "/admin/ai", heading: "AI Providers" },
+  { name: "admin-workflow", path: "/admin/workflow", heading: "승인 워크플로" },
+  { name: "admin-ai", path: "/admin/ai", heading: "AI 공급자" },
   { name: "admin-api", path: "/admin/api", heading: "REST API" },
-  { name: "admin-mcp", path: "/admin/mcp", heading: "MCP Server" },
-  { name: "admin-keys", path: "/admin/api-keys", heading: "API Keys" },
+  { name: "admin-mcp", path: "/admin/mcp", heading: "MCP 서버" },
+  { name: "admin-keys", path: "/admin/api-keys", heading: "API 키" },
   {
     name: "admin-authentication",
     path: "/admin/authentication",
-    heading: "Keycloak OIDC",
+    heading: "인증·SSO",
   },
   {
     name: "admin-security",
     path: "/admin/security",
-    heading: "Security & Key Policy",
+    heading: "보안·키 정책",
   },
-  { name: "admin-audit", path: "/admin/audit", heading: "Audit Logs" },
+  { name: "admin-audit", path: "/admin/audit", heading: "감사 로그" },
   {
     name: "admin-settings",
     path: "/admin/settings",
-    heading: "System Settings",
+    heading: "시스템 설정",
   },
 ];
 

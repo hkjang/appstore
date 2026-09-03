@@ -202,7 +202,7 @@ export function MyKeysPage() {
     <div className="page">
       <PageHeader
         eyebrow="Personal key management"
-        title="API · MCP Keys"
+        title="API · MCP 키"
         description="키 원문은 생성 순간 한 번만 표시됩니다. 정기적으로 회전하고 필요한 권한만 부여하세요."
         actions={
           <Button onClick={() => setCreateOpen(true)}>

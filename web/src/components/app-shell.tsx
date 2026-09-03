@@ -93,11 +93,11 @@ const publicGroups: NavGroup[] = [
   {
     label: "스토어",
     items: [
-      { to: "/", label: "Today", icon: Sparkles, end: true },
-      { to: "/apps", label: "Apps", icon: LayoutGrid },
-      { to: "/categories", label: "Categories", icon: Tags },
-      { to: "/apps?mcp=true", label: "MCP Apps", icon: Blocks },
-      { to: "/favorites", label: "Favorites", icon: FolderHeart },
+      { to: "/", label: "투데이", icon: Sparkles, end: true },
+      { to: "/apps", label: "전체 앱", icon: LayoutGrid },
+      { to: "/categories", label: "카테고리", icon: Tags },
+      { to: "/apps?mcp=true", label: "MCP 앱", icon: Blocks },
+      { to: "/favorites", label: "즐겨찾기", icon: FolderHeart },
     ],
   },
 ];
@@ -107,7 +107,7 @@ const personalGroup: NavGroup = {
   items: [
     { to: "/my", label: "내 홈", icon: Gauge, end: true },
     { to: "/my/apps", label: "내 앱", icon: AppWindow },
-    { to: "/my/keys", label: "API · MCP Keys", icon: KeyRound },
+    { to: "/my/keys", label: "API · MCP 키", icon: KeyRound },
     { to: "/my/profile", label: "프로필", icon: UserRound },
     { to: "/my/activity", label: "활동 내역", icon: Activity },
     { to: "/my/settings", label: "설정", icon: Settings },
@@ -118,26 +118,26 @@ const adminGroups: NavGroup[] = [
   {
     label: "운영",
     items: [
-      { to: "/admin", label: "Dashboard", icon: Gauge, end: true },
-      { to: "/admin/apps", label: "Apps", icon: AppWindow },
-      { to: "/admin/categories", label: "Categories", icon: Tags },
-      { to: "/admin/users", label: "Users", icon: Users },
-      { to: "/admin/roles", label: "Roles", icon: ShieldCheck },
-      { to: "/admin/reviews", label: "Reviews", icon: ClipboardCheck },
-      { to: "/admin/audit", label: "Audit Logs", icon: Activity },
+      { to: "/admin", label: "대시보드", icon: Gauge, end: true },
+      { to: "/admin/apps", label: "앱 관리", icon: AppWindow },
+      { to: "/admin/categories", label: "카테고리", icon: Tags },
+      { to: "/admin/users", label: "사용자", icon: Users },
+      { to: "/admin/roles", label: "역할·권한", icon: ShieldCheck },
+      { to: "/admin/reviews", label: "검토 관리", icon: ClipboardCheck },
+      { to: "/admin/audit", label: "감사 로그", icon: Activity },
     ],
   },
   {
     label: "플랫폼",
     items: [
-      { to: "/admin/workflow", label: "Workflow", icon: Workflow },
-      { to: "/admin/ai", label: "AI", icon: Bot },
-      { to: "/admin/api", label: "API", icon: CodeXml },
-      { to: "/admin/mcp", label: "MCP", icon: Network },
-      { to: "/admin/api-keys", label: "API Keys", icon: KeyRound },
-      { to: "/admin/authentication", label: "Authentication", icon: Shield },
-      { to: "/admin/security", label: "Security", icon: SlidersHorizontal },
-      { to: "/admin/settings", label: "System Settings", icon: Settings },
+      { to: "/admin/workflow", label: "승인 워크플로", icon: Workflow },
+      { to: "/admin/ai", label: "AI 공급자", icon: Bot },
+      { to: "/admin/api", label: "REST API", icon: CodeXml },
+      { to: "/admin/mcp", label: "MCP 서버", icon: Network },
+      { to: "/admin/api-keys", label: "API 키", icon: KeyRound },
+      { to: "/admin/authentication", label: "인증·SSO", icon: Shield },
+      { to: "/admin/security", label: "보안·키 정책", icon: SlidersHorizontal },
+      { to: "/admin/settings", label: "시스템 설정", icon: Settings },
     ],
   },
 ];
@@ -214,7 +214,7 @@ function ProfileMenu() {
             to="/my/keys"
             onClick={() => setOpen(false)}
           >
-            <KeyRound size={18} /> API · MCP Keys
+            <KeyRound size={18} /> API · MCP 키
           </Link>
           <Link
             role="menuitem"
@@ -287,7 +287,7 @@ function Sidebar({
               {
                 label: "관리",
                 items: [
-                  { to: "/admin", label: "관리자 Console", icon: ShieldCheck },
+                  { to: "/admin", label: "관리자 콘솔", icon: ShieldCheck },
                 ],
               },
             ]
@@ -308,7 +308,7 @@ function Sidebar({
             {config.data?.siteName || "AppStore"}
           </span>
           <span className="brand-tagline">
-            {admin ? "관리자 Console" : "Developer App Store"}
+            {admin ? "관리자 콘솔" : "사내 앱 스토어"}
           </span>
         </span>
       </Link>

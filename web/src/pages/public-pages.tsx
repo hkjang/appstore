@@ -233,7 +233,7 @@ export function AppsPage({
           favoritesOnly
             ? "즐겨찾기"
             : mcp
-              ? "MCP Apps"
+              ? "MCP 앱"
               : forcedCategory
                 ? `${forcedCategory} 앱`
                 : "모든 앱"

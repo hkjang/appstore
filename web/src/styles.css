@@ -73,11 +73,6 @@
   --sidebar: #ffffff;
   --inverse: #1d1f23;
   --on-inverse: #ffffff;
-  /* The hero panels stay dark in both themes; --inverse flips with the theme
-     and would turn them light. */
-  --hero-bg: #1d1f23;
-  --hero-fg: #ffffff;
-  --hero-muted: #cdd0d9;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.16);
   --radius-sm: 4px;
@@ -112,9 +107,6 @@
   --sidebar: #191a1b;
   --inverse: #dfdfdf;
   --on-inverse: #191a1b;
-  --hero-bg: #121314;
-  --hero-fg: #ffffff;
-  --hero-muted: #aeb1b8;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
 }
@@ -242,9 +234,65 @@ button {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  color: var(--on-inverse);
   font-weight: 700;
-  background: var(--inverse);
+}
+/* One flat chip per app, tinted from its slug. The portal ships a set of
+   coloured app illustrations; a single dark square lost that variety. */
+.app-icon {
+  color: var(--icon-fg, var(--text));
+  background: var(--icon-bg, var(--bg-muted));
+}
+.app-icon[data-tone="0"] {
+  --icon-fg: #d62209;
+  --icon-bg: #fdece9;
+}
+.app-icon[data-tone="1"] {
+  --icon-fg: #1158f1;
+  --icon-bg: #e8effe;
+}
+.app-icon[data-tone="2"] {
+  --icon-fg: #00860b;
+  --icon-bg: #e4f6e5;
+}
+.app-icon[data-tone="3"] {
+  --icon-fg: #a35f00;
+  --icon-bg: #fdf1da;
+}
+.app-icon[data-tone="4"] {
+  --icon-fg: #5b46d6;
+  --icon-bg: #ecebfc;
+}
+.app-icon[data-tone="5"] {
+  --icon-fg: #0b7d8c;
+  --icon-bg: #e2f4f6;
+}
+:root[data-theme="dark"] .app-icon[data-tone="0"] {
+  --icon-fg: #ff8b74;
+  --icon-bg: #33201c;
+}
+:root[data-theme="dark"] .app-icon[data-tone="1"] {
+  --icon-fg: #7ea6ff;
+  --icon-bg: #1b2438;
+}
+:root[data-theme="dark"] .app-icon[data-tone="2"] {
+  --icon-fg: #5cc766;
+  --icon-bg: #1c2a1e;
+}
+:root[data-theme="dark"] .app-icon[data-tone="3"] {
+  --icon-fg: #f0b04a;
+  --icon-bg: #2e2617;
+}
+:root[data-theme="dark"] .app-icon[data-tone="4"] {
+  --icon-fg: #a496f5;
+  --icon-bg: #232038;
+}
+:root[data-theme="dark"] .app-icon[data-tone="5"] {
+  --icon-fg: #4fc0cf;
+  --icon-bg: #16292c;
+}
+.app-icon img {
+  border-radius: inherit;
+  object-fit: cover;
 }
 .brand-mark {
   width: 40px;
@@ -451,21 +499,21 @@ button {
   overflow: hidden;
   min-height: 260px;
   padding: clamp(28px, 5vw, 48px);
-  border: 1px solid var(--hero-bg);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  color: var(--hero-fg);
-  background: var(--hero-bg);
+  color: var(--text);
+  background: var(--bg-elevated);
 }
 .hero::after {
   content: "";
   position: absolute;
-  right: -60px;
-  top: -60px;
-  width: 300px;
-  height: 300px;
+  right: -70px;
+  top: -90px;
+  width: 320px;
+  height: 320px;
   border-radius: 50%;
   background: var(--primary);
-  opacity: 0.14;
+  opacity: 0.07;
 }
 .hero-content {
   position: relative;
@@ -485,7 +533,7 @@ button {
 .hero p {
   max-width: 640px;
   margin: 0 0 24px;
-  color: var(--hero-muted);
+  color: var(--text-soft);
   font-size: 16px;
   line-height: 1.5;
 }
@@ -494,13 +542,9 @@ button {
   flex-wrap: wrap;
   gap: 11px;
 }
-.hero-actions .button-secondary {
-  color: var(--hero-fg);
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-.hero-actions .button-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.18);
+.hero .badge {
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .button {
@@ -934,8 +978,8 @@ button {
   height: 32px;
   flex: 0 0 auto;
   border-radius: 50%;
-  color: var(--on-inverse);
-  background: var(--inverse);
+  color: var(--text-soft);
+  background: var(--bg-muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1267,19 +1311,20 @@ button {
   display: flex;
   align-items: flex-end;
   padding: clamp(34px, 7vw, 72px);
-  color: var(--hero-fg);
-  background: var(--hero-bg);
+  color: var(--text);
+  background: var(--bg-muted);
+  border-right: 1px solid var(--line);
 }
 .login-visual::after {
   content: "";
   position: absolute;
-  width: 420px;
-  height: 420px;
-  top: 8%;
-  right: -14%;
+  width: 460px;
+  height: 460px;
+  top: 6%;
+  right: -16%;
   border-radius: 50%;
   background: var(--primary);
-  opacity: 0.14;
+  opacity: 0.07;
 }
 .login-copy {
   position: relative;
@@ -1294,7 +1339,7 @@ button {
   font-weight: 700;
 }
 .login-copy p {
-  color: var(--hero-muted);
+  color: var(--text-soft);
   font-size: 16px;
   line-height: 1.5;
 }
@@ -1346,8 +1391,8 @@ button {
   overflow: auto;
   padding: 18px;
   white-space: pre-wrap;
-  background: var(--inverse);
-  color: var(--on-inverse);
+  background: #1d1f23;
+  color: #eff0f2;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   font-family: "SFMono-Regular", Consolas, monospace;

@@ -163,7 +163,7 @@ export function AdminDashboardPage() {
     <div className="page">
       <PageHeader
         eyebrow="Administration"
-        title="Dashboard"
+        title="대시보드"
         description="AppStore 운영 상태와 검토·보안 항목을 한눈에 확인합니다."
       />
       {dashboard.isPending && <LoadingState />}
@@ -202,13 +202,13 @@ export function AdminDashboardPage() {
               <h2>운영 바로가기</h2>
               <div className="grid gap-2">
                 <Link className="menu-item" to="/admin/authentication">
-                  <ShieldCheck size={19} /> Keycloak OIDC 설정
+                  <ShieldCheck size={19} /> 인증·SSO 설정
                 </Link>
                 <Link className="menu-item" to="/admin/workflow">
-                  <Workflow size={19} /> 승인 Workflow
+                  <Workflow size={19} /> 승인 워크플로
                 </Link>
                 <Link className="menu-item" to="/admin/ai">
-                  <Bot size={19} /> AI Provider
+                  <Bot size={19} /> AI 공급자
                 </Link>
                 <Link className="menu-item" to="/admin/settings">
                   <Settings size={19} /> 서비스 URL 및 시스템 설정
@@ -219,7 +219,7 @@ export function AdminDashboardPage() {
               <h2>보안 상태</h2>
               <dl className="meta-list">
                 <Meta
-                  label="OIDC"
+                  label="인증·SSO"
                   value={
                     bool(values.oidcConfigured ?? values.oidc_configured)
                       ? "연결됨"
@@ -227,7 +227,7 @@ export function AdminDashboardPage() {
                   }
                 />
                 <Meta
-                  label="Workflow"
+                  label="승인 워크플로"
                   value={
                     bool(values.workflowEnabled ?? values.workflow_enabled)
                       ? "사용"
@@ -235,7 +235,7 @@ export function AdminDashboardPage() {
                   }
                 />
                 <Meta
-                  label="AI Streaming"
+                  label="AI 스트리밍"
                   value={
                     bool(values.aiStreaming ?? values.ai_streaming, true)
                       ? "기본 ON"
@@ -393,7 +393,7 @@ export function AdminAppsPage() {
     <div className="page">
       <PageHeader
         eyebrow="Catalog management"
-        title="Apps"
+        title="앱 관리"
         description="등록된 모든 앱을 검색하고 상세 정보를 수정하거나 삭제합니다."
         actions={
           <Button
@@ -1102,7 +1102,7 @@ export function AdminCategoriesPage() {
     <div className="page">
       <PageHeader
         eyebrow="Taxonomy"
-        title="Categories"
+        title="카테고리"
         description="앱 탐색에 사용하는 카테고리를 관리합니다."
         actions={<Button onClick={createNew}>카테고리 추가</Button>}
       />
@@ -1280,7 +1280,7 @@ export function AdminUsersPage() {
     <div className="page">
       <PageHeader
         eyebrow="Identity & access"
-        title="Users"
+        title="사용자"
         description="대규모 사용자 목록은 가상화되어 필요한 행만 렌더링합니다."
       />
       <Card className="data-card">
@@ -1502,7 +1502,7 @@ export function AdminRolesPage() {
     <div className="page">
       <PageHeader
         eyebrow="RBAC"
-        title="Roles & Permissions"
+        title="역할·권한"
         description="역할과 권한 체계 자체를 변경할 수 있습니다. 변경 전 영향 범위를 확인하세요."
       />
       {state.query.isPending && <LoadingState />}
@@ -1562,7 +1562,7 @@ export function AdminWorkflowPage() {
   });
   return (
     <SettingsShell
-      title="Workflow"
+      title="승인 워크플로"
       eyebrow="Optional approval"
       description="기본값은 OFF이며, OFF일 때 등록 앱은 검증 후 즉시 게시됩니다."
       state={state}
@@ -1696,7 +1696,7 @@ export function AdminAuthenticationPage() {
   });
   return (
     <SettingsShell
-      title="Keycloak OIDC"
+      title="인증·SSO"
       eyebrow="Authentication"
       description="Issuer, Client ID, Client Secret만 입력하면 discovery 문서를 통해 endpoint를 자동 구성합니다."
       state={state}
@@ -1993,7 +1993,7 @@ export function AdminAiPage() {
     <div className="page">
       <PageHeader
         eyebrow="AI platform"
-        title="AI Providers"
+        title="AI 공급자"
         description="Provider limit과 model limit을 분리하고, 최대 262,144 token을 안전하게 설정합니다."
       />
       {state.query.isPending && <LoadingState />}
@@ -2492,7 +2492,7 @@ export function AdminMcpPage() {
   });
   return (
     <SettingsShell
-      title="MCP Server"
+      title="MCP 서버"
       eyebrow="Agent integration"
       description="MCP endpoint와 익명 tool 노출, 권한 및 rate limit을 관리합니다."
       state={state}
@@ -2589,7 +2589,7 @@ export function AdminSecurityPage() {
   });
   return (
     <SettingsShell
-      title="Security & Key Policy"
+      title="보안·키 정책"
       eyebrow="Key management"
       description="개인별 키 만료, 회전 유예와 권한 template을 관리합니다."
       state={state}
@@ -2966,7 +2966,7 @@ export function AdminSystemSettingsPage() {
   });
   return (
     <SettingsShell
-      title="System Settings"
+      title="시스템 설정"
       eyebrow="Service configuration"
       description="서비스 이름과 접속 URL 등 운영 설정을 환경변수 변경 없이 관리합니다."
       state={state}
@@ -3066,7 +3066,7 @@ export function AdminApiKeysPage() {
     <div className="page">
       <PageHeader
         eyebrow="Key inventory"
-        title="API Keys"
+        title="API 키"
         description="원문 없이 prefix, 소유자, 권한과 사용 상태만 조회합니다."
       />
       {keys.isPending && <LoadingState />}
@@ -3126,7 +3126,7 @@ export function AdminAuditPage() {
     <div className="page">
       <PageHeader
         eyebrow="Immutable history"
-        title="Audit Logs"
+        title="감사 로그"
         description="관리자를 포함한 주요 변경 행위가 삭제 불가능한 감사 기록으로 남습니다."
       />
       <div className="toolbar">

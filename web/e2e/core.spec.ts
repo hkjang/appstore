@@ -44,12 +44,12 @@ test("관리자 사용자 목록은 가상화되고 route refresh를 견딘다",
 }) => {
   await installMockApi(page, { authenticated: true });
   await page.goto("/admin/users?q=developer");
-  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "사용자" })).toBeVisible();
   await expect(page.getByText("150명")).toBeVisible();
   await expect(page.getByRole("list", { name: "사용자 목록" })).toBeVisible();
   await page.reload();
   await expect(page).toHaveURL(/\/admin\/users\?q=developer/);
-  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "사용자" })).toBeVisible();
 });
 
 test("AI는 256K 설정과 SSE token streaming을 처리한다", async ({ page }) => {
@@ -109,7 +109,7 @@ test("모바일 메뉴는 키보드와 명시적 버튼으로 접근 가능하�
   await expect(
     page.getByRole("complementary", { name: "주 메뉴" }),
   ).toHaveClass(/open/);
-  await expect(page.getByRole("link", { name: /MCP Apps/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /MCP 앱/ })).toBeVisible();
 });
 
 test("관리자는 앱 상세를 수정하고 삭제 확인 후 목록으로 돌아온다", async ({
@@ -153,17 +153,17 @@ test("스토어 메뉴는 Apps와 MCP Apps를 동시에 선택하지 않는다",
   const menu = page.getByRole("navigation").or(page.locator(".sidebar-scroll"));
   await page.goto("/apps");
   await expect(
-    menu.getByRole("link", { name: "Apps", exact: true }),
+    menu.getByRole("link", { name: "전체 앱", exact: true }),
   ).toHaveClass(/active/);
-  await expect(menu.getByRole("link", { name: "MCP Apps" })).not.toHaveClass(
+  await expect(menu.getByRole("link", { name: "MCP 앱" })).not.toHaveClass(
     /active/,
   );
   await page.goto("/apps?mcp=true");
-  await expect(menu.getByRole("link", { name: "MCP Apps" })).toHaveClass(
+  await expect(menu.getByRole("link", { name: "MCP 앱" })).toHaveClass(
     /active/,
   );
   await expect(
-    menu.getByRole("link", { name: "Apps", exact: true }),
+    menu.getByRole("link", { name: "전체 앱", exact: true }),
   ).not.toHaveClass(/active/);
 });
 

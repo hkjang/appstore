@@ -20,7 +20,7 @@ import {
 } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import { ApiError } from "../lib/api";
-import { appGlyph, cn } from "../lib/utils";
+import { appGlyph, appTone, cn } from "../lib/utils";
 import type { StoreApp } from "../types";
 
 export const Button = forwardRef<
@@ -89,17 +89,21 @@ export function AppIcon({
   app,
   large = false,
 }: {
-  app: Pick<StoreApp, "name" | "icon" | "iconUrl">;
+  app: Pick<StoreApp, "name" | "icon" | "iconUrl" | "slug">;
   large?: boolean;
 }) {
   return (
-    <span className={cn("app-icon", large && "large")} aria-hidden="true">
+    <span
+      className={cn("app-icon", large && "large")}
+      data-tone={appTone(app.slug || app.name)}
+      aria-hidden="true"
+    >
       {app.iconUrl ? (
         <img
           alt=""
           src={app.iconUrl}
-          width={large ? 92 : 58}
-          height={large ? 92 : 58}
+          width={large ? 80 : 52}
+          height={large ? 80 : 52}
         />
       ) : (
         appGlyph(app.name, app.icon)

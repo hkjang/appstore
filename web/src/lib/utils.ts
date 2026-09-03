@@ -58,6 +58,20 @@ export function appGlyph(name: string, icon?: string): string {
   return initials(name);
 }
 
+// Number of tinted chips an app icon can land on. The portal's own app icons
+// are a set of coloured illustrations, so a catalogue of flat chips reads
+// closer to it than one uniform dark square.
+export const APP_TONE_COUNT = 6;
+
+// Stable per-app tint: the same app keeps its colour across pages and reloads.
+export function appTone(key: string): number {
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = (hash * 31 + key.charCodeAt(index)) % 100000;
+  }
+  return hash % APP_TONE_COUNT;
+}
+
 // Mirrors the backend SafeReturnTo contract. Browsers normalize a backslash to
 // a slash and strip tab, CR and LF before resolving a URL, so "/\evil.test" and
 // "/<TAB>/evil.test" would otherwise become the protocol-relative "//evil.test".

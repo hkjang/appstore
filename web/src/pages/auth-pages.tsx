@@ -61,8 +61,8 @@ export function LoginPage() {
     <main className="login-page">
       <section className="login-visual" aria-labelledby="login-hero-title">
         <div className="login-copy">
-          <span className="badge border-white/30 bg-white/10 text-white">
-            <Sparkles size={15} /> Developer App Store
+          <span className="badge badge-primary">
+            <Sparkles size={15} /> 사내 앱 스토어
           </span>
           <h1 id="login-hero-title">
             발견하고,
