@@ -119,7 +119,8 @@
       "get": {"tags":["Admin"],"summary":"운영 Dashboard 통계","operationId":"getAdminDashboard","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Dashboard"}}}
     },
     "/api/v1/admin/apps": {
-      "get": {"tags":["Admin"],"summary":"모든 상태의 앱 목록","operationId":"listAdminApps","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Application page"}}}
+      "get": {"tags":["Admin"],"summary":"모든 상태의 앱 목록","operationId":"listAdminApps","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Application page"}}},
+      "post": {"tags":["Admin"],"summary":"앱 직접 등록","description":"검토 절차 없이 지정한 게시 상태로 카탈로그에 앱을 추가합니다.","operationId":"createAdminApp","security":[{"cookieSession":[]}],"responses":{"201":{"description":"Created application"},"422":{"$ref":"#/components/responses/Error"}}}
     },
     "/api/v1/admin/apps/{id}": {
       "get": {"tags":["Admin"],"summary":"앱 상세(모든 상태)","operationId":"getAdminApp","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Application"},"404":{"$ref":"#/components/responses/Error"}}},

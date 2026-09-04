@@ -320,6 +320,11 @@ export const api = {
     );
     return pageFrom<StoreApp>(payload, ["apps", "applications"]);
   },
+  createAdminApp: (input: unknown) =>
+    apiFetch<StoreApp>("/api/v1/admin/apps", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
   adminApp: (id: string, signal?: AbortSignal) =>
     apiFetch<StoreApp>(`/api/v1/admin/apps/${encodeURIComponent(id)}`, {
       signal,

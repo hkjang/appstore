@@ -188,3 +188,54 @@ test("SSO를 설정해도 복구용 관리자 로그인을 계속 사용할 수 
     page.getByRole("button", { name: "관리자 로그인" }),
   ).toBeVisible();
 });
+
+test("관리자는 스토어 목록과 상세에서 관리 설정으로 바로 이동한다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/apps");
+  const cardShortcut = page
+    .getByRole("link", { name: "Agent Hub 관리 설정 열기" })
+    .first();
+  await expect(cardShortcut).toBeVisible();
+
+  await page.goto("/apps/agent-hub");
+  await page.getByRole("link", { name: "Agent Hub 관리 설정 열기" }).click();
+  await expect(page).toHaveURL(
+    "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+});
+
+test("일반 사용자에게는 관리 설정 바로가기가 보이지 않는다", async ({
+  page,
+}) => {
+  await installMockApi(page, {
+    authenticated: true,
+    roles: ["user", "contributor"],
+  });
+  await page.goto("/apps/agent-hub");
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /관리 설정 열기/ })).toHaveCount(
+    0,
+  );
+});
+
+test("관리자는 앱 관리에서 새 앱을 등록한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/apps");
+  await page.getByRole("link", { name: "앱 추가" }).click();
+  await expect(page).toHaveURL("/admin/apps/new");
+  await expect(page.getByRole("heading", { name: "앱 추가" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "앱 삭제" })).toHaveCount(0);
+
+  await page.getByLabel("앱 이름").fill("새 앱");
+  await page.getByLabel("Slug").fill("new-app");
+  await page.getByLabel("한 줄 설명").fill("관리자가 직접 등록한 앱");
+  await page.getByLabel("서비스 URL").fill("https://new.internal.example");
+  await page.getByLabel("카테고리").selectOption({ index: 1 });
+  await page.getByLabel("상세 설명").fill("설명입니다.");
+  await page.getByRole("button", { name: "앱 등록" }).click();
+
+  await expect(page).toHaveURL("/admin/apps/new-app-id");
+});

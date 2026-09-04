@@ -50,6 +50,7 @@ const personalRoutes: CaptureRoute[] = [
 const adminRoutes: CaptureRoute[] = [
   { name: "admin-dashboard", path: "/admin", heading: "대시보드" },
   { name: "admin-apps", path: "/admin/apps", heading: "앱 관리" },
+  { name: "admin-app-new", path: "/admin/apps/new", heading: "앱 추가" },
   {
     name: "admin-app-detail",
     path: "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",

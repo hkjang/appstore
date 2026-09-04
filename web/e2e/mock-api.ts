@@ -294,7 +294,7 @@ export async function installMockApi(
         aiStreaming: true,
       });
     }
-    if (path === "/api/v1/admin/apps") {
+    if (path === "/api/v1/admin/apps" && request.method() === "GET") {
       const q = (url.searchParams.get("q") ?? "").toLowerCase();
       const status = url.searchParams.get("status") ?? "";
       const mcpOnly = url.searchParams.get("mcp") === "true";
@@ -311,9 +311,17 @@ export async function installMockApi(
         offset: 0,
       });
     }
+    if (path === "/api/v1/admin/apps" && request.method() === "POST") {
+      return json(
+        { ...apps[0], ...(request.postDataJSON() ?? {}), id: "new-app-id" },
+        201,
+      );
+    }
     if (path.startsWith("/api/v1/admin/apps/")) {
       const id = decodeURIComponent(path.split("/").pop() ?? "");
-      const app = apps.find((item) => item.id === id);
+      const app =
+        apps.find((item) => item.id === id) ??
+        (id === "new-app-id" ? apps[0] : undefined);
       if (!app)
         return json(
           {

@@ -11,6 +11,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type PropsWithChildren,
@@ -20,7 +21,7 @@ import {
 } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import { ApiError } from "../lib/api";
-import { appGlyph, appTone, cn } from "../lib/utils";
+import { appGlyph, appTone, cn, parseList, sameList } from "../lib/utils";
 import type { StoreApp } from "../types";
 
 export const Button = forwardRef<
@@ -168,6 +169,46 @@ export function Field({
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn("input", props.className)} {...props} />;
+}
+
+/**
+ * Text field for a comma-separated list.
+ *
+ * Rendering `value.join(", ")` straight from the parsed array erased the
+ * separator as it was typed: the trailing empty segment was filtered out, so
+ * the comma vanished on the next render and a second entry could never be
+ * started. The raw text lives here and only the parsed array travels upward.
+ */
+export function ListInput({
+  value,
+  onChange,
+  normalize,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> & {
+  value: readonly string[];
+  onChange: (value: string[]) => void;
+  normalize?: (item: string) => string;
+}) {
+  const parse = (raw: string) =>
+    normalize ? parseList(raw).map(normalize) : parseList(raw);
+  const [text, setText] = useState(() => value.join(", "));
+  // Re-sync only when the incoming list stops matching what the text says, so
+  // an outside change (another row, a reloaded setting) is picked up while a
+  // half-typed entry is left alone.
+  useEffect(() => {
+    if (!sameList(parse(text), value)) setText(value.join(", "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  return (
+    <Input
+      {...props}
+      value={text}
+      onChange={(event) => {
+        setText(event.target.value);
+        onChange(parse(event.target.value));
+      }}
+    />
+  );
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
@@ -322,11 +363,19 @@ export function Dialog({
   const dialogRef = useRef<HTMLElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  // Callers pass an inline arrow for onClose, so its identity changes on every
+  // parent render. Reading it through a ref keeps the focus effect below keyed
+  // on `open` alone: with onClose in the dependency list, every keystroke in a
+  // dialog field re-ran the effect and threw focus onto the close button.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
       if (event.key !== "Tab") return;
       const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -351,7 +400,7 @@ export function Dialog({
       document.body.style.overflow = overflow;
       previous?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
   if (!open) return null;
   return (
     <div

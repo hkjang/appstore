@@ -86,6 +86,36 @@ type adminAppRequest struct {
 	Featured bool   `json:"featured"`
 }
 
+func (s *Server) adminCreateApp(w http.ResponseWriter, r *http.Request) {
+	var input adminAppRequest
+	if err := DecodeJSON(w, r, &input); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	if err := ValidateAppInput(&input.AppInput); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	status := strings.TrimSpace(input.Status)
+	if status == "" {
+		status = model.AppStatusDraft
+	}
+	// The administrator owns what they add here, so the record has an owner for
+	// later edits and the audit trail.
+	principal := CurrentPrincipal(r.Context())
+	var ownerID *uuid.UUID
+	if principal != nil {
+		ownerID = &principal.User.ID
+	}
+	app, err := s.repository.AdminCreateApp(r.Context(), ownerID, input.AppInput, status, input.Featured)
+	if err != nil {
+		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 등록할 수 없습니다."))
+		return
+	}
+	s.recordAudit(r, "app.create", "app", app.ID.String(), nil, app)
+	WriteJSON(w, http.StatusCreated, app)
+}
+
 func (s *Server) adminApp(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(chi.URLParam(r, "id"), "앱")
 	if err != nil {

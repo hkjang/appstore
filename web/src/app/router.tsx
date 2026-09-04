@@ -106,6 +106,7 @@ export function AppRouter() {
       <Route element={<RequireAuth roles={["admin", "super_admin"]} admin />}>
         <Route path="admin" element={<AdminDashboardPage />} />
         <Route path="admin/apps" element={<AdminAppsPage />} />
+        <Route path="admin/apps/new" element={<AdminAppDetailPage create />} />
         <Route path="admin/apps/:id" element={<AdminAppDetailPage />} />
         <Route path="admin/categories" element={<AdminCategoriesPage />} />
         <Route path="admin/users" element={<AdminUsersPage />} />

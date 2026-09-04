@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "../app/providers";
 import { FavoritesProvider } from "../features/apps/favorites";
 import { AppsPage } from "./public-pages";
 
@@ -42,9 +43,11 @@ describe("Apps route state", () => {
         <MemoryRouter
           initialEntries={["/apps?q=agent&category=ai&sort=trending"]}
         >
-          <FavoritesProvider>
-            <AppsPage />
-          </FavoritesProvider>
+          <AuthProvider>
+            <FavoritesProvider>
+              <AppsPage />
+            </FavoritesProvider>
+          </AuthProvider>
         </MemoryRouter>
       </QueryClientProvider>,
     );

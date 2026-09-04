@@ -31,7 +31,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { api, streamAiChat } from "../lib/api";
-import { clampToken, formatDateTime } from "../lib/utils";
+import { clampToken, formatDateTime, parseList } from "../lib/utils";
 import type {
   AiModelLimit,
   AppStatus,
@@ -54,6 +54,7 @@ import {
   ErrorState,
   Field,
   Input,
+  ListInput,
   LoadingState,
   PageHeader,
   Select,
@@ -396,13 +397,18 @@ export function AdminAppsPage() {
         title="앱 관리"
         description="등록된 모든 앱을 검색하고 상세 정보를 수정하거나 삭제합니다."
         actions={
-          <Button
-            variant="secondary"
-            disabled={apps.isFetching}
-            onClick={() => void apps.refetch()}
-          >
-            <RefreshCw size={17} /> 새로고침
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              disabled={apps.isFetching}
+              onClick={() => void apps.refetch()}
+            >
+              <RefreshCw size={17} /> 새로고침
+            </Button>
+            <Link className="button button-primary" to="/admin/apps/new">
+              <Plus size={17} /> 앱 추가
+            </Link>
+          </>
         }
       />
       <form
@@ -665,37 +671,66 @@ function formFromApp(app: StoreApp): AdminAppForm {
   };
 }
 
-export function AdminAppDetailPage() {
+const emptyAppForm: AdminAppForm = {
+  name: "",
+  slug: "",
+  summary: "",
+  description: "",
+  icon: "📦",
+  serviceUrl: "",
+  categoryId: "",
+  tags: "",
+  screenshots: "",
+  team: "",
+  language: "",
+  framework: "",
+  version: "",
+  supportsMcp: false,
+  supportsApi: false,
+  visibility: "public",
+  status: "draft",
+  featured: false,
+};
+
+export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
   const { id = "" } = useParams();
   const client = useQueryClient();
   const navigate = useNavigate();
   const app = useQuery({
     queryKey: ["admin", "app", id],
     queryFn: ({ signal }) => api.adminApp(id, signal),
+    enabled: !create,
   });
   const categories = useQuery({
     queryKey: ["admin", "categories"],
     queryFn: ({ signal }) => api.admin<unknown>("categories", signal),
   });
   const categoryOptions = arrayFrom<Category>(categories.data, ["categories"]);
-  const [form, setForm] = useState<AdminAppForm>();
+  const [form, setForm] = useState<AdminAppForm | undefined>(
+    create ? emptyAppForm : undefined,
+  );
   const [confirmDelete, setConfirmDelete] = useState(false);
   useEffect(() => {
     if (app.data) setForm(formFromApp(app.data));
   }, [app.data]);
 
   const save = useMutation({
-    mutationFn: (input: AdminAppForm) =>
-      api.updateAdminApp(id, {
+    mutationFn: (input: AdminAppForm) => {
+      const payload = {
         ...input,
-        tags: splitList(input.tags),
-        screenshots: splitList(input.screenshots),
-      }),
-    onSuccess: async (updated) => {
-      setForm(formFromApp(updated));
+        tags: parseList(input.tags),
+        screenshots: parseList(input.screenshots),
+      };
+      return create
+        ? api.createAdminApp(payload)
+        : api.updateAdminApp(id, payload);
+    },
+    onSuccess: async (saved) => {
+      setForm(formFromApp(saved));
       await client.invalidateQueries({ queryKey: ["admin", "app", id] });
       await client.invalidateQueries({ queryKey: ["admin", "apps"] });
       await client.invalidateQueries({ queryKey: ["apps"] });
+      if (create) navigate(`/admin/apps/${saved.id}`, { replace: true });
     },
   });
   const removeApp = useMutation({
@@ -709,19 +744,19 @@ export function AdminAppDetailPage() {
   const set = <K extends keyof AdminAppForm>(key: K, value: AdminAppForm[K]) =>
     setForm((current) => (current ? { ...current, [key]: value } : current));
 
-  if (app.isPending)
+  if (!create && app.isPending)
     return (
       <div className="page">
         <LoadingState />
       </div>
     );
-  if (app.error)
+  if (!create && app.error)
     return (
       <div className="page">
         <ErrorState error={app.error} retry={() => void app.refetch()} />
       </div>
     );
-  if (!app.data || !form)
+  if (!form || (!create && !app.data))
     return (
       <div className="page">
         <EmptyState title="앱을 찾을 수 없습니다" />
@@ -732,20 +767,26 @@ export function AdminAppDetailPage() {
   return (
     <div className="page">
       <PageHeader
-        eyebrow="Application detail"
-        title={current.name}
-        description={`/${current.slug} · 앱의 모든 정보와 게시 상태를 수정합니다.`}
+        eyebrow={create ? "New application" : "Application detail"}
+        title={create ? "앱 추가" : (current?.name ?? "")}
+        description={
+          create
+            ? "카탈로그에 앱을 직접 등록합니다. 검토 절차 없이 선택한 게시 상태로 저장됩니다."
+            : `/${current?.slug ?? ""} · 앱의 모든 정보와 게시 상태를 수정합니다.`
+        }
         actions={
           <>
             <Link className="button button-secondary" to="/admin/apps">
               <ArrowLeft size={17} /> 목록
             </Link>
-            <Link
-              className="button button-secondary"
-              to={`/apps/${encodeURIComponent(current.slug)}`}
-            >
-              <ExternalLink size={17} /> 스토어에서 보기
-            </Link>
+            {!create && current && (
+              <Link
+                className="button button-secondary"
+                to={`/apps/${encodeURIComponent(current.slug)}`}
+              >
+                <ExternalLink size={17} /> 스토어에서 보기
+              </Link>
+            )}
           </>
         }
       />
@@ -955,71 +996,76 @@ export function AdminAppDetailPage() {
                 {save.error.message}
               </p>
             )}
-            {save.isSuccess && (
+            {save.isSuccess && !create && (
               <div className="notice mt-5">
                 <CheckCircle2 size={19} /> 앱 정보가 저장되었습니다.
               </div>
             )}
             <div className="form-actions mt-6">
-              <Button
-                variant="danger"
-                className="button-quiet"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 size={17} /> 앱 삭제
-              </Button>
+              {!create && (
+                <Button
+                  variant="danger"
+                  className="button-quiet"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 size={17} /> 앱 삭제
+                </Button>
+              )}
               <Button type="submit" disabled={save.isPending}>
-                <Save size={18} /> {save.isPending ? "저장 중…" : "변경 저장"}
+                <Save size={18} />{" "}
+                {save.isPending ? "저장 중…" : create ? "앱 등록" : "변경 저장"}
               </Button>
             </div>
           </form>
         </Card>
-        <Card className="prose-card">
-          <h2>앱 상태</h2>
-          <div className="badge-row">
-            <AppStatusBadge status={current.status} />
-            {current.featured && (
-              <Badge tone="warning">
-                <Star size={13} /> 추천
+        {current && (
+          <Card className="prose-card">
+            <h2>앱 상태</h2>
+            <div className="badge-row">
+              <AppStatusBadge status={current.status} />
+              {current.featured && (
+                <Badge tone="warning">
+                  <Star size={13} /> 추천
+                </Badge>
+              )}
+              <Badge>
+                {current.visibility === "private" ? "Private" : "Public"}
               </Badge>
+            </div>
+            <dl className="meta-list mt-5">
+              <div className="meta-row">
+                <dt>등록자</dt>
+                <dd>{current.ownerName || "—"}</dd>
+              </div>
+              <div className="meta-row">
+                <dt>담당팀</dt>
+                <dd>{current.team || "—"}</dd>
+              </div>
+              <div className="meta-row">
+                <dt>등록일</dt>
+                <dd>{formatDateTime(current.createdAt)}</dd>
+              </div>
+              <div className="meta-row">
+                <dt>최근 수정</dt>
+                <dd>{formatDateTime(current.updatedAt)}</dd>
+              </div>
+              <div className="meta-row">
+                <dt>인기 점수</dt>
+                <dd>{current.trendingScore ?? 0}</dd>
+              </div>
+            </dl>
+            {current.serviceUrl && (
+              <a
+                className="button button-secondary w-full mt-5"
+                href={current.serviceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink size={17} /> 서비스 열기
+              </a>
             )}
-            <Badge>
-              {current.visibility === "private" ? "Private" : "Public"}
-            </Badge>
-          </div>
-          <dl className="meta-list mt-5">
-            <div className="meta-row">
-              <dt>등록자</dt>
-              <dd>{current.ownerName || "—"}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>담당팀</dt>
-              <dd>{current.team || "—"}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>등록일</dt>
-              <dd>{formatDateTime(current.createdAt)}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>최근 수정</dt>
-              <dd>{formatDateTime(current.updatedAt)}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>인기 점수</dt>
-              <dd>{current.trendingScore ?? 0}</dd>
-            </div>
-          </dl>
-          {current.serviceUrl && (
-            <a
-              className="button button-secondary w-full mt-5"
-              href={current.serviceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink size={17} /> 서비스 열기
-            </a>
-          )}
-        </Card>
+          </Card>
+        )}
       </div>
       <AppDeleteDialog
         app={confirmDelete ? current : undefined}
@@ -1030,13 +1076,6 @@ export function AdminAppDetailPage() {
       />
     </div>
   );
-}
-
-function splitList(value: string): string[] {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 export function AdminCategoriesPage() {
@@ -1432,18 +1471,11 @@ export function AdminUsersPage() {
               id="admin-user-roles"
               help="user, contributor, reviewer, team_leader, admin, super_admin · 쉼표로 구분"
             >
-              <Input
+              <ListInput
                 id="admin-user-roles"
-                value={editing.roles.join(", ")}
-                onChange={(event) =>
-                  setEditing({
-                    ...editing,
-                    roles: event.target.value
-                      .split(",")
-                      .map((role) => role.trim().replace(/-/g, "_"))
-                      .filter(Boolean),
-                  })
-                }
+                value={editing.roles}
+                normalize={(role) => role.replace(/-/g, "_")}
+                onChange={(roles) => setEditing({ ...editing, roles })}
               />
             </Field>
             <div className="switch-row">
@@ -1591,37 +1623,17 @@ export function AdminWorkflowPage() {
           />
         </Field>
         <Field label="Reviewer 역할" id="reviewer-role">
-          <Input
+          <ListInput
             id="reviewer-role"
-            value={arrayFrom<string>(state.settings.reviewerRoles, []).join(
-              ", ",
-            )}
-            onChange={(event) =>
-              state.set(
-                "reviewerRoles",
-                event.target.value
-                  .split(",")
-                  .map((role) => role.trim())
-                  .filter(Boolean),
-              )
-            }
+            value={arrayFrom<string>(state.settings.reviewerRoles, [])}
+            onChange={(roles) => state.set("reviewerRoles", roles)}
           />
         </Field>
         <Field label="Team Leader 역할" id="leader-role">
-          <Input
+          <ListInput
             id="leader-role"
-            value={arrayFrom<string>(state.settings.teamLeaderRoles, []).join(
-              ", ",
-            )}
-            onChange={(event) =>
-              state.set(
-                "teamLeaderRoles",
-                event.target.value
-                  .split(",")
-                  .map((role) => role.trim())
-                  .filter(Boolean),
-              )
-            }
+            value={arrayFrom<string>(state.settings.teamLeaderRoles, [])}
+            onChange={(roles) => state.set("teamLeaderRoles", roles)}
           />
         </Field>
       </div>

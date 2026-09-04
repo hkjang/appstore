@@ -284,6 +284,42 @@ func (r *Repository) UpdateApp(ctx context.Context, id uuid.UUID, input model.Ap
 	return r.GetAppByID(ctx, id)
 }
 
+// AdminCreateApp adds a catalog record on an administrator's behalf, with the
+// status and featured flag chosen up front rather than going through the
+// owner submission workflow.
+func (r *Repository) AdminCreateApp(ctx context.Context, ownerID *uuid.UUID, input model.AppInput, status string, featured bool) (model.App, error) {
+	input, err := validateAppInput(input)
+	if err != nil {
+		return model.App{}, err
+	}
+	categoryID, err := uuid.Parse(input.CategoryID)
+	if err != nil || !validAppStatus(status) {
+		return model.App{}, fmt.Errorf("create app category or status: %w", ErrInvalid)
+	}
+	var id uuid.UUID
+	err = r.pool.QueryRow(ctx, `
+		INSERT INTO apps(
+			owner_id, category_id, name, slug, summary, description, icon, gradient,
+			service_url, tags, screenshots, language, framework, supports_mcp,
+			supports_api, team, app_version, visibility, status, featured, published_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8,
+			$9, $10, $11, $12, $13, $14,
+			$15, $16, $17, $18, $19, $20,
+			CASE WHEN $19 = 'published' THEN now() ELSE NULL END
+		) RETURNING id`,
+		ownerID, categoryID, input.Name, input.Slug, input.Summary,
+		input.Description, input.Icon, input.Gradient, input.ServiceURL,
+		jsonValue(input.Tags), jsonValue(input.Screenshots), input.Language,
+		input.Framework, input.SupportsMCP, input.SupportsAPI, input.Team,
+		input.Version, input.Visibility, status, featured,
+	).Scan(&id)
+	if err != nil {
+		return model.App{}, normalizeError("admin create app", err)
+	}
+	return r.GetAppByID(ctx, id)
+}
+
 // AdminUpdateApp writes the whole catalog record in one statement, including
 // the status and featured flags that owners cannot change themselves.
 func (r *Repository) AdminUpdateApp(ctx context.Context, id uuid.UUID, input model.AppInput, status string, featured bool) (model.App, error) {

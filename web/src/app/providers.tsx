@@ -100,7 +100,7 @@ function ThemeProvider({ children }: PropsWithChildren) {
   );
 }
 
-function AuthProvider({ children }: PropsWithChildren) {
+export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["session"],

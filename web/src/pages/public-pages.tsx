@@ -17,6 +17,10 @@ import { formatDate } from "../lib/utils";
 import { AppCard } from "../features/apps/app-card";
 import { useFavorites } from "../features/apps/favorites";
 import {
+  AppAdminLink,
+  useCanManageApps,
+} from "../features/apps/admin-shortcut";
+import {
   AppIcon,
   Badge,
   Button,
@@ -399,6 +403,7 @@ export function AppDetailPage() {
     enabled: !!slug,
   });
   const { isFavorite, toggle } = useFavorites();
+  const canManage = useCanManageApps();
   if (app.isPending)
     return (
       <div className="page">
@@ -457,6 +462,9 @@ export function AppDetailPage() {
                 <Heart size={18} fill={favorite ? "currentColor" : "none"} />{" "}
                 {favorite ? "보관됨" : "즐겨찾기"}
               </Button>
+              {canManage && (
+                <AppAdminLink appId={item.id} appName={item.name} />
+              )}
             </div>
           </div>
         </header>

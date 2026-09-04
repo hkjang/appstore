@@ -53,6 +53,18 @@ export function hasAnyRole(
   return expected.some((role) => normalized.includes(role.toLowerCase()));
 }
 
+// Shared rules for the comma-separated fields (tags, screenshots, roles).
+export function parseList(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function sameList(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
+}
+
 export function appGlyph(name: string, icon?: string): string {
   if (icon && !icon.startsWith("http")) return icon;
   return initials(name);

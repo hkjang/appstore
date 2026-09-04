@@ -3,6 +3,7 @@ import { CheckCircle2, Send } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
+import { parseList } from "../lib/utils";
 import {
   Button,
   Card,
@@ -95,14 +96,8 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
     mutationFn: () => {
       const payload = {
         ...form,
-        tags: form.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        screenshots: form.screenshots
-          .split(",")
-          .map((url) => url.trim())
-          .filter(Boolean),
+        tags: parseList(form.tags),
+        screenshots: parseList(form.screenshots),
       };
       return edit ? api.updateApp(id, payload) : api.createApp(payload);
     },

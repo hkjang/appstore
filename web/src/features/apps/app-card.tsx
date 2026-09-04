@@ -4,10 +4,12 @@ import { appGlyph, formatDate } from "../../lib/utils";
 import type { StoreApp } from "../../types";
 import { AppIcon, Badge, Button } from "../../components/ui";
 import { useFavorites } from "./favorites";
+import { AppAdminLink, useCanManageApps } from "./admin-shortcut";
 
 export function AppCard({ app }: { app: StoreApp }) {
   const { isFavorite, toggle } = useFavorites();
   const favorite = isFavorite(app.slug);
+  const canManage = useCanManageApps();
   return (
     <article className="card app-card">
       <div className="app-card-body">
@@ -53,6 +55,9 @@ export function AppCard({ app }: { app: StoreApp }) {
           >
             <Heart size={17} fill={favorite ? "currentColor" : "none"} />
           </Button>
+          {canManage && (
+            <AppAdminLink appId={app.id} appName={app.name} compact />
+          )}
           <Link
             className="button button-secondary button-sm"
             to={`/apps/${encodeURIComponent(app.slug)}`}
