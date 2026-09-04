@@ -49,6 +49,13 @@
       "put": {"tags":["Personal"],"summary":"ID로 소유 앱 수정","operationId":"updateApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppInput"}}}},"responses":{"200":{"description":"Updated"},"403":{"$ref":"#/components/responses/Error"}}},
       "delete": {"tags":["Personal"],"summary":"ID로 소유 앱 보관 처리","operationId":"archiveApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"responses":{"204":{"description":"Archived"},"403":{"$ref":"#/components/responses/Error"}}}
     },
+    "/api/v1/branding/{kind}": {
+      "get": {"tags":["Public"],"summary":"로고·파비콘 이미지","description":"kind는 logo 또는 favicon입니다. 관리자가 올린 이미지를 이 origin에서 제공합니다.","operationId":"getBrandingAsset","parameters":[{"name":"kind","in":"path","required":true,"schema":{"type":"string","enum":["logo","favicon"]}}],"responses":{"200":{"description":"Image bytes","content":{"image/*":{"schema":{"type":"string","format":"binary"}}}},"304":{"description":"Not modified"},"404":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/branding/{kind}": {
+      "post": {"tags":["Admin"],"summary":"로고·파비콘 업로드 또는 주소에서 가져오기","description":"multipart/form-data의 file 또는 JSON의 sourceUrl을 받습니다. 어느 쪽이든 이미지를 PostgreSQL에 저장하므로 서비스 이미지를 교체해도 유지되고, 원격 이미지를 막는 콘텐츠 보안 정책에도 걸리지 않습니다. 최대 1MB.","operationId":"uploadBranding","security":[{"cookieSession":[]}],"parameters":[{"name":"kind","in":"path","required":true,"schema":{"type":"string","enum":["logo","favicon"]}}],"responses":{"200":{"description":"Stored asset"},"422":{"$ref":"#/components/responses/Error"},"502":{"$ref":"#/components/responses/Error"}}},
+      "delete": {"tags":["Admin"],"summary":"로고·파비콘 제거","operationId":"deleteBranding","security":[{"cookieSession":[]}],"parameters":[{"name":"kind","in":"path","required":true,"schema":{"type":"string","enum":["logo","favicon"]}}],"responses":{"204":{"description":"Removed"},"404":{"$ref":"#/components/responses/Error"}}}
+    },
     "/api/v1/categories": {
       "get": {"tags":["Public"],"summary":"카테고리 목록","operationId":"listCategories","responses":{"200":{"description":"Categories","content":{"application/json":{"schema":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/Category"}}}}}}}}}
     },

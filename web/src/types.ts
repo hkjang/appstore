@@ -14,6 +14,7 @@ export interface PublicConfig {
   siteDescription?: string;
   siteUrl?: string;
   logoUrl?: string;
+  faviconUrl?: string;
   publicMode: boolean;
   oidcEnabled: boolean;
   oidcConfigured?: boolean;
@@ -206,4 +207,12 @@ export interface OidcTestResult {
   clientId?: string;
   clientSecretSet?: boolean;
   redirectUrl?: string;
+}
+
+export interface BrandingAsset {
+  kind: "logo" | "favicon";
+  contentType: string;
+  size: number;
+  updatedAt: string;
+  url: string;
 }

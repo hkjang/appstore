@@ -1,38 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Activity,
   AppWindow,
-  Blocks,
-  Bot,
   Boxes,
   ChevronDown,
-  ClipboardCheck,
-  CodeXml,
+  Command,
   ExternalLink,
-  FolderHeart,
-  Gauge,
   KeyRound,
-  LayoutGrid,
-  ListChecks,
   LogIn,
   LogOut,
   Menu,
   Moon,
-  Network,
   Plus,
   Search,
   Settings,
-  Shield,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
   Sun,
-  Tags,
-  UserRound,
-  Users,
-  Workflow,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import {
   useEffect,
@@ -43,16 +25,11 @@ import {
 } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { hasAnyRole, initials } from "../lib/utils";
+import { initials } from "../lib/utils";
+import { navGroupsFor } from "../features/navigation/nav-items";
+import { CommandPalette } from "../features/navigation/command-palette";
 import { useAuth, useTheme } from "../app/providers";
 import { Button, ButtonLink, ErrorState } from "./ui";
-
-interface NavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  end?: boolean;
-}
 
 // Query parameters that give a path its own nav entry.
 const NAV_VARIANT_PARAMS = ["mcp"];
@@ -83,64 +60,6 @@ export function navItemActive(
     return [...target].every(([key, value]) => current.get(key) === value);
   return !NAV_VARIANT_PARAMS.some((key) => current.has(key));
 }
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const publicGroups: NavGroup[] = [
-  {
-    label: "스토어",
-    items: [
-      { to: "/", label: "투데이", icon: Sparkles, end: true },
-      { to: "/apps", label: "전체 앱", icon: LayoutGrid },
-      { to: "/categories", label: "카테고리", icon: Tags },
-      { to: "/apps?mcp=true", label: "MCP 앱", icon: Blocks },
-      { to: "/favorites", label: "즐겨찾기", icon: FolderHeart },
-    ],
-  },
-];
-
-const personalGroup: NavGroup = {
-  label: "개인",
-  items: [
-    { to: "/my", label: "내 홈", icon: Gauge, end: true },
-    { to: "/my/apps", label: "내 앱", icon: AppWindow },
-    { to: "/my/keys", label: "API · MCP 키", icon: KeyRound },
-    { to: "/my/profile", label: "프로필", icon: UserRound },
-    { to: "/my/activity", label: "활동 내역", icon: Activity },
-    { to: "/my/settings", label: "설정", icon: Settings },
-  ],
-};
-
-const adminGroups: NavGroup[] = [
-  {
-    label: "운영",
-    items: [
-      { to: "/admin", label: "대시보드", icon: Gauge, end: true },
-      { to: "/admin/apps", label: "앱 관리", icon: AppWindow },
-      { to: "/admin/categories", label: "카테고리", icon: Tags },
-      { to: "/admin/users", label: "사용자", icon: Users },
-      { to: "/admin/roles", label: "역할·권한", icon: ShieldCheck },
-      { to: "/admin/reviews", label: "검토 관리", icon: ClipboardCheck },
-      { to: "/admin/audit", label: "감사 로그", icon: Activity },
-    ],
-  },
-  {
-    label: "플랫폼",
-    items: [
-      { to: "/admin/workflow", label: "승인 워크플로", icon: Workflow },
-      { to: "/admin/ai", label: "AI 공급자", icon: Bot },
-      { to: "/admin/api", label: "REST API", icon: CodeXml },
-      { to: "/admin/mcp", label: "MCP 서버", icon: Network },
-      { to: "/admin/api-keys", label: "API 키", icon: KeyRound },
-      { to: "/admin/authentication", label: "인증·SSO", icon: Shield },
-      { to: "/admin/security", label: "보안·키 정책", icon: SlidersHorizontal },
-      { to: "/admin/settings", label: "시스템 설정", icon: Settings },
-    ],
-  },
-];
 
 function ProfileMenu() {
   const { session, logout } = useAuth();
@@ -262,37 +181,11 @@ function Sidebar({
     staleTime: 60_000,
   });
   const roles = session?.user?.roles;
-  const groups = admin
-    ? adminGroups
-    : [
-        ...publicGroups,
-        ...(session?.authenticated ? [personalGroup] : []),
-        ...(hasAnyRole(roles, [
-          "reviewer",
-          "team_leader",
-          "admin",
-          "super_admin",
-        ])
-          ? [
-              {
-                label: "검토",
-                items: [
-                  { to: "/review", label: "검토 대기", icon: ListChecks },
-                ],
-              },
-            ]
-          : []),
-        ...(hasAnyRole(roles, ["admin", "super_admin"])
-          ? [
-              {
-                label: "관리",
-                items: [
-                  { to: "/admin", label: "관리자 콘솔", icon: ShieldCheck },
-                ],
-              },
-            ]
-          : []),
-      ];
+  const groups = navGroupsFor({
+    admin,
+    authenticated: !!session?.authenticated,
+    roles,
+  });
 
   return (
     <aside
@@ -300,9 +193,18 @@ function Sidebar({
       aria-label={admin ? "관리자 메뉴" : "주 메뉴"}
     >
       <Link to={admin ? "/admin" : "/"} className="brand" onClick={close}>
-        <span className="brand-mark" aria-hidden="true">
-          A
-        </span>
+        {config.data?.logoUrl ? (
+          <img
+            className="brand-logo"
+            src={config.data.logoUrl}
+            alt=""
+            aria-hidden="true"
+          />
+        ) : (
+          <span className="brand-mark" aria-hidden="true">
+            A
+          </span>
+        )}
         <span>
           <span className="brand-name">
             {config.data?.siteName || "AppStore"}
@@ -389,12 +291,23 @@ export function AppShell({
   const [query, setQuery] = useState(
     new URLSearchParams(location.search).get("q") ?? "",
   );
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
   useEffect(() => {
     setQuery(new URLSearchParams(location.search).get("q") ?? "");
   }, [location.search]);
+  // Ctrl/Cmd+K works from any field, unlike the "/" catalogue shortcut.
+  useEffect(() => {
+    const openPalette = (event: KeyboardEvent) => {
+      if (event.key !== "k" || !(event.metaKey || event.ctrlKey)) return;
+      event.preventDefault();
+      setPaletteOpen((open) => !open);
+    };
+    document.addEventListener("keydown", openPalette);
+    return () => document.removeEventListener("keydown", openPalette);
+  }, []);
   useEffect(() => {
     if (admin) return;
     const focusSearch = (event: KeyboardEvent) => {
@@ -466,6 +379,20 @@ export function AppShell({
           <div className="top-actions">
             <Button
               variant="secondary"
+              className="palette-trigger"
+              // The label and hint collapse on narrow screens, so the button
+              // keeps its own name.
+              aria-label="빠른 이동"
+              aria-haspopup="dialog"
+              aria-expanded={paletteOpen}
+              onClick={() => setPaletteOpen(true)}
+            >
+              <Command size={17} aria-hidden="true" />
+              <span>빠른 이동</span>
+              <kbd aria-hidden="true">Ctrl K</kbd>
+            </Button>
+            <Button
+              variant="secondary"
               className="button-icon"
               aria-label={`${resolved === "dark" ? "라이트" : "다크"} 모드로 전환`}
               onClick={toggle}
@@ -479,6 +406,10 @@ export function AppShell({
           {children}
         </main>
       </div>
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+      />
     </div>
   );
 }

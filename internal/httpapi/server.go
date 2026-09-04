@@ -88,6 +88,7 @@ func (s *Server) Handler() (http.Handler, error) {
 		api.Get("/apps", s.listApps)
 		api.Get("/apps/{app}", s.getApp)
 		api.Get("/categories", s.listCategories)
+		api.Get("/branding/{kind}", s.brandingAsset)
 
 		api.Get("/auth/session", s.sessionState)
 		api.Post("/auth/bootstrap/login", s.bootstrapLogin)
@@ -182,6 +183,8 @@ func (s *Server) adminRoutes(r chi.Router) {
 	r.With(permission("settings:write")).Post("/admin/security/templates", s.adminCreateKeyTemplate)
 	r.With(permission("settings:write")).Put("/admin/security/templates/{id}", s.adminUpdateKeyTemplate)
 	r.With(permission("settings:write")).Delete("/admin/security/templates/{id}", s.adminDeleteKeyTemplate)
+	r.With(permission("settings:write")).Post("/admin/branding/{kind}", s.adminUploadBranding)
+	r.With(permission("settings:write")).Delete("/admin/branding/{kind}", s.adminDeleteBranding)
 	r.With(permission("settings:read")).Get("/admin/settings", s.adminSystemSettings)
 	r.With(permission("settings:write")).Put("/admin/settings", s.adminUpdateSystemSettings)
 	r.With(permission("settings:read")).Get("/admin/api-keys", s.adminAPIKeys)

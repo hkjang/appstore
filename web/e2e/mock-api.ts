@@ -311,6 +311,29 @@ export async function installMockApi(
         offset: 0,
       });
     }
+    if (path.startsWith("/api/v1/admin/branding/")) {
+      const kind = path.split("/").pop() ?? "";
+      if (request.method() === "DELETE")
+        return route.fulfill({ status: 204, body: "" });
+      return json({
+        kind,
+        contentType: "image/png",
+        size: 128,
+        updatedAt: "2026-09-04T00:00:00Z",
+        url: `/api/v1/branding/${kind}?v=abcdef123456`,
+      });
+    }
+    if (path.startsWith("/api/v1/branding/")) {
+      // 1x1 transparent PNG.
+      return route.fulfill({
+        status: 200,
+        contentType: "image/png",
+        body: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          "base64",
+        ),
+      });
+    }
     if (path === "/api/v1/admin/apps" && request.method() === "POST") {
       return json(
         { ...apps[0], ...(request.postDataJSON() ?? {}), id: "new-app-id" },

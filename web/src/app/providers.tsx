@@ -141,11 +141,42 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Applies the configured favicon to the live document. The bundled icon link is
+ * static, so an administrator's upload would otherwise never show in the tab.
+ */
+function FaviconEffect() {
+  const config = useQuery({
+    queryKey: ["public-config"],
+    queryFn: ({ signal }) => api.publicConfig(signal),
+    staleTime: 60_000,
+  });
+  const faviconUrl = config.data?.faviconUrl;
+  useEffect(() => {
+    if (!faviconUrl) return;
+    const link =
+      document.querySelector<HTMLLinkElement>('link[rel="icon"]') ??
+      document.head.appendChild(
+        Object.assign(document.createElement("link"), { rel: "icon" }),
+      );
+    const previous = link.getAttribute("href");
+    link.setAttribute("href", faviconUrl);
+    return () => {
+      if (previous === null) link.remove();
+      else link.setAttribute("href", previous);
+    };
+  }, [faviconUrl]);
+  return null;
+}
+
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <FaviconEffect />
+          {children}
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

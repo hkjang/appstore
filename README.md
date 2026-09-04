@@ -4,9 +4,9 @@ AppStore는 누구나 사내 애플리케이션을 탐색하고, 인증된 사�
 
 > 보는 것은 자유롭게, 등록하는 순간부터 인증하고, 관리 권한은 명확하게 분리합니다.
 
-![AppStore v2.3.1 공개 카탈로그 전체 화면](docs/assets/screenshots/captures/today-desktop.webp)
+![AppStore v2.4.0 공개 카탈로그 전체 화면](docs/assets/screenshots/captures/today-desktop.webp)
 
-화면 이미지는 비밀이 없는 결정적 fixture로 생성한 v2.3.1 실제 UI의 전체 페이지 WebP 캡처입니다. Desktop·mobile 전체 route의 파일과 SHA-256은 [screenshot manifest](docs/assets/screenshots/manifest.json)에서 검증합니다.
+화면 이미지는 비밀이 없는 결정적 fixture로 생성한 v2.4.0 실제 UI의 전체 페이지 WebP 캡처입니다. Desktop·mobile 전체 route의 파일과 SHA-256은 [screenshot manifest](docs/assets/screenshots/manifest.json)에서 검증합니다.
 
 ## 핵심 기능
 
@@ -19,6 +19,8 @@ AppStore는 누구나 사내 애플리케이션을 탐색하고, 인증된 사�
 - 변경 가능한 역할, permission과 Key permission template
 - REST API v1, OpenAPI 문서와 권한별 MCP tool
 - SSE 기본 AI streaming, cancel 전파와 최대 262,144 token 설정
+- Ctrl/Cmd+K 빠른 이동 팔레트로 메뉴·앱·관리 화면 한 번에 검색
+- PostgreSQL에 저장해 업그레이드에도 유지되는 로고·파비콘 업로드와 주소 가져오기
 - URL 기반 메뉴·검색 상태, SPA refresh fallback과 전역 오류 상태
 - 로그인 화면과 profile context menu의 build version 표시
 - 감사 로그, 암호화된 OIDC·AI secret과 non-root container 운영
@@ -111,12 +113,12 @@ Docker Compose는 PostgreSQL image를 포함하지 않습니다. `POSTGRES_DSN`�
 
 ```bash
 docker build \
-  --build-arg VERSION=v2.3.1 \
+  --build-arg VERSION=v2.4.0 \
   --build-arg COMMIT="$(git rev-parse HEAD)" \
   --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  -t appstore:v2.3.1 .
+  -t appstore:v2.4.0 .
 
-APPSTORE_VERSION=v2.3.1 docker compose up -d --no-build
+APPSTORE_VERSION=v2.4.0 docker compose up -d --no-build
 ```
 
 `APPSTORE_VERSION`, `APPSTORE_COMMIT`, `APPSTORE_BUILD_DATE`는 Compose/build에서 image metadata를 선택하는 host-side 치환 값이며 application container에는 전달되지 않습니다. Container의 application environment 목록은 위 네 값뿐입니다.
@@ -134,18 +136,18 @@ curl --fail http://127.0.0.1:8080/api/version
 안정 릴리스는 `vX.Y.Z` Git tag에서 생성합니다.
 
 ```text
-Git tag       v2.3.1
-Docker image  appstore:v2.3.1
-Release file  appstore-v2.3.1.tar.gz
+Git tag       v2.4.0
+Docker image  appstore:v2.4.0
+Release file  appstore-v2.4.0.tar.gz
 Platform      linux/amd64
 ```
 
 로컬에서 같은 계약을 검증할 수 있습니다.
 
 ```bash
-make archive VERSION=v2.3.1
-make verify-archive VERSION=v2.3.1
-./scripts/smoke-image.sh appstore:v2.3.1
+make archive VERSION=v2.4.0
+make verify-archive VERSION=v2.4.0
+./scripts/smoke-image.sh appstore:v2.4.0
 ```
 
 태그를 push하면 Release workflow가 test, offline asset 검사, image build, archive 재로드, non-root 검사와 인터넷 egress 없는 smoke test를 수행합니다. 성공 시 AppStore service image archive 한 개만 custom asset으로 업로드하고 SHA-256을 release notes에 기록합니다. GitHub가 자동 제공하는 Source code zip/tar.gz 링크는 custom asset이 아니며 제거할 수 없습니다.
@@ -164,7 +166,7 @@ make verify-archive VERSION=v2.3.1
 - [백업과 복구](docs/guides/backup/index.html)
 - [릴리스 Runbook](docs/guides/release/index.html)
 
-Pages는 canonical, Open Graph, WebApplication·FAQ JSON-LD, sitemap, robots, `llms.txt`, 키보드 접근성과 반응형 layout을 포함합니다. v2.3.1의 모든 React route를 desktop·mobile로 실제 캡처했으며 [screenshot manifest](docs/assets/screenshots/manifest.json)에 파일별 SHA-256을 기록합니다.
+Pages는 canonical, Open Graph, WebApplication·FAQ JSON-LD, sitemap, robots, `llms.txt`, 키보드 접근성과 반응형 layout을 포함합니다. v2.4.0의 모든 React route를 desktop·mobile로 실제 캡처했으며 [screenshot manifest](docs/assets/screenshots/manifest.json)에 파일별 SHA-256을 기록합니다.
 
 ## 주요 경로
 

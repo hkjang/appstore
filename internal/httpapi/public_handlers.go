@@ -8,12 +8,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hkjang/appstore/internal/model"
+	"github.com/hkjang/appstore/internal/store"
 )
 
 type publicConfigResponse struct {
 	SiteName        string `json:"siteName"`
 	SiteURL         string `json:"siteUrl,omitempty"`
 	LogoURL         string `json:"logoUrl,omitempty"`
+	FaviconURL      string `json:"faviconUrl,omitempty"`
 	PublicMode      bool   `json:"publicMode"`
 	OIDCEnabled     bool   `json:"oidcEnabled"`
 	OIDCConfigured  bool   `json:"oidcConfigured"`
@@ -41,8 +43,21 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 			anonymousMCP = config.Anonymous
 		}
 	}
+	// An uploaded image wins over a typed URL: it is served from this origin,
+	// so it works under the image content security policy and keeps working if
+	// the original host disappears.
+	checksums, _ := s.repository.ListBrandingChecksums(r.Context())
+	logoURL := settings.LogoURL
+	if checksum, ok := checksums[store.BrandingLogo]; ok {
+		logoURL = brandingURL(store.BrandingLogo, checksum)
+	}
+	faviconURL := settings.FaviconURL
+	if checksum, ok := checksums[store.BrandingFavicon]; ok {
+		faviconURL = brandingURL(store.BrandingFavicon, checksum)
+	}
 	WriteJSON(w, http.StatusOK, publicConfigResponse{
-		SiteName: settings.SiteName, SiteURL: settings.SiteURL, LogoURL: settings.LogoURL,
+		SiteName: settings.SiteName, SiteURL: settings.SiteURL, LogoURL: logoURL,
+		FaviconURL: faviconURL,
 		PublicMode: settings.PublicMode, OIDCEnabled: oidcEnabled,
 		OIDCConfigured: issuer != "" && clientID != "" && clientSecret != "", WorkflowEnabled: workflow.Enabled,
 		AnonymousMCP: anonymousMCP, Theme: settings.Theme,

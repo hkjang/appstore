@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ExternalLink,
+  Image as ImageIcon,
   Plus,
   Play,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   Star,
   Trash2,
   TriangleAlert,
+  Upload,
   Users,
   Workflow,
 } from "lucide-react";
@@ -3015,23 +3017,6 @@ export function AdminSystemSettingsPage() {
             <option value="en">English</option>
           </Select>
         </Field>
-        <Field label="Logo URL" id="logo-url">
-          <Input
-            id="logo-url"
-            type="url"
-            value={text(state.settings.logoUrl)}
-            onChange={(event) => state.set("logoUrl", event.target.value)}
-            placeholder="https://appstore.example.internal/assets/logo.svg"
-          />
-        </Field>
-        <Field label="Favicon URL" id="favicon-url">
-          <Input
-            id="favicon-url"
-            type="url"
-            value={text(state.settings.faviconUrl)}
-            onChange={(event) => state.set("faviconUrl", event.target.value)}
-          />
-        </Field>
         <Field label="Page Size" id="page-size">
           <Input
             id="page-size"
@@ -3055,6 +3040,21 @@ export function AdminSystemSettingsPage() {
             <option value="dark">Dark</option>
           </Select>
         </Field>
+      </div>
+      <h2 className="section-title !text-xl !mt-8 !mb-4">로고와 파비콘</h2>
+      <div className="form-grid">
+        <BrandingField
+          kind="logo"
+          label="로고"
+          help="사이드바와 로그인 화면에 표시됩니다. PNG, SVG, WebP 등 1MB 이하."
+          currentUrl={text(state.settings.logoUrl)}
+        />
+        <BrandingField
+          kind="favicon"
+          label="파비콘"
+          help="브라우저 탭 아이콘입니다. ICO, PNG, SVG 등 1MB 이하."
+          currentUrl={text(state.settings.faviconUrl)}
+        />
       </div>
       <SettingSwitch
         state={state}
@@ -3268,6 +3268,120 @@ function SettingsShell({
     </div>
   );
 }
+/**
+ * Uploads an image, or imports one from a URL. Either way the bytes are stored
+ * in PostgreSQL and served from this origin, so the branding survives a service
+ * upgrade and is not blocked by the image content security policy the way a
+ * remote URL is.
+ */
+function BrandingField({
+  kind,
+  label,
+  help,
+  currentUrl,
+}: {
+  kind: "logo" | "favicon";
+  label: string;
+  help: string;
+  currentUrl: string;
+}) {
+  const client = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [sourceUrl, setSourceUrl] = useState("");
+  const refresh = async () => {
+    await client.invalidateQueries({ queryKey: ["public-config"] });
+    await client.invalidateQueries({ queryKey: ["admin", "settings"] });
+  };
+  const upload = useMutation({
+    mutationFn: (file: File) => api.uploadBranding(kind, file),
+    onSuccess: refresh,
+  });
+  const importUrl = useMutation({
+    mutationFn: () => api.importBranding(kind, sourceUrl.trim()),
+    onSuccess: async () => {
+      setSourceUrl("");
+      await refresh();
+    },
+  });
+  const remove = useMutation({
+    mutationFn: () => api.deleteBranding(kind),
+    onSuccess: refresh,
+  });
+  const busy = upload.isPending || importUrl.isPending || remove.isPending;
+  const error = upload.error ?? importUrl.error ?? remove.error;
+
+  return (
+    <div className="field">
+      <span className="field-label">{label}</span>
+      <div className="branding-row">
+        <span className="branding-preview">
+          {currentUrl ? (
+            <img src={currentUrl} alt={`${label} 미리보기`} />
+          ) : (
+            <ImageIcon size={20} aria-hidden="true" />
+          )}
+        </span>
+        <div className="branding-actions">
+          <input
+            ref={fileRef}
+            type="file"
+            className="sr-only"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/x-icon,.ico"
+            aria-label={`${label} 파일 선택`}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) upload.mutate(file);
+              event.target.value = "";
+            }}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload size={16} />{" "}
+            {upload.isPending ? "올리는 중…" : "파일 업로드"}
+          </Button>
+          {currentUrl && (
+            <Button
+              variant="danger"
+              size="sm"
+              className="button-quiet"
+              disabled={busy}
+              onClick={() => remove.mutate()}
+            >
+              <Trash2 size={16} /> 제거
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="branding-import">
+        <Input
+          type="url"
+          value={sourceUrl}
+          aria-label={`${label} 이미지 주소`}
+          placeholder="https://example.com/logo.png"
+          onChange={(event) => setSourceUrl(event.target.value)}
+        />
+        <Button
+          variant="secondary"
+          disabled={busy || !sourceUrl.trim()}
+          onClick={() => importUrl.mutate()}
+        >
+          {importUrl.isPending ? "가져오는 중…" : "주소에서 가져오기"}
+        </Button>
+      </div>
+      <span className="field-help">{help}</span>
+      {error && (
+        <span className="field-error" role="alert">
+          {error.message}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function SettingSwitch({
   state,
   name,

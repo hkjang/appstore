@@ -7,6 +7,9 @@ export default defineConfig({
   outputDir: "./test-results",
   snapshotDir: "./e2e/__screenshots__",
   fullyParallel: true,
+  // The default worker count saturates a single preview server on a developer
+  // machine and turns the suite flaky; CI keeps its own tuning and retries.
+  workers: process.env.CI ? undefined : 4,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["html", { open: "never" }], ["github"]] : "list",
   use: {

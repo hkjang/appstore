@@ -2,6 +2,7 @@ import type {
   AiStreamEvent,
   AiModelLimit,
   ApiProblem,
+  BrandingAsset,
   AuditEntry,
   Category,
   KeyPermissionDefinition,
@@ -320,6 +321,27 @@ export const api = {
     );
     return pageFrom<StoreApp>(payload, ["apps", "applications"]);
   },
+  uploadBranding: (kind: "logo" | "favicon", file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return apiFetch<BrandingAsset>(
+      `/api/v1/admin/branding/${encodeURIComponent(kind)}`,
+      { method: "POST", body, timeoutMs: 30_000 },
+    );
+  },
+  importBranding: (kind: "logo" | "favicon", sourceUrl: string) =>
+    apiFetch<BrandingAsset>(
+      `/api/v1/admin/branding/${encodeURIComponent(kind)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ sourceUrl }),
+        timeoutMs: 30_000,
+      },
+    ),
+  deleteBranding: (kind: "logo" | "favicon") =>
+    apiFetch<void>(`/api/v1/admin/branding/${encodeURIComponent(kind)}`, {
+      method: "DELETE",
+    }),
   createAdminApp: (input: unknown) =>
     apiFetch<StoreApp>("/api/v1/admin/apps", {
       method: "POST",

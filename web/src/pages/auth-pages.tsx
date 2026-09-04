@@ -77,9 +77,18 @@ export function LoginPage() {
       </section>
       <section className="login-panel" aria-labelledby="login-title">
         <Card className="login-card">
-          <span className="brand-mark mb-5" aria-hidden="true">
-            A
-          </span>
+          {config.data?.logoUrl ? (
+            <img
+              className="brand-logo mb-5"
+              src={config.data.logoUrl}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : (
+            <span className="brand-mark mb-5" aria-hidden="true">
+              A
+            </span>
+          )}
           <p className="eyebrow">Secure access</p>
           <h2 className="section-title" id="login-title">
             {config.data?.siteName || "AppStore"} 로그인

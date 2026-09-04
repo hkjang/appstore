@@ -239,3 +239,88 @@ test("관리자는 앱 관리에서 새 앱을 등록한다", async ({ page }) =
 
   await expect(page).toHaveURL("/admin/apps/new-app-id");
 });
+
+test("빠른 이동 팔레트로 메뉴와 앱으로 이동한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/");
+
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "빠른 이동" });
+  await expect(palette).toBeVisible();
+
+  // Menus are listed before anything is typed.
+  await expect(
+    palette.getByRole("option", { name: /카테고리/ }).first(),
+  ).toBeVisible();
+
+  await palette.getByRole("combobox").fill("agent");
+  await expect(
+    palette.getByRole("option", { name: /Agent Hub/ }).first(),
+  ).toBeVisible();
+  // An administrator also gets the app's admin record.
+  await expect(
+    palette.getByRole("option", { name: /Agent Hub · 관리 설정/ }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL("/apps/agent-hub");
+  await expect(palette).toHaveCount(0);
+});
+
+test("빠른 이동 팔레트는 esc로 닫히고 최근 항목을 기억한다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/");
+  await page.getByRole("button", { name: /빠른 이동/ }).click();
+  const palette = page.getByRole("dialog", { name: "빠른 이동" });
+  await palette.getByRole("combobox").fill("카테고리");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL("/categories");
+
+  await page.keyboard.press("Control+k");
+  await expect(
+    page.getByRole("dialog", { name: "빠른 이동" }).getByText("최근 이동"),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "빠른 이동" })).toHaveCount(0);
+});
+
+test("관리자는 로고와 파비콘을 업로드하고 주소로 가져온다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/settings");
+  await expect(
+    page.getByRole("heading", { name: "시스템 설정" }),
+  ).toBeVisible();
+
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  const uploads: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().includes("/api/v1/admin/branding/")
+    ) {
+      uploads.push(request.url());
+    }
+  });
+
+  await page
+    .getByLabel("로고 파일 선택")
+    .setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await expect
+    .poll(() => uploads.filter((url) => url.endsWith("/logo")).length)
+    .toBe(1);
+
+  await page
+    .getByLabel("파비콘 이미지 주소")
+    .fill("https://cdn.example.com/favicon.png");
+  await page.getByRole("button", { name: "주소에서 가져오기" }).last().click();
+  await expect
+    .poll(() => uploads.filter((url) => url.endsWith("/favicon")).length)
+    .toBe(1);
+});
