@@ -32,6 +32,7 @@ const apps = [
     visibility: "public",
     status: "published",
     featured: true,
+    featuredRank: 2,
     trendingScore: 98,
     updatedAt: "2026-09-01T08:00:00Z",
   },
@@ -56,6 +57,7 @@ const apps = [
     visibility: "public",
     status: "published",
     featured: true,
+    featuredRank: 1,
     trendingScore: 72,
     updatedAt: "2026-08-30T06:00:00Z",
   },
@@ -115,9 +117,23 @@ const review = {
   createdAt: "2026-09-01T07:00:00Z",
 };
 
+// Mirrors the server order: ranked apps first in the order an editor chose,
+// then everything unranked by most recent change.
+function byFeaturedOrder(
+  left: (typeof apps)[number],
+  right: (typeof apps)[number],
+) {
+  const rank = (app: (typeof apps)[number]) =>
+    (app as { featuredRank?: number }).featuredRank ?? Number.MAX_SAFE_INTEGER;
+  if (rank(left) !== rank(right)) return rank(left) - rank(right);
+  return right.updatedAt.localeCompare(left.updatedAt);
+}
+
 export interface MockApiOptions {
   authenticated?: boolean;
   roles?: string[];
+  /** Extra /public/config fields, e.g. the banner wording an admin has set. */
+  config?: Record<string, unknown>;
 }
 
 export async function installMockApi(
@@ -147,6 +163,7 @@ export async function installMockApi(
     }
     if (path === "/api/v1/public/config") {
       return json({
+        ...options.config,
         siteName: "AppStore",
         siteUrl: "https://appstore.example.internal",
         publicMode: true,
@@ -181,9 +198,13 @@ export async function installMockApi(
           (!mcpOnly || app.supportsMcp) &&
           (!featuredOnly || app.featured),
       );
+      const sorted =
+        url.searchParams.get("sort") === "featured"
+          ? [...filtered].sort(byFeaturedOrder)
+          : filtered;
       return json({
-        items: filtered,
-        total: filtered.length,
+        items: sorted,
+        total: sorted.length,
         limit: 24,
         offset: 0,
       });

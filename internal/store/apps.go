@@ -15,9 +15,13 @@ const appColumns = `
 	a.service_url, a.category_id, a.tags, a.screenshots, a.language,
 	a.framework, a.supports_mcp, a.supports_api, a.owner_id,
 	COALESCE(NULLIF(u.display_name, ''), u.username, ''), a.team,
-	a.app_version, a.visibility, a.status, a.featured, a.trending_score,
+	a.app_version, a.visibility, a.status, a.featured, a.featured_rank, a.trending_score,
 	a.created_at, a.updated_at, a.published_at,
 	c.id, c.slug, c.name, c.icon, c.description, c.position, c.active`
+
+// featuredOrder puts hand-ranked apps first in the order the editor chose and
+// lets everything without a rank follow by most recent change.
+const featuredOrder = `a.featured DESC, a.featured_rank ASC NULLS LAST, a.updated_at DESC, a.id`
 
 const appFrom = `
 	FROM apps a
@@ -34,7 +38,7 @@ func scanApp(row rowScanner) (model.App, error) {
 		&tagsJSON, &screenshotsJSON, &app.Language, &app.Framework,
 		&app.SupportsMCP, &app.SupportsAPI, &app.OwnerID, &app.OwnerName,
 		&app.Team, &app.Version, &app.Visibility, &app.Status, &app.Featured,
-		&app.TrendingScore, &app.CreatedAt, &app.UpdatedAt, &app.PublishedAt,
+		&app.FeaturedRank, &app.TrendingScore, &app.CreatedAt, &app.UpdatedAt, &app.PublishedAt,
 		&category.ID, &category.Slug, &category.Name, &category.Icon,
 		&category.Description, &category.Position, &category.Active,
 	)
@@ -69,7 +73,7 @@ func scanAppWithTotal(row rowScanner) (model.App, int, error) {
 		&tagsJSON, &screenshotsJSON, &app.Language, &app.Framework,
 		&app.SupportsMCP, &app.SupportsAPI, &app.OwnerID, &app.OwnerName,
 		&app.Team, &app.Version, &app.Visibility, &app.Status, &app.Featured,
-		&app.TrendingScore, &app.CreatedAt, &app.UpdatedAt, &app.PublishedAt,
+		&app.FeaturedRank, &app.TrendingScore, &app.CreatedAt, &app.UpdatedAt, &app.PublishedAt,
 		&category.ID, &category.Slug, &category.Name, &category.Icon,
 		&category.Description, &category.Position, &category.Active,
 	)
@@ -132,7 +136,13 @@ func (r *Repository) ListApps(ctx context.Context, options model.AppListOptions)
 		where = append(where, `a.featured`)
 	}
 
-	order := `a.updated_at DESC, a.id`
+	const recentOrder = `a.updated_at DESC, a.id`
+	// A featured-only list is an editorial shelf, so it follows the hand-set
+	// order unless the caller asked for something else explicitly.
+	order := recentOrder
+	if options.Featured {
+		order = featuredOrder
+	}
 	switch options.Sort {
 	case "name":
 		order = `lower(a.name), a.id`
@@ -142,6 +152,10 @@ func (r *Repository) ListApps(ctx context.Context, options model.AppListOptions)
 		order = `a.trending_score DESC, a.updated_at DESC, a.id`
 	case "published":
 		order = `a.published_at DESC NULLS LAST, a.id`
+	case "featured":
+		order = featuredOrder
+	case "updated":
+		order = recentOrder
 	}
 	args = append(args, limit, offset)
 	query := `SELECT count(*) OVER(), ` + appColumns + appFrom +
@@ -284,35 +298,66 @@ func (r *Repository) UpdateApp(ctx context.Context, id uuid.UUID, input model.Ap
 	return r.GetAppByID(ctx, id)
 }
 
+// AdminAppOverrides carries the catalog fields only an administrator can set:
+// the ones the owner submission workflow decides on its own.
+type AdminAppOverrides struct {
+	Status   string
+	Featured bool
+	// FeaturedRank is nil when the app is unranked, which sorts it after every
+	// ranked app by most recent change.
+	FeaturedRank *int
+}
+
+// MaxFeaturedRank bounds the hand-set order so a typo cannot push an app past
+// every other featured entry by a meaningless margin.
+const MaxFeaturedRank = 9999
+
+func (o AdminAppOverrides) normalize() (AdminAppOverrides, error) {
+	o.Status = strings.TrimSpace(o.Status)
+	if !validAppStatus(o.Status) {
+		return AdminAppOverrides{}, fmt.Errorf("app status: %w", ErrInvalid)
+	}
+	if o.FeaturedRank != nil && (*o.FeaturedRank < 1 || *o.FeaturedRank > MaxFeaturedRank) {
+		return AdminAppOverrides{}, fmt.Errorf("featured rank: %w", ErrInvalid)
+	}
+	return o, nil
+}
+
 // AdminCreateApp adds a catalog record on an administrator's behalf, with the
 // status and featured flag chosen up front rather than going through the
 // owner submission workflow.
-func (r *Repository) AdminCreateApp(ctx context.Context, ownerID *uuid.UUID, input model.AppInput, status string, featured bool) (model.App, error) {
+func (r *Repository) AdminCreateApp(ctx context.Context, ownerID *uuid.UUID, input model.AppInput, overrides AdminAppOverrides) (model.App, error) {
 	input, err := validateAppInput(input)
 	if err != nil {
 		return model.App{}, err
 	}
+	overrides, err = overrides.normalize()
+	if err != nil {
+		return model.App{}, err
+	}
 	categoryID, err := uuid.Parse(input.CategoryID)
-	if err != nil || !validAppStatus(status) {
-		return model.App{}, fmt.Errorf("create app category or status: %w", ErrInvalid)
+	if err != nil {
+		return model.App{}, fmt.Errorf("create app category: %w", ErrInvalid)
 	}
 	var id uuid.UUID
 	err = r.pool.QueryRow(ctx, `
 		INSERT INTO apps(
 			owner_id, category_id, name, slug, summary, description, icon, gradient,
 			service_url, tags, screenshots, language, framework, supports_mcp,
-			supports_api, team, app_version, visibility, status, featured, published_at
+			supports_api, team, app_version, visibility, status, featured,
+			featured_rank, published_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8,
 			$9, $10, $11, $12, $13, $14,
-			$15, $16, $17, $18, $19, $20,
+			$15, $16, $17, $18, $19, $20, $21,
 			CASE WHEN $19 = 'published' THEN now() ELSE NULL END
 		) RETURNING id`,
 		ownerID, categoryID, input.Name, input.Slug, input.Summary,
 		input.Description, input.Icon, input.Gradient, input.ServiceURL,
 		jsonValue(input.Tags), jsonValue(input.Screenshots), input.Language,
 		input.Framework, input.SupportsMCP, input.SupportsAPI, input.Team,
-		input.Version, input.Visibility, status, featured,
+		input.Version, input.Visibility, overrides.Status, overrides.Featured,
+		overrides.FeaturedRank,
 	).Scan(&id)
 	if err != nil {
 		return model.App{}, normalizeError("admin create app", err)
@@ -322,8 +367,12 @@ func (r *Repository) AdminCreateApp(ctx context.Context, ownerID *uuid.UUID, inp
 
 // AdminUpdateApp writes the whole catalog record in one statement, including
 // the status and featured flags that owners cannot change themselves.
-func (r *Repository) AdminUpdateApp(ctx context.Context, id uuid.UUID, input model.AppInput, status string, featured bool) (model.App, error) {
+func (r *Repository) AdminUpdateApp(ctx context.Context, id uuid.UUID, input model.AppInput, overrides AdminAppOverrides) (model.App, error) {
 	input, err := validateAppInput(input)
+	if err != nil {
+		return model.App{}, err
+	}
+	overrides, err = overrides.normalize()
 	if err != nil {
 		return model.App{}, err
 	}
@@ -331,22 +380,20 @@ func (r *Repository) AdminUpdateApp(ctx context.Context, id uuid.UUID, input mod
 	if err != nil {
 		return model.App{}, fmt.Errorf("update app category: %w", ErrInvalid)
 	}
-	if !validAppStatus(status) {
-		return model.App{}, fmt.Errorf("update app status: %w", ErrInvalid)
-	}
 	result, err := r.pool.Exec(ctx, `
 		UPDATE apps SET category_id = $2, name = $3, slug = $4, summary = $5,
 			description = $6, icon = $7, gradient = $8, service_url = $9,
 			tags = $10, screenshots = $11, language = $12, framework = $13,
 			supports_mcp = $14, supports_api = $15, team = $16,
 			app_version = $17, visibility = $18, status = $19, featured = $20,
-			updated_at = now(),
+			featured_rank = $21, updated_at = now(),
 			published_at = CASE WHEN $19 = 'published' THEN COALESCE(published_at, now()) ELSE published_at END
 		WHERE id = $1`, id, categoryID, input.Name, input.Slug, input.Summary,
 		input.Description, input.Icon, input.Gradient, input.ServiceURL,
 		jsonValue(input.Tags), jsonValue(input.Screenshots), input.Language,
 		input.Framework, input.SupportsMCP, input.SupportsAPI, input.Team,
-		input.Version, input.Visibility, status, featured)
+		input.Version, input.Visibility, overrides.Status, overrides.Featured,
+		overrides.FeaturedRank)
 	if err != nil {
 		return model.App{}, normalizeError("admin update app", err)
 	}

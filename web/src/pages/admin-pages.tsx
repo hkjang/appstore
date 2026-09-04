@@ -63,6 +63,7 @@ import {
   Switch,
   Textarea,
 } from "../components/ui";
+import { DEFAULT_HERO } from "../features/home/hero-copy";
 import { ReviewQueuePage } from "./review-pages";
 
 type SettingsRecord = Record<string, unknown>;
@@ -464,6 +465,7 @@ export function AdminAppsPage() {
             <option value="created">최근 등록</option>
             <option value="name">이름</option>
             <option value="trending">인기</option>
+            <option value="featured">추천 우선순위</option>
           </Select>
         </div>
         <div className="field">
@@ -556,6 +558,9 @@ export function AdminAppsPage() {
                         {app.featured && (
                           <Badge tone="warning">
                             <Star size={13} /> 추천
+                            {app.featuredRank == null
+                              ? ""
+                              : ` ${app.featuredRank}`}
                           </Badge>
                         )}
                         {!app.supportsMcp &&
@@ -589,6 +594,18 @@ export function AdminAppsPage() {
                     </td>
                     <td>
                       <div className="row-actions">
+                        {!!app.serviceUrl && (
+                          <a
+                            className="button button-secondary button-sm button-quiet"
+                            href={app.serviceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`${app.name} 서비스 열기`}
+                            title={app.serviceUrl}
+                          >
+                            <ExternalLink size={16} />
+                          </a>
+                        )}
                         <Link
                           className="button button-secondary button-sm"
                           to={`/admin/apps/${app.id}`}
@@ -648,6 +665,8 @@ interface AdminAppForm {
   visibility: "public" | "private";
   status: AppStatus;
   featured: boolean;
+  /** Kept as text so the field can be cleared back to "no priority". */
+  featuredRank: string;
 }
 
 function formFromApp(app: StoreApp): AdminAppForm {
@@ -670,6 +689,7 @@ function formFromApp(app: StoreApp): AdminAppForm {
     visibility: app.visibility ?? "public",
     status: app.status ?? "draft",
     featured: !!app.featured,
+    featuredRank: app.featuredRank == null ? "" : String(app.featuredRank),
   };
 }
 
@@ -692,6 +712,7 @@ const emptyAppForm: AdminAppForm = {
   visibility: "public",
   status: "draft",
   featured: false,
+  featuredRank: "",
 };
 
 export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
@@ -722,6 +743,11 @@ export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
         ...input,
         tags: parseList(input.tags),
         screenshots: parseList(input.screenshots),
+        // An empty box means the app carries no hand-set order and falls back
+        // to most recently changed.
+        featuredRank: input.featuredRank.trim()
+          ? Number(input.featuredRank)
+          : null,
       };
       return create
         ? api.createAdminApp(payload)
@@ -993,6 +1019,22 @@ export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
                 label="추천 앱"
               />
             </div>
+            <Field
+              label="추천 우선순위"
+              id="admin-app-featured-rank"
+              help="숫자가 작을수록 먼저 노출됩니다. 비워 두면 최근 변경순으로 이어집니다."
+            >
+              <Input
+                id="admin-app-featured-rank"
+                type="number"
+                min={1}
+                max={9999}
+                inputMode="numeric"
+                placeholder="미지정"
+                value={form.featuredRank}
+                onChange={(event) => set("featuredRank", event.target.value)}
+              />
+            </Field>
             {save.error && (
               <p className="field-error mt-5" role="alert">
                 {save.error.message}
@@ -1028,6 +1070,9 @@ export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
               {current.featured && (
                 <Badge tone="warning">
                   <Star size={13} /> 추천
+                  {current.featuredRank == null
+                    ? ""
+                    : ` ${current.featuredRank}순위`}
                 </Badge>
               )}
               <Badge>
@@ -2977,6 +3022,13 @@ export function AdminSystemSettingsPage() {
     pageSize: 24,
     publicMode: true,
     theme: "system",
+    // Empty banner wording means "keep the shipped default", so these start
+    // blank and the placeholders show what visitors currently see.
+    heroEyebrow: "",
+    heroTitle: "",
+    siteDescription: "",
+    heroPrimaryLabel: "",
+    heroSecondaryLabel: "",
   });
   return (
     <SettingsShell
@@ -3056,6 +3108,75 @@ export function AdminSystemSettingsPage() {
           currentUrl={text(state.settings.faviconUrl)}
         />
       </div>
+      <h2 className="section-title !text-xl !mt-8 !mb-4">메인 배너 문구</h2>
+      <p className="field-help !mb-4">
+        첫 화면 배너에 쓰는 문구입니다. 비워 두면 기본 문구가 그대로 표시됩니다.
+      </p>
+      <div className="form-grid">
+        <Field label="배너 상단 문구" id="hero-eyebrow">
+          <Input
+            id="hero-eyebrow"
+            value={text(state.settings.heroEyebrow)}
+            placeholder={DEFAULT_HERO.eyebrow}
+            maxLength={120}
+            onChange={(event) => state.set("heroEyebrow", event.target.value)}
+          />
+        </Field>
+        <Field
+          label="주요 버튼 문구"
+          id="hero-primary-label"
+          help="추천 앱으로 이동하는 버튼"
+        >
+          <Input
+            id="hero-primary-label"
+            value={text(state.settings.heroPrimaryLabel)}
+            placeholder={DEFAULT_HERO.primaryLabel}
+            maxLength={40}
+            onChange={(event) =>
+              state.set("heroPrimaryLabel", event.target.value)
+            }
+          />
+        </Field>
+        <Field
+          label="보조 버튼 문구"
+          id="hero-secondary-label"
+          help="전체 목록으로 이동하는 버튼"
+        >
+          <Input
+            id="hero-secondary-label"
+            value={text(state.settings.heroSecondaryLabel)}
+            placeholder={DEFAULT_HERO.secondaryLabel}
+            maxLength={40}
+            onChange={(event) =>
+              state.set("heroSecondaryLabel", event.target.value)
+            }
+          />
+        </Field>
+      </div>
+      <Field
+        label="배너 제목"
+        id="hero-title"
+        help="줄을 바꾼 위치가 화면에도 그대로 반영됩니다."
+      >
+        <Textarea
+          id="hero-title"
+          rows={2}
+          value={text(state.settings.heroTitle)}
+          placeholder={DEFAULT_HERO.title}
+          maxLength={200}
+          onChange={(event) => state.set("heroTitle", event.target.value)}
+        />
+      </Field>
+      <Field label="배너 설명" id="hero-description">
+        <Textarea
+          id="hero-description"
+          rows={3}
+          value={text(state.settings.siteDescription)}
+          placeholder={DEFAULT_HERO.description}
+          maxLength={600}
+          onChange={(event) => state.set("siteDescription", event.target.value)}
+        />
+      </Field>
       <SettingSwitch
         state={state}
         name="publicMode"

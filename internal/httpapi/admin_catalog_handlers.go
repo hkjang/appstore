@@ -84,6 +84,16 @@ type adminAppRequest struct {
 	model.AppInput
 	Status   string `json:"status"`
 	Featured bool   `json:"featured"`
+	// FeaturedRank is null or absent when the app carries no hand-set order.
+	FeaturedRank *int `json:"featuredRank"`
+}
+
+func (a adminAppRequest) overrides(fallbackStatus string) store.AdminAppOverrides {
+	status := strings.TrimSpace(a.Status)
+	if status == "" {
+		status = fallbackStatus
+	}
+	return store.AdminAppOverrides{Status: status, Featured: a.Featured, FeaturedRank: a.FeaturedRank}
 }
 
 func (s *Server) adminCreateApp(w http.ResponseWriter, r *http.Request) {
@@ -96,10 +106,6 @@ func (s *Server) adminCreateApp(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	status := strings.TrimSpace(input.Status)
-	if status == "" {
-		status = model.AppStatusDraft
-	}
 	// The administrator owns what they add here, so the record has an owner for
 	// later edits and the audit trail.
 	principal := CurrentPrincipal(r.Context())
@@ -107,7 +113,7 @@ func (s *Server) adminCreateApp(w http.ResponseWriter, r *http.Request) {
 	if principal != nil {
 		ownerID = &principal.User.ID
 	}
-	app, err := s.repository.AdminCreateApp(r.Context(), ownerID, input.AppInput, status, input.Featured)
+	app, err := s.repository.AdminCreateApp(r.Context(), ownerID, input.AppInput, input.overrides(model.AppStatusDraft))
 	if err != nil {
 		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 등록할 수 없습니다."))
 		return
@@ -150,11 +156,7 @@ func (s *Server) adminUpdateApp(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	status := strings.TrimSpace(input.Status)
-	if status == "" {
-		status = before.Status
-	}
-	after, err := s.repository.AdminUpdateApp(r.Context(), id, input.AppInput, status, input.Featured)
+	after, err := s.repository.AdminUpdateApp(r.Context(), id, input.AppInput, input.overrides(before.Status))
 	if err != nil {
 		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 찾을 수 없습니다."))
 		return

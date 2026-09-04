@@ -45,7 +45,9 @@ func (r *Repository) GetSystemSettings(ctx context.Context) (model.SystemSetting
 	return settings, err
 }
 
-func (r *Repository) UpdateSystemSettings(ctx context.Context, settings model.SystemSettings, updatedBy *uuid.UUID) (model.SystemSettings, error) {
+// validateSystemSettings trims and range-checks the settings an administrator
+// submits. It is pure so the rules can be tested without a database.
+func validateSystemSettings(settings model.SystemSettings) (model.SystemSettings, error) {
 	settings.SiteName = strings.TrimSpace(settings.SiteName)
 	settings.SiteURL = strings.TrimSpace(settings.SiteURL)
 	settings.Theme = normalizeKey(settings.Theme)
@@ -55,6 +57,44 @@ func (r *Repository) UpdateSystemSettings(ctx context.Context, settings model.Sy
 	}
 	if settings.Theme != "system" && settings.Theme != "dark" && settings.Theme != "light" {
 		return model.SystemSettings{}, fmt.Errorf("system theme: %w", ErrInvalid)
+	}
+	home, err := validateHomeCopy(settings.HomeCopy)
+	if err != nil {
+		return model.SystemSettings{}, err
+	}
+	settings.HomeCopy = home
+	return settings, nil
+}
+
+// validateHomeCopy trims the banner wording and caps its length. The banner is
+// a fixed slab of the landing page, so wording far past these lengths would
+// break the layout rather than say more. An empty field is left empty on
+// purpose: it means "show the shipped default".
+func validateHomeCopy(home model.HomeCopy) (model.HomeCopy, error) {
+	fields := []struct {
+		name  string
+		value *string
+		max   int
+	}{
+		{"hero eyebrow", &home.HeroEyebrow, 120},
+		{"hero title", &home.HeroTitle, 200},
+		{"site description", &home.SiteDescription, 600},
+		{"hero primary label", &home.HeroPrimaryLabel, 40},
+		{"hero secondary label", &home.HeroSecondaryLabel, 40},
+	}
+	for _, field := range fields {
+		*field.value = strings.TrimSpace(*field.value)
+		if len([]rune(*field.value)) > field.max {
+			return model.HomeCopy{}, fmt.Errorf("%s: %w", field.name, ErrInvalid)
+		}
+	}
+	return home, nil
+}
+
+func (r *Repository) UpdateSystemSettings(ctx context.Context, settings model.SystemSettings, updatedBy *uuid.UUID) (model.SystemSettings, error) {
+	settings, err := validateSystemSettings(settings)
+	if err != nil {
+		return model.SystemSettings{}, err
 	}
 	if err := r.PutSetting(ctx, "system", settings, updatedBy); err != nil {
 		return model.SystemSettings{}, err

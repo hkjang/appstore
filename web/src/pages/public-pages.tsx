@@ -10,11 +10,12 @@ import {
   Star,
   Tags,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { formatDate } from "../lib/utils";
 import { AppCard } from "../features/apps/app-card";
+import { heroCopy } from "../features/home/hero-copy";
 import { useFavorites } from "../features/apps/favorites";
 import {
   AppAdminLink,
@@ -45,10 +46,14 @@ export function HomePage() {
     queryFn: ({ signal }) => api.publicConfig(signal),
     staleTime: 60_000,
   });
-  const featured = useMemo(
-    () => apps.data?.items.filter((app) => app.featured).slice(0, 6) ?? [],
-    [apps.data],
-  );
+  // The shelf is its own request so it honours the order administrators set,
+  // instead of picking whatever happens to be on the first page of updates.
+  const featuredApps = useQuery({
+    queryKey: ["apps", "home", "featured"],
+    queryFn: ({ signal }) =>
+      api.apps({ pageSize: 6, featured: true, sort: "featured" }, signal),
+  });
+  const featured = featuredApps.data?.items ?? [];
   const trending = useMemo(
     () =>
       apps.data?.items
@@ -65,33 +70,34 @@ export function HomePage() {
     [apps.data],
   );
   const primary = featured[0] ?? apps.data?.items[0];
+  const hero = heroCopy(config.data);
 
   return (
     <div className="page">
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-content">
           <Badge tone="primary">
-            <Sparkles size={15} /> 보는 것은 자유롭게, 등록부터 안전하게
+            <Sparkles size={15} /> {hero.eyebrow}
           </Badge>
           <h1 id="hero-title">
-            팀의 좋은 앱을
-            <br />
-            한곳에서 발견하세요.
+            {hero.titleLines.map((line, index) => (
+              <Fragment key={line + index}>
+                {index > 0 && <br />}
+                {line}
+              </Fragment>
+            ))}
           </h1>
-          <p>
-            {config.data?.siteDescription ||
-              "AppStore는 조직의 서비스를 공개적으로 탐색하고 SSO 기반으로 등록·관리하는 개발자 애플리케이션 카탈로그입니다."}
-          </p>
+          <p>{hero.description}</p>
           <div className="hero-actions">
             <ButtonLink
               to={
                 primary ? `/apps/${encodeURIComponent(primary.slug)}` : "/apps"
               }
             >
-              추천 앱 보기 <ArrowRight size={18} />
+              {hero.primaryLabel} <ArrowRight size={18} />
             </ButtonLink>
             <ButtonLink to="/apps" variant="secondary">
-              모든 앱 탐색
+              {hero.secondaryLabel}
             </ButtonLink>
           </div>
         </div>
@@ -115,7 +121,13 @@ export function HomePage() {
           <StoreSection
             title="에디터 추천"
             icon={<Star />}
-            apps={featured.length ? featured : apps.data.items.slice(0, 6)}
+            apps={
+              featured.length
+                ? featured
+                : featuredApps.isPending
+                  ? []
+                  : apps.data.items.slice(0, 6)
+            }
             href="/apps?featured=true"
           />
           <StoreSection
@@ -148,10 +160,13 @@ function StoreSection({
   href: string;
 }) {
   if (!apps.length) return null;
+  // aria-labelledby takes a list of ids, so a space in the id would break the
+  // section's name instead of labelling it.
+  const headingId = `section-${title.replace(/\s+/g, "-")}`;
   return (
-    <section aria-labelledby={`section-${title}`}>
+    <section aria-labelledby={headingId}>
       <div className="section-header">
-        <h2 className="section-title" id={`section-${title}`}>
+        <h2 className="section-title" id={headingId}>
           <span aria-hidden="true">{icon}</span> {title}
         </h2>
         <Link className="button button-ghost button-sm" to={href}>
@@ -175,9 +190,11 @@ export function AppsPage({
   const { slugs } = useFavorites();
   const q = params.get("q") ?? "";
   const category = forcedCategory ?? params.get("category") ?? "";
-  const sort = params.get("sort") ?? "updated";
   const mcp = params.get("mcp") === "true";
   const featured = params.get("featured") === "true";
+  // A featured-only view is an editorial shelf, so it opens in the order
+  // administrators set rather than by recency.
+  const sort = params.get("sort") ?? (featured ? "featured" : "updated");
   const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
   const view = params.get("view") === "list" ? "list" : "grid";
   const [draft, setDraft] = useState(q);
@@ -291,6 +308,7 @@ export function AppsPage({
             value={sort}
             onChange={(event) => update("sort", event.target.value)}
           >
+            {featured && <option value="featured">추천 우선순위</option>}
             <option value="updated">최근 업데이트</option>
             <option value="name">이름</option>
             <option value="created">최근 등록</option>

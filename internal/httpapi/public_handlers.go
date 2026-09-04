@@ -12,7 +12,10 @@ import (
 )
 
 type publicConfigResponse struct {
-	SiteName        string `json:"siteName"`
+	SiteName string `json:"siteName"`
+	// The banner wording is empty when the administrator has not set it; the
+	// store front then renders its shipped default.
+	model.HomeCopy
 	SiteURL         string `json:"siteUrl,omitempty"`
 	LogoURL         string `json:"logoUrl,omitempty"`
 	FaviconURL      string `json:"faviconUrl,omitempty"`
@@ -56,7 +59,8 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 		faviconURL = brandingURL(store.BrandingFavicon, checksum)
 	}
 	WriteJSON(w, http.StatusOK, publicConfigResponse{
-		SiteName: settings.SiteName, SiteURL: settings.SiteURL, LogoURL: logoURL,
+		SiteName: settings.SiteName, HomeCopy: settings.HomeCopy,
+		SiteURL: settings.SiteURL, LogoURL: logoURL,
 		FaviconURL: faviconURL,
 		PublicMode: settings.PublicMode, OIDCEnabled: oidcEnabled,
 		OIDCConfigured: issuer != "" && clientID != "" && clientSecret != "", WorkflowEnabled: workflow.Enabled,
@@ -113,11 +117,14 @@ func pagination(r *http.Request, defaultLimit, maximum int) (int, int) {
 	return limit, offset
 }
 
+// normalizedSort keeps only sort keys the store understands. Anything else
+// becomes the empty string, which asks the store for its own default: most
+// recently updated, or the editorial order when the list is featured-only.
 func normalizedSort(value string) string {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "name", "created", "trending", "published":
-		return strings.ToLower(strings.TrimSpace(value))
+	switch normalized := strings.ToLower(strings.TrimSpace(value)); normalized {
+	case "name", "created", "trending", "published", "featured", "updated":
+		return normalized
 	default:
-		return "updated"
+		return ""
 	}
 }

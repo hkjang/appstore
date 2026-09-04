@@ -64,6 +64,7 @@ type App struct {
 	Visibility    string     `json:"visibility"`
 	Status        string     `json:"status"`
 	Featured      bool       `json:"featured"`
+	FeaturedRank  *int       `json:"featuredRank,omitempty"`
 	TrendingScore int        `json:"trendingScore"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
@@ -223,6 +224,20 @@ type SystemSettings struct {
 	DefaultLanguage string `json:"defaultLanguage"`
 	PageSize        int    `json:"pageSize"`
 	PublicMode      bool   `json:"publicMode"`
+	// Embedded, so the banner wording is flattened into the same settings
+	// object the admin screen already loads and saves.
+	HomeCopy
+}
+
+// HomeCopy is the editable wording of the store landing banner. Every field is
+// optional: an empty value means the shipped Korean default is shown, so the
+// banner never depends on an administrator filling this in.
+type HomeCopy struct {
+	HeroEyebrow        string `json:"heroEyebrow,omitempty"`
+	HeroTitle          string `json:"heroTitle,omitempty"`
+	SiteDescription    string `json:"siteDescription,omitempty"`
+	HeroPrimaryLabel   string `json:"heroPrimaryLabel,omitempty"`
+	HeroSecondaryLabel string `json:"heroSecondaryLabel,omitempty"`
 }
 
 type APISettings struct {

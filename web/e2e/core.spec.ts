@@ -117,7 +117,7 @@ test("관리자는 앱 상세를 수정하고 삭제 확인 후 목록으로 돌
 }) => {
   await installMockApi(page, { authenticated: true });
   await page.goto("/admin/apps");
-  await page.getByRole("link", { name: "Agent Hub" }).click();
+  await page.getByRole("link", { name: "Agent Hub", exact: true }).click();
   await expect(page).toHaveURL(
     "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   );
@@ -323,4 +323,76 @@ test("관리자는 로고와 파비콘을 업로드하고 주소로 가져온다
   await expect
     .poll(() => uploads.filter((url) => url.endsWith("/favicon")).length)
     .toBe(1);
+});
+
+test("앱 관리 목록에서 서비스 주소로 바로 이동한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/apps");
+  const open = page.getByRole("link", { name: "Agent Hub 서비스 열기" });
+  await expect(open).toHaveAttribute("href", "https://agent.internal.example");
+  await expect(open).toHaveAttribute("target", "_blank");
+});
+
+test("첫 화면 배너는 관리자가 저장한 문구를 사용한다", async ({ page }) => {
+  await installMockApi(page, {
+    config: {
+      heroEyebrow: "사내 서비스 카탈로그",
+      heroTitle: "필요한 도구를\n바로 찾으세요.",
+      siteDescription: "팀이 만든 서비스를 한 곳에 모았습니다.",
+      heroPrimaryLabel: "지금 둘러보기",
+    },
+  });
+  await page.goto("/");
+  const title = page.getByRole("heading", { level: 1 });
+  // The line break the administrator typed is kept as a real break.
+  await expect(title).toContainText("필요한 도구를");
+  await expect(title).toContainText("바로 찾으세요.");
+  await expect(title.locator("br")).toHaveCount(1);
+  await expect(page.getByText("사내 서비스 카탈로그")).toBeVisible();
+  await expect(
+    page.getByText("팀이 만든 서비스를 한 곳에 모았습니다."),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "지금 둘러보기" })).toBeVisible();
+  // Wording the administrator left alone keeps the shipped default.
+  await expect(page.getByRole("link", { name: "모든 앱 탐색" })).toBeVisible();
+});
+
+test("추천 진열은 최신순이 아니라 관리자가 정한 우선순위를 따른다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  await page.goto("/");
+  const shelf = page.getByRole("region", { name: "에디터 추천" });
+  // Flow Studio is the older app but carries priority 1, so it leads.
+  const names = shelf.locator(".app-card-name");
+  await expect(names.first()).toHaveText("Flow Studio");
+  await expect(names.nth(1)).toHaveText("Agent Hub");
+});
+
+test("관리자는 앱 관리에서 추천 우선순위를 지정하거나 지운다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  await expect(page.getByText("추천 2순위")).toBeVisible();
+  const rank = page.getByLabel("추천 우선순위");
+  await expect(rank).toHaveValue("2");
+
+  const savedRank = async () => {
+    const request = page.waitForRequest(
+      (candidate) =>
+        candidate.url().includes("/api/v1/admin/apps/") &&
+        candidate.method() === "PUT",
+    );
+    await page.getByRole("button", { name: "변경 저장" }).click();
+    return (await request).postDataJSON() as { featuredRank: number | null };
+  };
+
+  await rank.fill("1");
+  expect((await savedRank()).featuredRank).toBe(1);
+
+  // Clearing the box means "no priority", which the store reads as
+  // most-recently-changed.
+  await rank.fill("");
+  expect((await savedRank()).featuredRank).toBeNull();
 });

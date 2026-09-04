@@ -11,7 +11,12 @@ export interface VersionInfo {
 
 export interface PublicConfig {
   siteName: string;
+  /** Landing banner wording; empty or absent means the shipped default. */
   siteDescription?: string;
+  heroEyebrow?: string;
+  heroTitle?: string;
+  heroPrimaryLabel?: string;
+  heroSecondaryLabel?: string;
   siteUrl?: string;
   logoUrl?: string;
   faviconUrl?: string;
@@ -54,6 +59,8 @@ export interface StoreApp {
   supportsMcp?: boolean;
   supportsApi?: boolean;
   featured?: boolean;
+  /** Hand-set order on the featured shelf; unranked apps follow by recency. */
+  featuredRank?: number | null;
   trending?: boolean;
   trendingScore?: number;
   visibility?: "public" | "private";
