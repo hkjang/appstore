@@ -267,6 +267,15 @@ const pages = [
     alt: "모든 등록 앱을 관리하는 관리자 목록 전체 화면",
   },
   {
+    id: "admin-app-new",
+    screen: "admin-app-new",
+    route: "/admin/apps/new",
+    routePattern: "/admin/apps/new",
+    access: "admin",
+    title: "Admin app create",
+    alt: "관리자가 카탈로그에 앱을 직접 등록하는 신규 등록 전체 화면",
+  },
+  {
     id: "admin-app-detail",
     screen: "admin-app-detail",
     route: "/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
