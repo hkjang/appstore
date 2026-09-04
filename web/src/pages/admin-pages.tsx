@@ -1605,8 +1605,8 @@ export function AdminWorkflowPage() {
         label="앱 등록 승인 사용"
         help={
           bool(state.settings.enabled)
-            ? "등록 → 검토 대기 → 승인/반려"
-            : "등록 → 즉시 게시"
+            ? "등록 → 검토 대기 → 승인/반려 · SSO 로그인 사용자의 기본 역할은 contributor입니다."
+            : "등록 → 즉시 게시 · SSO 로그인 사용자의 기본 역할은 user입니다."
         }
       />
       <div className="form-grid">

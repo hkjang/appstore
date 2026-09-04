@@ -23,12 +23,34 @@ const userSelect = `
 		u.created_at, u.updated_at
 	FROM users u`
 
+const (
+	// DefaultUserRole is the baseline for a signed-in person: browse, favourite
+	// and hold personal keys.
+	DefaultUserRole = "user"
+	// ContributorRole additionally allows submitting and maintaining apps.
+	ContributorRole = "contributor"
+)
+
+// BaselineRole picks the role every signed-in person starts with. With the
+// approval workflow on, submissions are reviewed before they reach the
+// catalogue, so contributing is safe to grant by default; with it off a
+// submission publishes straight away and the baseline stays read-only.
+func BaselineRole(workflowEnabled bool) string {
+	if workflowEnabled {
+		return ContributorRole
+	}
+	return DefaultUserRole
+}
+
 type OIDCUserInput struct {
 	Subject     string
 	Username    string
 	Email       string
 	DisplayName string
 	Team        string
+	// DefaultRole is the baseline role granted on first sign-in. Empty means
+	// the plain authenticated user role.
+	DefaultRole string
 }
 
 type UserUpdate struct {
@@ -148,10 +170,14 @@ func (r *Repository) UpsertOIDCUser(ctx context.Context, input OIDCUserInput) (m
 	if err != nil {
 		return model.User{}, normalizeError("upsert OIDC user", err)
 	}
+	defaultRole := strings.TrimSpace(input.DefaultRole)
+	if defaultRole == "" {
+		defaultRole = DefaultUserRole
+	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO user_roles(user_id, role_id, source)
-		SELECT $1, id, 'default' FROM roles WHERE key = 'user'
-		ON CONFLICT DO NOTHING`, id); err != nil {
+		SELECT $1, id, 'default' FROM roles WHERE key = $2
+		ON CONFLICT DO NOTHING`, id, defaultRole); err != nil {
 		return model.User{}, normalizeError("grant default user role", err)
 	}
 	if err := tx.Commit(ctx); err != nil {

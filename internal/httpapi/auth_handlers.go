@@ -134,9 +134,16 @@ func (s *Server) oidcCallback(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, &APIError{Status: http.StatusUnauthorized, Code: "OIDC_VERIFICATION_FAILED", Message: "SSO 응답을 검증할 수 없습니다."})
 		return
 	}
+	// The approval workflow decides how much a new sign-in may do by default.
+	workflow, workflowErr := s.repository.GetWorkflowConfig(r.Context())
+	if workflowErr != nil {
+		s.logger.WarnContext(r.Context(), "workflow config lookup failed", "error", workflowErr, "request_id", RequestID(r.Context()))
+	}
+	baselineRole := store.BaselineRole(workflowErr == nil && workflow.Enabled)
 	user, err := s.repository.UpsertOIDCUser(r.Context(), store.OIDCUserInput{
 		Subject: identity.Subject, Username: identity.Username, Email: identity.Email,
 		DisplayName: identity.DisplayName, Team: identity.Team,
+		DefaultRole: baselineRole,
 	})
 	if err != nil {
 		WriteError(w, r, storeError(err, "USER_NOT_FOUND", "사용자 정보를 저장할 수 없습니다."))
@@ -151,7 +158,10 @@ func (s *Server) oidcCallback(w http.ResponseWriter, r *http.Request) {
 	for _, role := range availableRoles {
 		knownRoles[role.Key] = true
 	}
-	roleKeys := []string{"user"}
+	roleKeys := []string{store.DefaultUserRole}
+	if baselineRole != store.DefaultUserRole && knownRoles[baselineRole] {
+		roleKeys = append(roleKeys, baselineRole)
+	}
 	for _, role := range identity.Roles {
 		if knownRoles[role] {
 			roleKeys = append(roleKeys, role)
