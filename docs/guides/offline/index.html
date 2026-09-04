@@ -19,7 +19,7 @@
         <article class="guide-content">
           <section id="scope"><h2>1. 릴리스 포함 범위</h2>
             <div class="grid two"><article class="card"><h3>포함</h3><ul><li><code>appstore:vX.Y.Z</code> Linux/AMD64 image</li><li>React 정적 자산과 SPA fallback</li><li>Go API, OIDC, SSE와 MCP 서버</li><li>PostgreSQL migration과 초기 seed</li><li>공개 CA와 timezone database</li></ul></article><article class="card"><h3>미포함</h3><ul><li>PostgreSQL image와 데이터</li><li>Keycloak image와 realm</li><li>AI model 또는 provider image</li><li>reverse proxy, DNS와 조직 인증서</li><li>실제 운영 secret</li></ul></article></div>
-            <div class="callout"><strong>v2.3.1 파일 규칙:</strong> custom asset은 <code>appstore-v2.3.1.tar.gz</code>이고, load 후 image는 <code>appstore:v2.3.1</code>입니다.</div>
+            <div class="callout"><strong>v2.4.0 파일 규칙:</strong> custom asset은 <code>appstore-v2.4.0.tar.gz</code>이고, load 후 image는 <code>appstore:v2.4.0</code>입니다.</div>
           </section>
           <section id="prerequisites"><h2>2. 선행조건</h2>
             <ul><li>Linux/AMD64 Docker Engine과 서비스 운영 권한</li><li>접근 가능한 PostgreSQL database와 schema 변경 권한</li><li>container에서 PostgreSQL을 찾을 수 있는 내부 DNS·network</li><li>SSO 사용 시 폐쇄망 Keycloak Issuer와 TLS 신뢰 체계</li><li>AI 사용 시 폐쇄망 OpenAI-compatible, vLLM, Ollama 또는 Custom endpoint</li><li>조직 reverse proxy, HTTPS 인증서와 서비스 FQDN</li></ul>
@@ -27,15 +27,15 @@
           </section>
           <section id="transfer"><h2>3. archive 반입과 검증</h2>
             <ol class="steps">
-              <li><strong>온라인 구간에서 custom asset을 받습니다.</strong><br><code>appstore-v2.3.1.tar.gz</code>로 표기됩니다. GitHub의 자동 Source code archive와 혼동하지 않습니다.</li>
-              <li><strong>릴리스 본문의 SHA-256과 비교합니다.</strong><pre><code>sha256sum appstore-v2.3.1.tar.gz</code></pre></li>
+              <li><strong>온라인 구간에서 custom asset을 받습니다.</strong><br><code>appstore-v2.4.0.tar.gz</code>로 표기됩니다. GitHub의 자동 Source code archive와 혼동하지 않습니다.</li>
+              <li><strong>릴리스 본문의 SHA-256과 비교합니다.</strong><pre><code>sha256sum appstore-v2.4.0.tar.gz</code></pre></li>
               <li><strong>승인된 매체로 폐쇄망에 반입합니다.</strong><br>조직의 악성코드 검사, 반입 결재와 매체 폐기 정책을 따릅니다.</li>
-              <li><strong>gzip과 Docker manifest를 확인하고 load합니다.</strong><pre><code>gzip -t appstore-v2.3.1.tar.gz
-gzip -dc appstore-v2.3.1.tar.gz | docker load
-docker image inspect appstore:v2.3.1 \
+              <li><strong>gzip과 Docker manifest를 확인하고 load합니다.</strong><pre><code>gzip -t appstore-v2.4.0.tar.gz
+gzip -dc appstore-v2.4.0.tar.gz | docker load
+docker image inspect appstore:v2.4.0 \
   --format '{{.RepoTags}} user={{.Config.User}} version={{index .Config.Labels "org.opencontainers.image.version"}}'</code></pre></li>
             </ol>
-            <p>검사 결과에는 <code>appstore:v2.3.1</code>, non-root 사용자 <code>appstore:appstore</code>, 동일한 OCI version label이 보여야 합니다.</p>
+            <p>검사 결과에는 <code>appstore:v2.4.0</code>, non-root 사용자 <code>appstore:appstore</code>, 동일한 OCI version label이 보여야 합니다.</p>
           </section>
           <section id="environment"><h2>4. 네 환경변수 준비</h2>
             <p>예제 파일을 복사하고 권한을 제한합니다. 다음 네 이름 외의 서비스 설정은 환경변수로 전달하지 않습니다.</p>
@@ -60,7 +60,7 @@ ENCRYPTION_KEY=replace-with-the-generated-32-byte-base64-value</code></pre>
   --security-opt no-new-privileges:true \
   --env-file ./appstore.env \
   -p 127.0.0.1:8080:8080 \
-  appstore:v2.3.1</code></pre>
+  appstore:v2.4.0</code></pre>
             <p>외부 공개가 필요하면 reverse proxy가 <code>127.0.0.1:8080</code>에 연결하도록 구성합니다. Go 서버의 내부 listen port는 8080으로 고정됩니다.</p>
             <pre><code>docker logs --tail 100 appstore
 curl --fail http://127.0.0.1:8080/health/live
@@ -72,7 +72,7 @@ curl --fail http://127.0.0.1:8080/api/version</code></pre>
             <p><code>docker-compose.yml</code>은 PostgreSQL을 번들하지 않고 외부 DSN을 사용합니다. <code>APPSTORE_VERSION</code>은 Compose가 image tag를 고르는 host-side 치환 값이며 application container에는 전달되지 않습니다.</p>
             <pre><code>cp .env.example .env
 chmod 600 .env
-APPSTORE_VERSION=v2.3.1 docker compose up -d --no-build
+APPSTORE_VERSION=v2.4.0 docker compose up -d --no-build
 docker compose ps
 docker compose logs --tail 100 appstore</code></pre>
             <p><code>--no-build</code>는 registry나 build dependency를 찾지 않고 이미 load한 image만 사용하도록 보장합니다. Application 환경에는 승인된 네 값만 전달됩니다.</p>

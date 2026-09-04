@@ -17,7 +17,7 @@
         <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#contract">명명 계약</a><a href="#gates">릴리스 Gate</a><a href="#screenshots">화면 캡처</a><a href="#local">로컬 검증</a><a href="#tag">커밋·태그</a><a href="#workflow">자동 Workflow</a><a href="#verify">게시 후 검증</a><a href="#pages">Pages</a></aside>
         <article class="guide-content">
           <section id="contract"><h2>1. 불변 명명 계약</h2>
-            <div class="table-wrap"><table><thead><tr><th>항목</th><th>v2.3.1 릴리스</th><th>원천</th></tr></thead><tbody><tr><td>Git tag</td><td><code>v2.3.1</code></td><td>안정 SemVer</td></tr><tr><td>Docker image</td><td><code>appstore:v2.3.1</code></td><td>tag를 그대로 사용, v 재추가 금지</td></tr><tr><td>Release custom asset</td><td><code>appstore-v2.3.1.tar.gz</code></td><td><code>docker save | gzip</code></td></tr><tr><td>API/UI version</td><td><code>v2.3.1</code></td><td>Go ldflags</td></tr><tr><td>OCI version label</td><td><code>v2.3.1</code></td><td>Docker build arg</td></tr></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>항목</th><th>v2.4.0 릴리스</th><th>원천</th></tr></thead><tbody><tr><td>Git tag</td><td><code>v2.4.0</code></td><td>안정 SemVer</td></tr><tr><td>Docker image</td><td><code>appstore:v2.4.0</code></td><td>tag를 그대로 사용, v 재추가 금지</td></tr><tr><td>Release custom asset</td><td><code>appstore-v2.4.0.tar.gz</code></td><td><code>docker save | gzip</code></td></tr><tr><td>API/UI version</td><td><code>v2.4.0</code></td><td>Go ldflags</td></tr><tr><td>OCI version label</td><td><code>v2.4.0</code></td><td>Docker build arg</td></tr></tbody></table></div>
             <p>현재 단일 archive 계약은 Linux/AMD64를 대상으로 합니다. ARM64가 필요하면 같은 이름을 덮어쓰지 말고 먼저 architecture별 명명 정책을 승인받습니다.</p>
           </section>
           <section id="gates"><h2>2. 릴리스 Gate</h2>
@@ -25,23 +25,23 @@
             <div class="callout warning"><strong>금지:</strong> 빌드 성공만으로 tag를 만들지 않습니다. public, SSO, Admin, Key rotation, Workflow OFF/ON, streaming cancel과 route refresh를 화면에서 확인해야 합니다.</div>
           </section>
           <section id="screenshots"><h2>3. 전체 페이지 캡처 갱신</h2>
-            <p><code>docs/assets/screenshots/manifest.json</code>은 v2.3.1의 모든 React route에 대한 desktop·mobile 전체 페이지 WebP, 대체 텍스트, pixel 크기, 상태, 버전과 SHA-256을 기록합니다. 캡처는 Playwright의 deterministic fixture를 사용하며 <code>make screenshots VERSION=v2.3.1</code>으로 재현합니다.</p>
-            <ol><li>실제 사용자·Secret이 없는 demo seed와 고정 시각을 사용합니다.</li><li>로그인, submit, 개인 영역, review와 모든 admin route에 필요한 권한 세션을 준비합니다.</li><li>각 항목을 <code>fullPage: true</code>로 캡처해 PNG 원본을 만듭니다.</li><li><code>make screenshots VERSION=v2.3.1</code>으로 WebP를 게시하고 manifest의 status, version, 크기와 checksum을 갱신합니다.</li><li>OIDC·AI Secret, Key 원문, 실제 email, 실제 내부 hostname과 Request body가 보이지 않는지 검수합니다.</li><li>홍보 gallery에는 대표 화면, 사용자·관리자 가이드에는 해당 업무 화면을 배치합니다.</li></ol>
-            <p>v2.3.1 manifest의 84개 항목은 모두 <code>captured</code> 상태이며 실제 WebP와 SHA-256이 일치해야 문서 검사를 통과합니다.</p>
+            <p><code>docs/assets/screenshots/manifest.json</code>은 v2.4.0의 모든 React route에 대한 desktop·mobile 전체 페이지 WebP, 대체 텍스트, pixel 크기, 상태, 버전과 SHA-256을 기록합니다. 캡처는 Playwright의 deterministic fixture를 사용하며 <code>make screenshots VERSION=v2.4.0</code>으로 재현합니다.</p>
+            <ol><li>실제 사용자·Secret이 없는 demo seed와 고정 시각을 사용합니다.</li><li>로그인, submit, 개인 영역, review와 모든 admin route에 필요한 권한 세션을 준비합니다.</li><li>각 항목을 <code>fullPage: true</code>로 캡처해 PNG 원본을 만듭니다.</li><li><code>make screenshots VERSION=v2.4.0</code>으로 WebP를 게시하고 manifest의 status, version, 크기와 checksum을 갱신합니다.</li><li>OIDC·AI Secret, Key 원문, 실제 email, 실제 내부 hostname과 Request body가 보이지 않는지 검수합니다.</li><li>홍보 gallery에는 대표 화면, 사용자·관리자 가이드에는 해당 업무 화면을 배치합니다.</li></ol>
+            <p>v2.4.0 manifest의 84개 항목은 모두 <code>captured</code> 상태이며 실제 WebP와 SHA-256이 일치해야 문서 검사를 통과합니다.</p>
           </section>
           <section id="local"><h2>4. 로컬 release archive 검증</h2>
             <pre><code>make test
 make check
 make test-e2e
-make archive VERSION=v2.3.1
-make verify-archive VERSION=v2.3.1
-./scripts/smoke-image.sh appstore:v2.3.1</code></pre>
+make archive VERSION=v2.4.0
+make verify-archive VERSION=v2.4.0
+./scripts/smoke-image.sh appstore:v2.4.0</code></pre>
             <p><code>scripts/release-image.sh</code>는 tag 형식을 검사하고 image를 build한 뒤 <code>gzip -9n</code>으로 저장합니다. 검증 script는 Docker manifest의 RepoTag, OCI version label과 non-root user를 확인하고 archive를 다시 load합니다.</p>
           </section>
           <section id="tag"><h2>5. 최종 커밋, push와 tag</h2>
-            <ol class="steps"><li><strong>작업 트리를 검토합니다.</strong><br><code>git status --short</code>와 diff에서 secret, generated cache, 원격 runtime asset과 관계없는 사용자 변경이 섞이지 않았는지 확인합니다.</li><li><strong>최종 commit을 만듭니다.</strong><br>코드, migration, 문서와 실제 screenshot manifest가 같은 release 상태를 설명해야 합니다.</li><li><strong>main에 push합니다.</strong><br>CI와 Pages workflow가 성공할 때까지 tag를 만들지 않습니다.</li><li><strong>annotated tag를 만들고 push합니다.</strong><pre><code>git tag -a v2.3.1 -m "AppStore v2.3.1"
+            <ol class="steps"><li><strong>작업 트리를 검토합니다.</strong><br><code>git status --short</code>와 diff에서 secret, generated cache, 원격 runtime asset과 관계없는 사용자 변경이 섞이지 않았는지 확인합니다.</li><li><strong>최종 commit을 만듭니다.</strong><br>코드, migration, 문서와 실제 screenshot manifest가 같은 release 상태를 설명해야 합니다.</li><li><strong>main에 push합니다.</strong><br>CI와 Pages workflow가 성공할 때까지 tag를 만들지 않습니다.</li><li><strong>annotated tag를 만들고 push합니다.</strong><pre><code>git tag -a v2.4.0 -m "AppStore v2.4.0"
 git push origin main
-git push origin v2.3.1</code></pre></li></ol>
+git push origin v2.4.0</code></pre></li></ol>
             <p>Release workflow는 tag commit이 <code>origin/main</code>의 ancestor가 아니면 중단합니다. 이미 존재하는 GitHub Release를 덮어쓰지 않습니다.</p>
           </section>
           <section id="workflow"><h2>6. GitHub Release 자동화</h2>
