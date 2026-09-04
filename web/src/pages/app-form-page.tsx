@@ -222,6 +222,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
                 value={form.serviceUrl}
                 onChange={(event) => update("serviceUrl", event.target.value)}
                 required
+                maxLength={2048}
                 placeholder="https://service.example.internal"
               />
             </Field>
@@ -260,6 +261,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
                 id="app-language"
                 value={form.language}
                 onChange={(event) => update("language", event.target.value)}
+                maxLength={60}
               />
             </Field>
             <Field label="Framework" id="app-framework">
@@ -267,6 +269,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
                 id="app-framework"
                 value={form.framework}
                 onChange={(event) => update("framework", event.target.value)}
+                maxLength={60}
               />
             </Field>
             <Field label="앱 버전" id="app-version">
@@ -274,6 +277,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
                 id="app-version"
                 value={form.version}
                 onChange={(event) => update("version", event.target.value)}
+                maxLength={40}
                 placeholder="1.0.0"
               />
             </Field>
@@ -286,6 +290,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
                 id="app-team"
                 value={form.team}
                 onChange={(event) => update("team", event.target.value)}
+                maxLength={120}
               />
             </Field>
             <Field label="태그" id="app-tags" help="쉼표로 구분">
