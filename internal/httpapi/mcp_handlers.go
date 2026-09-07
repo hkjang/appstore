@@ -44,7 +44,10 @@ func (s *Server) executeMCPTool(ctx context.Context, caller mcp.Caller, name str
 		}
 		return map[string]any{"categories": items}, nil
 	case "featured_apps":
-		return s.repository.ListApps(ctx, model.AppListOptions{Featured: true, Limit: limit, Sort: "updated"})
+		// The featured shelf is hand-ranked in the admin console, so the tool
+		// answers in that order — the same list REST callers see for
+		// /api/v1/apps?featured=true rather than a recently-changed one.
+		return s.repository.ListApps(ctx, model.AppListOptions{Featured: true, Limit: limit, Sort: "featured"})
 	case "trending_apps":
 		return s.repository.ListApps(ctx, model.AppListOptions{Limit: limit, Sort: "trending"})
 	case "mcp_apps":
