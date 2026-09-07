@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,6 +22,26 @@ func TestFixedWindowLimiter(t *testing.T) {
 	}
 	if allowed, remaining := limiter.allow("client", 2, now.Add(time.Minute)); !allowed || remaining != 1 {
 		t.Fatalf("new window: allowed=%v remaining=%d", allowed, remaining)
+	}
+}
+
+func TestFixedWindowLimiterDropsFinishedWindowsOnLowTraffic(t *testing.T) {
+	limiter := newFixedWindowLimiter()
+	now := time.Date(2026, 9, 1, 0, 0, 30, 0, time.UTC)
+	for index := 0; index < 50; index++ {
+		limiter.allow(fmt.Sprintf("anonymous:198.51.100.%d", index), 10, now)
+	}
+	if got := len(limiter.buckets); got != 50 {
+		t.Fatalf("buckets in the first window = %d, want 50", got)
+	}
+	// A single request in the next window is enough to release the previous
+	// one, even though the limiter has been called far fewer than 1024 times.
+	limiter.allow("anonymous:203.0.113.7", 10, now.Add(time.Minute))
+	if got := len(limiter.buckets); got != 1 {
+		t.Fatalf("buckets after the window rolled over = %d, want 1", got)
+	}
+	if allowed, remaining := limiter.allow("anonymous:203.0.113.7", 2, now.Add(time.Minute)); !allowed || remaining != 0 {
+		t.Fatalf("the sweep must keep the current window: allowed=%v remaining=%d", allowed, remaining)
 	}
 }
 

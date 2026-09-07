@@ -17,7 +17,9 @@ type rateBucket struct {
 type fixedWindowLimiter struct {
 	mu      sync.Mutex
 	buckets map[string]rateBucket
-	calls   int
+	// swept is the window whose first request already dropped the finished
+	// buckets, so the map is walked at most once per minute.
+	swept time.Time
 }
 
 func newFixedWindowLimiter() *fixedWindowLimiter {
@@ -31,13 +33,18 @@ func (l *fixedWindowLimiter) allow(key string, limit int, now time.Time) (bool, 
 	window := now.UTC().Truncate(time.Minute)
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.calls++
-	if l.calls%1024 == 0 {
+	// A finished window is dropped as soon as the next one starts. Sweeping
+	// every N calls instead leaves those buckets in the map for as long as the
+	// traffic is thin, which is exactly when a client varying its key — an
+	// anonymous address per request, a login name per attempt — can grow the
+	// map unnoticed for minutes on end.
+	if window.After(l.swept) {
 		for candidate, bucket := range l.buckets {
 			if bucket.window.Before(window) {
 				delete(l.buckets, candidate)
 			}
 		}
+		l.swept = window
 	}
 	bucket := l.buckets[key]
 	if bucket.window != window {
