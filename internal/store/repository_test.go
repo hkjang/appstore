@@ -45,6 +45,32 @@ func TestLikePattern(t *testing.T) {
 	}
 }
 
+func TestAppListOrder(t *testing.T) {
+	for name, testCase := range map[string]struct {
+		options model.AppListOptions
+		want    string
+	}{
+		"default is the most recently changed": {model.AppListOptions{}, recentOrder},
+		"an unknown sort key falls back":       {model.AppListOptions{Sort: "surprise"}, recentOrder},
+		"a featured shelf keeps the editorial rank": {
+			model.AppListOptions{Featured: true}, featuredOrder,
+		},
+		"an explicit featured sort keeps it too": {
+			model.AppListOptions{Featured: true, Sort: "featured"}, featuredOrder,
+		},
+		"an explicit sort wins over the featured default": {
+			model.AppListOptions{Featured: true, Sort: "name"}, `lower(a.name), a.id`,
+		},
+		"trending stays trending": {
+			model.AppListOptions{Sort: "trending"}, `a.trending_score DESC, a.updated_at DESC, a.id`,
+		},
+	} {
+		if got := appListOrder(testCase.options); got != testCase.want {
+			t.Fatalf("%s: appListOrder = %q, want %q", name, got, testCase.want)
+		}
+	}
+}
+
 func TestUniqueStrings(t *testing.T) {
 	got := uniqueStrings([]string{" apps:read ", "apps:read", "", "mcp:read"})
 	if len(got) != 2 || got[0] != "apps:read" || got[1] != "mcp:read" {

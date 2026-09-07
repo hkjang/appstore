@@ -23,6 +23,33 @@ const appColumns = `
 // lets everything without a rank follow by most recent change.
 const featuredOrder = `a.featured DESC, a.featured_rank ASC NULLS LAST, a.updated_at DESC, a.id`
 
+// recentOrder is the catalog default: whatever changed last comes first.
+const recentOrder = `a.updated_at DESC, a.id`
+
+// appListOrder chooses the ORDER BY clause for a catalog listing. A
+// featured-only list is an editorial shelf, so it follows the hand-set order
+// unless the caller asked for something else explicitly.
+func appListOrder(options model.AppListOptions) string {
+	switch options.Sort {
+	case "name":
+		return `lower(a.name), a.id`
+	case "created":
+		return `a.created_at DESC, a.id`
+	case "trending":
+		return `a.trending_score DESC, a.updated_at DESC, a.id`
+	case "published":
+		return `a.published_at DESC NULLS LAST, a.id`
+	case "featured":
+		return featuredOrder
+	case "updated":
+		return recentOrder
+	}
+	if options.Featured {
+		return featuredOrder
+	}
+	return recentOrder
+}
+
 const appFrom = `
 	FROM apps a
 	JOIN categories c ON c.id = a.category_id
@@ -136,27 +163,7 @@ func (r *Repository) ListApps(ctx context.Context, options model.AppListOptions)
 		where = append(where, `a.featured`)
 	}
 
-	const recentOrder = `a.updated_at DESC, a.id`
-	// A featured-only list is an editorial shelf, so it follows the hand-set
-	// order unless the caller asked for something else explicitly.
-	order := recentOrder
-	if options.Featured {
-		order = featuredOrder
-	}
-	switch options.Sort {
-	case "name":
-		order = `lower(a.name), a.id`
-	case "created":
-		order = `a.created_at DESC, a.id`
-	case "trending":
-		order = `a.trending_score DESC, a.updated_at DESC, a.id`
-	case "published":
-		order = `a.published_at DESC NULLS LAST, a.id`
-	case "featured":
-		order = featuredOrder
-	case "updated":
-		order = recentOrder
-	}
+	order := appListOrder(options)
 	args = append(args, limit, offset)
 	query := `SELECT count(*) OVER(), ` + appColumns + appFrom +
 		` WHERE ` + strings.Join(where, " AND ") +
