@@ -197,6 +197,7 @@ export function ReviewDetailPage() {
           <Textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
+            maxLength={2000}
             required
           />
         </label>
