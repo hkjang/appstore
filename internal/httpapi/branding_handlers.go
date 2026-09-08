@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,11 @@ import (
 // maxBrandingBytes caps both an upload and an imported URL. A logo or favicon
 // is small; anything larger is a mistake or an attempt to fill the database.
 const maxBrandingBytes = 1 << 20
+
+// multipartEnvelopeBytes is the slack a multipart body needs on top of the
+// image itself: the boundary lines, the part headers and the file name. The
+// form carries a single file part, so a few kilobytes is already generous.
+const multipartEnvelopeBytes = 64 << 10
 
 var brandingContentTypes = map[string]bool{
 	"image/png":                true,
@@ -74,7 +80,17 @@ func (s *Server) brandingAsset(w http.ResponseWriter, r *http.Request) {
 // the branding survives the remote host going away.
 func (s *Server) readBrandingUpload(w http.ResponseWriter, r *http.Request) ([]byte, string, error) {
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		// ParseMultipartForm spools everything past its memory budget into a
+		// temporary file with no limit of its own, so without a bound on the
+		// body the one megabyte check below only runs once the whole upload has
+		// already been written to disk. The JSON branch is bounded by
+		// DecodeJSON; this is the one request body that was not.
+		r.Body = http.MaxBytesReader(w, r.Body, maxBrandingBytes+multipartEnvelopeBytes)
 		if err := r.ParseMultipartForm(maxBrandingBytes); err != nil {
+			var tooLarge *http.MaxBytesError
+			if errors.As(err, &tooLarge) {
+				return nil, "", Validation("이미지는 1MB 이하여야 합니다.", nil)
+			}
 			return nil, "", Validation("업로드 파일을 읽지 못했습니다.", nil)
 		}
 		file, header, err := r.FormFile("file")
