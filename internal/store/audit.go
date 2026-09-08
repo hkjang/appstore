@@ -70,13 +70,13 @@ func (r *Repository) ListAuditLogs(ctx context.Context, options AuditListOptions
 	if options.ActorID != nil {
 		where = append(where, `actor_id = `+add(*options.ActorID))
 	}
-	if action := strings.TrimSpace(options.Action); action != "" {
+	if action := normalizeFilter(options.Action); action != "" {
 		where = append(where, `action = `+add(action))
 	}
-	if resource := strings.TrimSpace(options.Resource); resource != "" {
+	if resource := normalizeFilter(options.Resource); resource != "" {
 		where = append(where, `resource = `+add(resource))
 	}
-	if requestID := strings.TrimSpace(options.RequestID); requestID != "" {
+	if requestID := normalizeFilter(options.RequestID); requestID != "" {
 		where = append(where, `request_id = `+add(requestID))
 	}
 	args = append(args, limit, offset)

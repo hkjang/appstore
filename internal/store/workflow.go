@@ -174,7 +174,7 @@ func (r *Repository) ListReviews(ctx context.Context, options ReviewListOptions)
 		args = append(args, value)
 		return fmt.Sprintf("$%d", len(args))
 	}
-	if status := normalizeKey(options.Status); status != "" {
+	if status := normalizeFilterKey(options.Status); status != "" {
 		where = append(where, `rv.status = `+add(status))
 	}
 	if team := strings.TrimSpace(options.Team); team != "" {

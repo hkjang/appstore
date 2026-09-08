@@ -27,9 +27,9 @@
       "get": {
         "tags":["Public"],"summary":"공개 앱 목록/검색","operationId":"listApps",
         "parameters":[
-          {"name":"q","in":"query","schema":{"type":"string"}},
-          {"name":"category","in":"query","schema":{"type":"string"}},
-          {"name":"language","in":"query","schema":{"type":"string"}},
+          {"name":"q","in":"query","description":"200자를 넘는 검색어는 앞에서 잘라 사용합니다.","schema":{"type":"string","maxLength":200}},
+          {"name":"category","in":"query","schema":{"type":"string","maxLength":200}},
+          {"name":"language","in":"query","schema":{"type":"string","maxLength":200}},
           {"name":"mcp","in":"query","schema":{"type":"boolean"}},
           {"name":"featured","in":"query","schema":{"type":"boolean"}},
           {"name":"sort","in":"query","description":"featured는 추천 우선순위 순서이며, 우선순위가 없는 앱은 최근 변경순으로 이어집니다.","schema":{"type":"string","enum":["updated","trending","name","created","published","featured"]}},

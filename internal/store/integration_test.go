@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"io/fs"
 	"os"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/hkjang/appstore/internal/config"
 	"github.com/hkjang/appstore/internal/database"
 	"github.com/hkjang/appstore/internal/model"
+	"github.com/hkjang/appstore/migrations"
 )
 
 func TestPostgreSQLRepositoryIntegration(t *testing.T) {
@@ -50,6 +52,13 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	}()
 	repository := New(pool)
 
+	// Every embedded migration must have been applied exactly once; the count
+	// is read from the directory so that adding a migration does not turn this
+	// assertion into a stale literal.
+	embedded, err := fs.Glob(migrations.Files, "*.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var migrationCount, appCount, categoryCount, seededServiceURLs int
 	if err := pool.QueryRow(ctx, `SELECT count(*)::int FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
@@ -63,8 +72,9 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*)::int FROM apps WHERE external_seed_id IS NOT NULL AND service_url <> ''`).Scan(&seededServiceURLs); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 1 || appCount != 73 || categoryCount < 7 || seededServiceURLs != 0 {
-		t.Fatalf("seed state migrations=%d apps=%d categories=%d serviceURLs=%d", migrationCount, appCount, categoryCount, seededServiceURLs)
+	if migrationCount != len(embedded) || appCount != 73 || categoryCount < 7 || seededServiceURLs != 0 {
+		t.Fatalf("seed state migrations=%d of %d apps=%d categories=%d serviceURLs=%d",
+			migrationCount, len(embedded), appCount, categoryCount, seededServiceURLs)
 	}
 	if err := database.Migrate(ctx, pool); err != nil {
 		t.Fatal(err)
@@ -239,6 +249,18 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	})
 	if err != nil || wildcardApps.Total != 0 {
 		t.Fatalf("wildcard app search = %#v err=%v", wildcardApps, err)
+	}
+	// A query string carries raw bytes, so ?q=%FF and ?q=%00 reach the pool as
+	// text PostgreSQL cannot encode; before they were normalized the server
+	// rejected the whole statement and the public catalog answered 500.
+	brokenApps, err := repository.ListApps(ctx, model.AppListOptions{
+		Query: "\xffinteg\x00ration", Category: category.Slug, IncludeAll: true, Limit: 10,
+	})
+	if err != nil || brokenApps.Total != 0 {
+		t.Fatalf("invalid encoding app search = %#v err=%v", brokenApps, err)
+	}
+	if _, err := repository.GetAppBySlug(ctx, "\xff"+app.Slug, true); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("invalid encoding slug lookup err=%v", err)
 	}
 	if err := repository.AddFavorite(ctx, user.ID, app.ID); err != nil {
 		t.Fatal(err)

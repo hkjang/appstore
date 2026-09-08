@@ -194,15 +194,15 @@ func (r *Repository) ListUsers(ctx context.Context, options UserListOptions) (mo
 		args = append(args, value)
 		return fmt.Sprintf("$%d", len(args))
 	}
-	if query := strings.TrimSpace(options.Query); query != "" {
+	if query := normalizeFilter(options.Query); query != "" {
 		parameter := add(likePattern(query))
 		where = append(where, `(u.username ILIKE `+parameter+` ESCAPE '\' OR u.email ILIKE `+parameter+` ESCAPE '\' OR u.display_name ILIKE `+parameter+` ESCAPE '\')`)
 	}
-	if role := normalizeKey(options.Role); role != "" {
+	if role := normalizeFilterKey(options.Role); role != "" {
 		parameter := add(role)
 		where = append(where, `EXISTS (SELECT 1 FROM user_roles fur JOIN roles fr ON fr.id = fur.role_id WHERE fur.user_id = u.id AND fr.key = `+parameter+`)`)
 	}
-	if source := normalizeKey(options.AuthSource); source != "" {
+	if source := normalizeFilterKey(options.AuthSource); source != "" {
 		where = append(where, `u.auth_source = `+add(source))
 	}
 	if options.Active != nil {

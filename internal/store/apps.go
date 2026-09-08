@@ -134,10 +134,10 @@ func (r *Repository) ListApps(ctx context.Context, options model.AppListOptions)
 
 	if !options.IncludeAll {
 		where = append(where, `a.status = 'published'`, `a.visibility = 'public'`, `c.active`)
-	} else if status := strings.TrimSpace(options.Status); status != "" {
+	} else if status := normalizeFilter(options.Status); status != "" {
 		where = append(where, `a.status = `+add(status))
 	}
-	if query := strings.TrimSpace(options.Query); query != "" {
+	if query := normalizeFilter(options.Query); query != "" {
 		parameter := add(query)
 		pattern := add(likePattern(query))
 		where = append(where, `(to_tsvector('simple', a.name || ' ' || a.slug || ' ' || a.summary || ' ' || a.description || ' ' || a.tags::text) @@ plainto_tsquery('simple', `+parameter+`)
@@ -147,10 +147,10 @@ func (r *Repository) ListApps(ctx context.Context, options model.AppListOptions)
 			OR a.description ILIKE `+pattern+` ESCAPE '\'
 			OR a.tags::text ILIKE `+pattern+` ESCAPE '\')`)
 	}
-	if category := strings.TrimSpace(options.Category); category != "" {
+	if category := normalizeFilter(options.Category); category != "" {
 		where = append(where, `c.slug = `+add(category))
 	}
-	if language := strings.TrimSpace(options.Language); language != "" {
+	if language := normalizeFilter(options.Language); language != "" {
 		where = append(where, `lower(a.language) = lower(`+add(language)+`)`)
 	}
 	if options.OwnerID != nil {
@@ -199,7 +199,7 @@ func (r *Repository) GetAppBySlug(ctx context.Context, slug string, includeAll b
 	if !includeAll {
 		where += ` AND a.status = 'published' AND a.visibility = 'public' AND c.active`
 	}
-	app, err := scanApp(r.pool.QueryRow(ctx, `SELECT `+appColumns+appFrom+where, strings.TrimSpace(slug)))
+	app, err := scanApp(r.pool.QueryRow(ctx, `SELECT `+appColumns+appFrom+where, normalizeFilter(slug)))
 	return app, normalizeError("get app by slug", err)
 }
 
