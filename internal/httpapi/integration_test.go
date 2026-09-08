@@ -121,6 +121,12 @@ func TestPostgreSQLHTTPPolicyIntegration(t *testing.T) {
 	if response := request(handler, http.MethodGet, "/api/v1/apps", "", "198.51.100.1:1001", nil); response.Code != http.StatusOK {
 		t.Fatalf("public catalog status=%d body=%s", response.Code, response.Body.String())
 	}
+	// A percent escape in the query string decodes to raw bytes that PostgreSQL
+	// cannot encode, and the failing statement used to answer 500 rather than an
+	// empty catalog page.
+	if response := request(handler, http.MethodGet, "/api/v1/apps?q=%FF%00&category=%FF", "", "198.51.100.11:1011", nil); response.Code != http.StatusOK {
+		t.Fatalf("invalid encoding catalog status=%d body=%s", response.Code, response.Body.String())
+	}
 	apiSettings.Anonymous = false
 	if _, err := repository.UpdateAPISettings(ctx, apiSettings, nil); err != nil {
 		t.Fatal(err)

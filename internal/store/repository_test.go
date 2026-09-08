@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/hkjang/appstore/internal/model"
@@ -68,6 +69,36 @@ func TestAppListOrder(t *testing.T) {
 		if got := appListOrder(testCase.options); got != testCase.want {
 			t.Fatalf("%s: appListOrder = %q, want %q", name, got, testCase.want)
 		}
+	}
+}
+
+func TestNormalizeFilter(t *testing.T) {
+	for name, testCase := range map[string]struct{ in, want string }{
+		"an ordinary term is only trimmed": {"  agent hub  ", "agent hub"},
+		"Korean survives":                  {"한글 검색", "한글 검색"},
+		"an empty term stays empty":        {"   ", ""},
+		// PostgreSQL rejects the whole statement when a text parameter holds
+		// either of these, so they must never reach the pool.
+		"an invalid byte becomes the replacement rune": {"\xffagent", "�agent"},
+		"a lone continuation byte too":                 {"agent\x80", "agent�"},
+		"a truncated rune too":                         {"\xed\x95", "�"},
+		"a NUL becomes the replacement rune":           {"a\x00b", "a�b"},
+	} {
+		if got := normalizeFilter(testCase.in); got != testCase.want {
+			t.Fatalf("%s: normalizeFilter(%q) = %q, want %q", name, testCase.in, got, testCase.want)
+		}
+	}
+	long := normalizeFilter(strings.Repeat("가", filterTextLimit+50))
+	if len([]rune(long)) != filterTextLimit {
+		t.Fatalf("long filter kept %d runes, want %d", len([]rune(long)), filterTextLimit)
+	}
+	for _, value := range []string{"\xff\x00", "\xffagent", strings.Repeat("가", 500)} {
+		if got := normalizeFilter(value); !utf8.ValidString(got) || strings.ContainsRune(got, 0) {
+			t.Fatalf("normalizeFilter(%q) = %q is not storable text", value, got)
+		}
+	}
+	if got := normalizeFilterKey(" OIDC\x00 "); got != "oidc�" {
+		t.Fatalf("normalizeFilterKey = %q", got)
 	}
 }
 
