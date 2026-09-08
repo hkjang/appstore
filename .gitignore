@@ -16,3 +16,6 @@
 *.tar.gz
 *.log
 .DS_Store
+
+# 로컬 빌드 산출물 (go build ./cmd/server 결과)
+/server
