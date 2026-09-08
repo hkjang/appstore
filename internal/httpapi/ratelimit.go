@@ -58,6 +58,23 @@ func (l *fixedWindowLimiter) allow(key string, limit int, now time.Time) (bool, 
 	return true, limit - bucket.count
 }
 
+// retryAfterSeconds reports the whole seconds left in the window that just
+// rejected a request. A rejected bucket always belongs to the current window —
+// allow resets a bucket carried over from an earlier one — so the wait ends
+// when this minute does. Answering a flat 60 instead makes a client that
+// honours the header sit out most of a second window even when the bucket is
+// about to reset, which is the common case: the limit is usually reached well
+// before the minute is over.
+func retryAfterSeconds(now time.Time) int {
+	utc := now.UTC()
+	remaining := time.Minute - utc.Sub(utc.Truncate(time.Minute))
+	seconds := int((remaining + time.Second - 1) / time.Second)
+	if seconds < 1 {
+		return 1
+	}
+	return seconds
+}
+
 func (s *Server) apiPolicy(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		settings, err := s.repository.GetAPISettings(r.Context())
@@ -88,11 +105,12 @@ func (s *Server) apiPolicy(next http.Handler) http.Handler {
 		if principal != nil {
 			key = principal.AuthMethod + ":" + principal.User.ID.String()
 		}
-		allowed, remaining := s.apiLimiter.allow(key, settings.RateLimitPerMinute, time.Now())
+		now := time.Now()
+		allowed, remaining := s.apiLimiter.allow(key, settings.RateLimitPerMinute, now)
 		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(settings.RateLimitPerMinute))
 		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
 		if !allowed {
-			w.Header().Set("Retry-After", "60")
+			w.Header().Set("Retry-After", strconv.Itoa(retryAfterSeconds(now)))
 			WriteError(w, r, &APIError{Status: http.StatusTooManyRequests, Code: "RATE_LIMITED", Message: "요청이 너무 많습니다. 잠시 후 다시 시도하세요."})
 			return
 		}
@@ -111,11 +129,12 @@ func (s *Server) mcpRateLimit(next http.Handler) http.Handler {
 			http.Error(w, "MCP policy unavailable", http.StatusServiceUnavailable)
 			return
 		}
-		allowed, remaining := s.mcpLimiter.allow(clientAddress(r), settings.RateLimitPerMinute, time.Now())
+		now := time.Now()
+		allowed, remaining := s.mcpLimiter.allow(clientAddress(r), settings.RateLimitPerMinute, now)
 		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(settings.RateLimitPerMinute))
 		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
 		if !allowed {
-			w.Header().Set("Retry-After", "60")
+			w.Header().Set("Retry-After", strconv.Itoa(retryAfterSeconds(now)))
 			http.Error(w, "MCP rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}

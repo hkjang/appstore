@@ -45,6 +45,47 @@ func TestFixedWindowLimiterDropsFinishedWindowsOnLowTraffic(t *testing.T) {
 	}
 }
 
+func TestRetryAfterSecondsCountsDownTheCurrentWindow(t *testing.T) {
+	seoul := time.FixedZone("KST", 9*60*60)
+	for _, testCase := range []struct {
+		name string
+		now  time.Time
+		want int
+	}{
+		{"window start", time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC), 60},
+		{"one nanosecond in", time.Date(2026, 9, 1, 0, 0, 0, 1, time.UTC), 60},
+		{"half way", time.Date(2026, 9, 1, 0, 30, 30, 0, time.UTC), 30},
+		{"a fraction past the middle", time.Date(2026, 9, 1, 0, 30, 30, 400_000_000, time.UTC), 30},
+		{"last whole second", time.Date(2026, 9, 1, 0, 30, 59, 0, time.UTC), 1},
+		{"last nanosecond", time.Date(2026, 9, 1, 0, 30, 59, 999_999_999, time.UTC), 1},
+		{"a location other than UTC", time.Date(2026, 9, 1, 9, 30, 45, 0, seoul), 15},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := retryAfterSeconds(testCase.now); got != testCase.want {
+				t.Fatalf("retryAfterSeconds(%s) = %d, want %d", testCase.now, got, testCase.want)
+			}
+		})
+	}
+}
+
+// The header must never promise a wait shorter than the window it belongs to:
+// a client that comes back exactly when told has to find the bucket reset.
+func TestRetryAfterSecondsOutlastsTheRejectingWindow(t *testing.T) {
+	start := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	for offset := 0; offset < 60_000; offset += 137 {
+		now := start.Add(time.Duration(offset) * time.Millisecond)
+		limiter := newFixedWindowLimiter()
+		limiter.allow("client", 1, now)
+		if allowed, _ := limiter.allow("client", 1, now); allowed {
+			t.Fatalf("the second request at %s must be rejected", now)
+		}
+		wait := time.Duration(retryAfterSeconds(now)) * time.Second
+		if allowed, _ := limiter.allow("client", 1, now.Add(wait)); !allowed {
+			t.Fatalf("still rejected at %s after the advertised %s", now, wait)
+		}
+	}
+}
+
 func TestFixedWindowLimiterIsConcurrentAndKeyScoped(t *testing.T) {
 	limiter := newFixedWindowLimiter()
 	now := time.Date(2026, 9, 1, 0, 0, 30, 0, time.UTC)
