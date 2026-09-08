@@ -117,7 +117,7 @@
       "post": {"tags":["Review"],"summary":"승인","operationId":"approveReview","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"responses":{"200":{"description":"Approved"},"403":{"$ref":"#/components/responses/Error"}}}
     },
     "/api/v1/reviews/{id}/reject": {
-      "post": {"tags":["Review"],"summary":"반려","operationId":"rejectReview","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string"}}}}}},"responses":{"200":{"description":"Rejected"},"422":{"$ref":"#/components/responses/Error"}}}
+      "post": {"tags":["Review"],"summary":"반려","operationId":"rejectReview","security":[{"cookieSession":[]}],"parameters":[{"$ref":"#/components/parameters/ID"}],"requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string","maxLength":2000,"description":"반려 사유. 줄바꿈은 허용되며 그 밖의 제어 문자는 거부됩니다."}}}}}},"responses":{"200":{"description":"Rejected"},"422":{"$ref":"#/components/responses/Error"}}}
     },
     "/api/v1/ai/chat/stream": {
       "post": {"tags":["AI"],"summary":"기본 SSE AI chat stream","operationId":"streamAIChat","security":[{"cookieSession":[]},{"apiKey":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ChatRequest"}}}},"responses":{"200":{"description":"token, usage, finish, error events","content":{"text/event-stream":{"schema":{"type":"string"}}}},"422":{"$ref":"#/components/responses/Error"}}}

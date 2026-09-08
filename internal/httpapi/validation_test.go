@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -80,6 +81,42 @@ func validAppInput() model.AppInput {
 	return model.AppInput{
 		Name: "Catalog", Slug: "catalog", Summary: "설명", Description: "상세 설명",
 		ServiceURL: "https://apps.internal/catalog", CategoryID: uuid.NewString(),
+	}
+}
+
+func TestValidateReviewReasonKeepsTheTypedTextAndBoundsIt(t *testing.T) {
+	// The reviewer types into a textarea, so a line break belongs to the reason
+	// while the surrounding whitespace does not.
+	reason, err := ValidateReviewReason("  아이콘을 교체해 주세요.\n서비스 URL도 사내 주소로.  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reason != "아이콘을 교체해 주세요.\n서비스 URL도 사내 주소로." {
+		t.Fatalf("reason = %q", reason)
+	}
+	// An empty reason is only rejected by the workflow policy, in the store.
+	if reason, err := ValidateReviewReason("   "); err != nil || reason != "" {
+		t.Fatalf("reason = %q, err = %v", reason, err)
+	}
+}
+
+func TestValidateReviewReasonRejectsUnstorableText(t *testing.T) {
+	for name, value := range map[string]string{
+		"too long":       strings.Repeat("사", maxReasonRunes+1),
+		"NUL byte":       "사유\x00",
+		"other controls": "사유\x07",
+	} {
+		_, err := ValidateReviewReason(value)
+		apiError, ok := err.(*APIError)
+		if !ok {
+			t.Fatalf("%s: error = %v, want *APIError", name, err)
+		}
+		if _, reported := apiError.Details["reason"]; !reported || apiError.Status != http.StatusUnprocessableEntity {
+			t.Fatalf("%s: status = %d details = %v", name, apiError.Status, apiError.Details)
+		}
+	}
+	if _, err := ValidateReviewReason(strings.Repeat("사", maxReasonRunes)); err != nil {
+		t.Fatalf("the limit itself must stay valid: %v", err)
 	}
 }
 

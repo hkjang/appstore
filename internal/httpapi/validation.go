@@ -26,6 +26,11 @@ const (
 	maxTeamRunes       = 120
 )
 
+// A rejection reason is the one free-form text a reviewer writes. It is stored
+// on the review, rendered back to the submitter and copied into both sides of
+// the audit entry, so the two megabyte request body needs a bound here as well.
+const maxReasonRunes = 2000
+
 func ValidateAppInput(input *model.AppInput) error {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Slug = strings.ToLower(strings.TrimSpace(input.Slug))
@@ -106,6 +111,22 @@ func ValidateAppInput(input *model.AppInput) error {
 	return nil
 }
 
+// ValidateReviewReason trims and bounds the reason a reviewer submits with a
+// decision. An empty reason stays valid here: only the workflow policy knows
+// whether a rejection has to carry one.
+func ValidateReviewReason(value string) (string, error) {
+	reason := strings.TrimSpace(value)
+	if len([]rune(reason)) > maxReasonRunes {
+		return "", Validation("입력값을 확인해 주세요.", map[string]any{"reason": fmt.Sprintf("%d자 이내로 입력하세요.", maxReasonRunes)})
+	}
+	if !multiLine(reason) {
+		// A NUL byte cannot be stored in a PostgreSQL text column at all, so it
+		// would fail on UPDATE and surface as an opaque 500.
+		return "", Validation("입력값을 확인해 주세요.", map[string]any{"reason": "제어 문자는 사용할 수 없습니다."})
+	}
+	return reason, nil
+}
+
 func validHTTPURL(value string) bool {
 	parsed, err := url.Parse(value)
 	return err == nil && parsed.Host != "" && parsed.User == nil && parsed.Fragment == "" && (parsed.Scheme == "http" || parsed.Scheme == "https")
@@ -117,6 +138,15 @@ func validHTTPURL(value string) bool {
 // at all.
 func singleLine(value string) bool {
 	return !strings.ContainsFunc(value, unicode.IsControl)
+}
+
+// multiLine is singleLine for a field the form renders as a textarea: the line
+// breaks and tabs the author typed are part of the text, every other control
+// character is not.
+func multiLine(value string) bool {
+	return !strings.ContainsFunc(value, func(character rune) bool {
+		return unicode.IsControl(character) && character != '\n' && character != '\r' && character != '\t'
+	})
 }
 
 func cleanStrings(values []string, maxLength int) []string {

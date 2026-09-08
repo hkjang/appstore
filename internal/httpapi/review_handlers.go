@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -81,7 +80,12 @@ func (s *Server) rejectReview(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	s.decideReview(w, r, "rejected", strings.TrimSpace(input.Reason))
+	reason, err := ValidateReviewReason(input.Reason)
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	s.decideReview(w, r, "rejected", reason)
 }
 
 func (s *Server) decideReview(w http.ResponseWriter, r *http.Request, decision, reason string) {
