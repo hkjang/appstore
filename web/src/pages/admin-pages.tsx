@@ -33,7 +33,12 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { api, streamAiChat } from "../lib/api";
-import { clampToken, formatDateTime, parseList } from "../lib/utils";
+import {
+  brandingSizeError,
+  clampToken,
+  formatDateTime,
+  parseList,
+} from "../lib/utils";
 import type {
   AiModelLimit,
   AppStatus,
@@ -3409,6 +3414,7 @@ function BrandingField({
   const client = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [sourceUrl, setSourceUrl] = useState("");
+  const [pickError, setPickError] = useState("");
   const refresh = async () => {
     await client.invalidateQueries({ queryKey: ["public-config"] });
     await client.invalidateQueries({ queryKey: ["admin", "settings"] });
@@ -3451,8 +3457,11 @@ function BrandingField({
             aria-label={`${label} 파일 선택`}
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (file) upload.mutate(file);
               event.target.value = "";
+              if (!file) return;
+              const tooLarge = brandingSizeError(file.size);
+              setPickError(tooLarge);
+              if (!tooLarge) upload.mutate(file);
             }}
           />
           <Button
@@ -3494,9 +3503,9 @@ function BrandingField({
         </Button>
       </div>
       <span className="field-help">{help}</span>
-      {error && (
+      {(pickError || error) && (
         <span className="field-error" role="alert">
-          {error.message}
+          {pickError || error?.message}
         </span>
       )}
     </div>

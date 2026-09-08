@@ -95,6 +95,15 @@ export function safeReturnTo(value: string | null | undefined): string {
   return trimmed;
 }
 
+// Mirrors the branding upload limit the server enforces. Checking the picked
+// file first keeps a mistaken choice off the wire instead of uploading it only
+// to be told it is too large.
+export const MAX_BRANDING_BYTES = 1024 * 1024;
+
+export function brandingSizeError(size: number): string {
+  return size > MAX_BRANDING_BYTES ? "이미지는 1MB 이하여야 합니다." : "";
+}
+
 export function clampToken(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(262_144, Math.max(0, Math.round(value)));

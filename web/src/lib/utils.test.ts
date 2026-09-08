@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_BRANDING_BYTES,
+  brandingSizeError,
   clampToken,
   hasAnyRole,
   normalizeRoles,
@@ -42,5 +44,12 @@ describe("frontend policy utilities", () => {
     }
     expect(safeReturnTo("/submit?draft=1")).toBe("/submit?draft=1");
     expect(safeReturnTo("/search?q=%2F%5C")).toBe("/search?q=%2F%5C");
+  });
+
+  it("refuses a branding image over the server limit before uploading it", () => {
+    expect(brandingSizeError(MAX_BRANDING_BYTES)).toBe("");
+    expect(brandingSizeError(MAX_BRANDING_BYTES + 1)).toBe(
+      "이미지는 1MB 이하여야 합니다.",
+    );
   });
 });
