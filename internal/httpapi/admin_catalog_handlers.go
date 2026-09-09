@@ -219,7 +219,12 @@ func (s *Server) adminCreateCategory(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	category, err := s.repository.CreateCategory(r.Context(), input.storeInput())
+	record := input.storeInput()
+	if err := ValidateCategoryInput(&record); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	category, err := s.repository.CreateCategory(r.Context(), record)
 	if err != nil {
 		WriteError(w, r, storeError(err, "CATEGORY_NOT_FOUND", "카테고리를 찾을 수 없습니다."))
 		return
@@ -239,12 +244,17 @@ func (s *Server) adminUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
+	record := input.storeInput()
+	if err := ValidateCategoryInput(&record); err != nil {
+		WriteError(w, r, err)
+		return
+	}
 	before, err := s.repository.GetCategoryByID(r.Context(), id)
 	if err != nil {
 		WriteError(w, r, storeError(err, "CATEGORY_NOT_FOUND", "카테고리를 찾을 수 없습니다."))
 		return
 	}
-	after, err := s.repository.UpdateCategory(r.Context(), id, input.storeInput())
+	after, err := s.repository.UpdateCategory(r.Context(), id, record)
 	if err != nil {
 		WriteError(w, r, storeError(err, "CATEGORY_NOT_FOUND", "카테고리를 찾을 수 없습니다."))
 		return

@@ -1258,6 +1258,7 @@ export function AdminCategoriesPage() {
             <Input
               id="category-name"
               value={name}
+              maxLength={60}
               onChange={(event) => setName(event.target.value)}
               required
             />
@@ -1266,9 +1267,12 @@ export function AdminCategoriesPage() {
             <Input
               id="category-slug"
               value={slug}
+              maxLength={100}
               onChange={(event) =>
+                // The underscore stays: the seeded categories ship slugs such as
+                // "enterprise_ops" and rewriting one here would break its URL.
                 setSlug(
-                  event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+                  event.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "-"),
                 )
               }
               required
@@ -1279,6 +1283,7 @@ export function AdminCategoriesPage() {
               <Input
                 id="category-icon"
                 value={icon}
+                maxLength={16}
                 onChange={(event) => setIcon(event.target.value)}
               />
             </Field>
@@ -1287,6 +1292,7 @@ export function AdminCategoriesPage() {
                 id="category-position"
                 type="number"
                 min={0}
+                max={9999}
                 value={position}
                 onChange={(event) => setPosition(Number(event.target.value))}
               />
@@ -1296,6 +1302,7 @@ export function AdminCategoriesPage() {
             <Textarea
               id="category-description"
               value={description}
+              maxLength={240}
               onChange={(event) => setDescription(event.target.value)}
             />
           </Field>

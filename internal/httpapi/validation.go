@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hkjang/appstore/internal/model"
+	"github.com/hkjang/appstore/internal/store"
 )
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -30,6 +31,25 @@ const (
 // on the review, rendered back to the submitter and copied into both sides of
 // the audit entry, so the two megabyte request body needs a bound here as well.
 const maxReasonRunes = 2000
+
+// A category is the other record the public store front renders on its own:
+// the browse page fills a card with the name, the icon and the description, and
+// the slug becomes the /categories/{slug} route segment. The store only checked
+// that the slug and the name are not empty, so everything else the two megabyte
+// request body allows was stored whole.
+const (
+	maxCategoryNameRunes        = 60
+	maxCategoryDescriptionRunes = 240
+	// The position is stored in an integer column, which rejects anything wider
+	// than 32 bits with an opaque 500 rather than a field error.
+	maxCategoryPosition = 9999
+)
+
+// categorySlugPattern accepts an underscore on top of what an app slug allows:
+// the seeded taxonomy ships slugs such as "enterprise_ops" and those are live
+// URLs, so rejecting them here would lock an administrator out of editing the
+// categories the catalog was installed with.
+var categorySlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`)
 
 func ValidateAppInput(input *model.AppInput) error {
 	input.Name = strings.TrimSpace(input.Name)
@@ -125,6 +145,48 @@ func ValidateReviewReason(value string) (string, error) {
 		return "", Validation("입력값을 확인해 주세요.", map[string]any{"reason": "제어 문자는 사용할 수 없습니다."})
 	}
 	return reason, nil
+}
+
+// ValidateCategoryInput trims and bounds the taxonomy record an administrator
+// edits. It runs on the value that goes to the store, so the icon it sees has
+// already fallen back to the default one.
+func ValidateCategoryInput(input *store.CategoryInput) error {
+	input.Slug = strings.ToLower(strings.TrimSpace(input.Slug))
+	input.Name = strings.TrimSpace(input.Name)
+	input.Icon = strings.TrimSpace(input.Icon)
+	input.Description = strings.TrimSpace(input.Description)
+	details := map[string]any{}
+	if len(input.Slug) > 100 || !categorySlugPattern.MatchString(input.Slug) {
+		details["slug"] = "영문 소문자, 숫자, 하이픈, 밑줄로 100자 이내로 입력하세요."
+	}
+	for _, field := range []struct {
+		key     string
+		value   string
+		minimum int
+		maximum int
+	}{
+		{"name", input.Name, 1, maxCategoryNameRunes},
+		{"icon", input.Icon, 1, maxIconRunes},
+	} {
+		if length := len([]rune(field.value)); length < field.minimum || length > field.maximum {
+			details[field.key] = fmt.Sprintf("%d~%d자로 입력하세요.", field.minimum, field.maximum)
+		} else if !singleLine(field.value) {
+			details[field.key] = "줄바꿈이나 제어 문자는 사용할 수 없습니다."
+		}
+	}
+	if len([]rune(input.Description)) > maxCategoryDescriptionRunes {
+		details["description"] = fmt.Sprintf("%d자 이내로 입력하세요.", maxCategoryDescriptionRunes)
+	} else if !multiLine(input.Description) {
+		// A NUL byte cannot be stored in a PostgreSQL text column at all.
+		details["description"] = "제어 문자는 사용할 수 없습니다."
+	}
+	if input.Position < 0 || input.Position > maxCategoryPosition {
+		details["position"] = fmt.Sprintf("0~%d 사이로 입력하세요.", maxCategoryPosition)
+	}
+	if len(details) > 0 {
+		return Validation("입력값을 확인해 주세요.", details)
+	}
+	return nil
 }
 
 func validHTTPURL(value string) bool {
