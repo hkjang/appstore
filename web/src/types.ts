@@ -70,6 +70,8 @@ export interface StoreApp {
   team?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Latest review of an owned app; /me/apps carries it so owners read why. */
+  review?: Review;
 }
 
 export interface User {
@@ -153,12 +155,15 @@ export interface Review {
   appId: string;
   appName?: string;
   appSlug?: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled";
   submitterName?: string;
+  reviewerName?: string;
   team?: string;
+  level?: number;
   reason?: string;
   createdAt?: string;
   updatedAt?: string;
+  decidedAt?: string;
 }
 
 export interface AuditEntry {

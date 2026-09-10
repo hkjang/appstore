@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { formatDate, formatDateTime } from "../lib/utils";
 import type { PersonalKey } from "../types";
 import { AppCard } from "../features/apps/app-card";
+import { RejectionNotice } from "../features/apps/rejection-notice";
 import {
   Badge,
   Button,
@@ -83,7 +84,10 @@ export function MyDashboardPage() {
       {apps.data && (
         <div className="card-grid">
           {apps.data.slice(0, 3).map((app) => (
-            <AppCard app={app} key={app.id} />
+            <div key={app.id}>
+              <AppCard app={app} />
+              <RejectionNotice app={app} className="mt-2" />
+            </div>
           ))}
         </div>
       )}
@@ -120,6 +124,7 @@ export function MyAppsPage() {
           {apps.data.map((app) => (
             <div key={app.id}>
               <AppCard app={app} />
+              <RejectionNotice app={app} className="mt-2" />
               <div className="mt-2 text-right">
                 <ButtonLink
                   variant="secondary"
