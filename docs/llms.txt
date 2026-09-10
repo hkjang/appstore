@@ -22,8 +22,10 @@ AppStore lets anyone browse, search, and open published internal applications wi
 
 ## Documentation
 
-- User guide: https://hkjang.github.io/appstore/guides/user/
-- Administrator guide: https://hkjang.github.io/appstore/guides/admin/
+- User guide (canonical, with screenshots): https://hkjang.github.io/appstore/USER_GUIDE.md (PDF: https://hkjang.github.io/appstore/USER_GUIDE.pdf)
+- Administrator guide (canonical, with screenshots): https://hkjang.github.io/appstore/ADMIN_GUIDE.md (PDF: https://hkjang.github.io/appstore/ADMIN_GUIDE.pdf)
+- User guide web summary: https://hkjang.github.io/appstore/guides/user/
+- Administrator guide web summary: https://hkjang.github.io/appstore/guides/admin/
 - Offline installation: https://hkjang.github.io/appstore/guides/offline/
 - Upgrade and rollback: https://hkjang.github.io/appstore/guides/upgrade/
 - Backup and restore: https://hkjang.github.io/appstore/guides/backup/
