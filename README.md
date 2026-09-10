@@ -158,9 +158,16 @@ make verify-archive VERSION=v2.5.7
 
 `docs/`는 외부 asset 없이 동작하는 모바일 정적 홍보·운영 사이트입니다.
 
+정본 가이드는 화면 캡처를 실은 Markdown과 PDF 두 벌입니다.
+
+- **[사용자 가이드](docs/USER_GUIDE.md)** ([PDF](docs/USER_GUIDE.pdf)) — 화면 사용법, 자주 하는 작업, 오류 메시지
+- **[관리자 가이드](docs/ADMIN_GUIDE.md)** ([PDF](docs/ADMIN_GUIDE.pdf)) — 설치, 환경 변수, 권한, 워크플로, 운영과 장애 대응
+
+나머지 운영 문서와 웹 요약은 정적 사이트에 있습니다.
+
 - [제품 안내](docs/index.html)
-- [사용자 가이드](docs/guides/user/index.html)
-- [관리자 가이드](docs/guides/admin/index.html)
+- [사용자 가이드 웹 요약](docs/guides/user/index.html)
+- [관리자 가이드 웹 요약](docs/guides/admin/index.html)
 - [오프라인 설치](docs/guides/offline/index.html)
 - [업그레이드와 롤백](docs/guides/upgrade/index.html)
 - [백업과 복구](docs/guides/backup/index.html)
