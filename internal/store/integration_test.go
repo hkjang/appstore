@@ -314,6 +314,22 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	if err != nil || rejectedDecision.AppStatus != model.AppStatusRejected || rejectedDecision.Review.Reason != "needs changes" {
 		t.Fatalf("rejected review decision = %#v err=%v", rejectedDecision, err)
 	}
+	// A rejected app only leaves that status through a fresh submission:
+	// updating it never touches the status, so the owner correcting what the
+	// reviewer asked for is not on its own a way back into the queue.
+	corrected, err := repository.UpdateApp(ctx, app.ID, model.AppInput{
+		Name: "Integration App", Slug: app.Slug, Summary: "corrected summary",
+		Description: "description", ServiceURL: "https://service.example.internal",
+		CategoryID: category.ID.String(), SupportsAPI: true, Visibility: "public",
+	})
+	if err != nil || corrected.Status != model.AppStatusRejected {
+		t.Fatalf("corrected app = %#v err=%v", corrected, err)
+	}
+	resubmitted, err := repository.SubmitApp(ctx, app.ID, user.ID)
+	if err != nil || resubmitted.App.Status != model.AppStatusPending ||
+		resubmitted.Review == nil || resubmitted.Review.Level != 1 {
+		t.Fatalf("resubmitted app = %#v review=%#v err=%v", resubmitted.App, resubmitted.Review, err)
+	}
 
 	keyDigest := sha256.Sum256([]byte("key:" + suffix))
 	hash := keyDigest[:]

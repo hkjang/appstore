@@ -46,7 +46,7 @@
     },
     "/api/v1/apps/{app}": {
       "get": {"tags":["Public"],"summary":"slug로 공개 앱 상세 조회","operationId":"getApp","parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"responses":{"200":{"description":"Application","content":{"application/json":{"schema":{"$ref":"#/components/schemas/App"}}}},"404":{"$ref":"#/components/responses/Error"}}},
-      "put": {"tags":["Personal"],"summary":"ID로 소유 앱 수정","operationId":"updateApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppInput"}}}},"responses":{"200":{"description":"Updated"},"403":{"$ref":"#/components/responses/Error"}}},
+      "put": {"tags":["Personal"],"summary":"ID로 소유 앱 수정","description":"승인 workflow가 켜져 있으면 이 요청이 소유자의 재제출 경로입니다. 반려된 앱은 수정과 함께 다시 검토 대기 상태가 되고, 게시된 앱은 재승인 정책이 켜져 있을 때만 검토 대기 상태로 돌아갑니다.","operationId":"updateApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppInput"}}}},"responses":{"200":{"description":"Updated"},"403":{"$ref":"#/components/responses/Error"}}},
       "delete": {"tags":["Personal"],"summary":"ID로 소유 앱 보관 처리","operationId":"archiveApp","security":[{"cookieSession":[]},{"apiKey":[]}],"parameters":[{"$ref":"#/components/parameters/AppIdentifier"}],"responses":{"204":{"description":"Archived"},"403":{"$ref":"#/components/responses/Error"}}}
     },
     "/api/v1/branding/{kind}": {

@@ -135,7 +135,7 @@ func (s *Server) mcpUpdateApp(ctx context.Context, caller mcp.Caller, arguments 
 		return nil, err
 	}
 	workflow, workflowErr := s.repository.GetWorkflowConfig(ctx)
-	if workflowErr == nil && workflow.Enabled && workflow.ReapprovalAfterEdit && before.Status == model.AppStatusPublished {
+	if workflowErr == nil && resubmitAfterEdit(workflow, before.Status) {
 		result, submitErr := s.repository.SubmitApp(ctx, id, userID)
 		if submitErr != nil {
 			return nil, submitErr
