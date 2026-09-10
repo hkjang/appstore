@@ -215,6 +215,31 @@ func (r *Repository) GetReview(ctx context.Context, id uuid.UUID) (model.Review,
 	return review, normalizeError("get review", err)
 }
 
+// LatestReviewsByApp returns the newest review of each requested app: the one
+// that explains the status the app is sitting in, so an owner can be told why a
+// submission was rejected without holding the reviews:read permission. Apps
+// that were never submitted are simply absent from the map.
+func (r *Repository) LatestReviewsByApp(ctx context.Context, appIDs []uuid.UUID) (map[uuid.UUID]model.Review, error) {
+	latest := map[uuid.UUID]model.Review{}
+	if len(appIDs) == 0 {
+		return latest, nil
+	}
+	rows, err := r.pool.Query(ctx, `SELECT DISTINCT ON (rv.app_id) `+reviewColumns+reviewFrom+
+		` WHERE rv.app_id = ANY($1) ORDER BY rv.app_id, rv.created_at DESC, rv.id DESC`, appIDs)
+	if err != nil {
+		return nil, normalizeError("list latest reviews", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		review, err := scanReview(rows)
+		if err != nil {
+			return nil, normalizeError("scan latest review", err)
+		}
+		latest[review.AppID] = review
+	}
+	return latest, normalizeError("iterate latest reviews", rows.Err())
+}
+
 type ReviewDecisionResult struct {
 	Review     model.Review  `json:"review"`
 	NextReview *model.Review `json:"nextReview,omitempty"`

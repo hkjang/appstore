@@ -17,6 +17,14 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, CurrentPrincipal(r.Context()).User)
 }
 
+// myAppItem carries the review that put an owned app in its current status.
+// Owners have no reviews:read permission, so this is the only way the person
+// who has to act on a rejection gets to read the reason for it.
+type myAppItem struct {
+	model.App
+	Review *model.Review `json:"review,omitempty"`
+}
+
 func (s *Server) myApps(w http.ResponseWriter, r *http.Request) {
 	principal := CurrentPrincipal(r.Context())
 	limit, offset := pagination(r, 50, 100)
@@ -27,7 +35,26 @@ func (s *Server) myApps(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	WriteJSON(w, http.StatusOK, page)
+	appIDs := make([]uuid.UUID, 0, len(page.Items))
+	for _, app := range page.Items {
+		appIDs = append(appIDs, app.ID)
+	}
+	latest, err := s.repository.LatestReviewsByApp(r.Context(), appIDs)
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	items := make([]myAppItem, 0, len(page.Items))
+	for _, app := range page.Items {
+		item := myAppItem{App: app}
+		if review, ok := latest[app.ID]; ok {
+			item.Review = &review
+		}
+		items = append(items, item)
+	}
+	WriteJSON(w, http.StatusOK, model.Page[myAppItem]{
+		Items: items, Total: page.Total, Limit: page.Limit, Offset: page.Offset,
+	})
 }
 
 func (s *Server) myFavorites(w http.ResponseWriter, r *http.Request) {

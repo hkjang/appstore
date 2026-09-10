@@ -314,6 +314,13 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	if err != nil || rejectedDecision.AppStatus != model.AppStatusRejected || rejectedDecision.Review.Reason != "needs changes" {
 		t.Fatalf("rejected review decision = %#v err=%v", rejectedDecision, err)
 	}
+	// The owner holds no reviews:read permission, so /me/apps hands them the
+	// newest review of each app: while the app sits in rejected the reason the
+	// reviewer typed has to be readable there.
+	latest, err := repository.LatestReviewsByApp(ctx, []uuid.UUID{app.ID})
+	if err != nil || latest[app.ID].Status != "rejected" || latest[app.ID].Reason != "needs changes" {
+		t.Fatalf("latest review after rejection = %#v err=%v", latest[app.ID], err)
+	}
 	// A rejected app only leaves that status through a fresh submission:
 	// updating it never touches the status, so the owner correcting what the
 	// reviewer asked for is not on its own a way back into the queue.
@@ -329,6 +336,16 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	if err != nil || resubmitted.App.Status != model.AppStatusPending ||
 		resubmitted.Review == nil || resubmitted.Review.Level != 1 {
 		t.Fatalf("resubmitted app = %#v review=%#v err=%v", resubmitted.App, resubmitted.Review, err)
+	}
+	// Once the owner is back in the queue the settled reason is history: the
+	// newest review is the pending one, so no stale rejection is shown.
+	latest, err = repository.LatestReviewsByApp(ctx, []uuid.UUID{app.ID, uuid.New()})
+	if err != nil || len(latest) != 1 || latest[app.ID].ID != resubmitted.Review.ID ||
+		latest[app.ID].Status != "pending" || latest[app.ID].Reason != "" {
+		t.Fatalf("latest review after resubmission = %#v err=%v", latest, err)
+	}
+	if empty, err := repository.LatestReviewsByApp(ctx, nil); err != nil || len(empty) != 0 {
+		t.Fatalf("latest reviews without apps = %#v err=%v", empty, err)
 	}
 
 	keyDigest := sha256.Sum256([]byte("key:" + suffix))

@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { parseList } from "../lib/utils";
+import { RejectionNotice } from "../features/apps/rejection-notice";
 import {
   Button,
   Card,
@@ -157,6 +158,9 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
         title={edit ? "앱 수정" : "앱 등록"}
         description="사용자가 실제로 접속할 서비스 URL과 앱 정보를 입력하세요. Git 저장소 정보는 수집하거나 노출하지 않습니다."
       />
+      {edit && existing.data && (
+        <RejectionNotice app={existing.data} className="mb-5" />
+      )}
       <Card className="form-section">
         <form onSubmit={submit}>
           <div className="form-grid">
