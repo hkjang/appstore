@@ -63,7 +63,7 @@ func (s *Server) updateApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	config, configErr := s.repository.GetWorkflowConfig(r.Context())
-	if configErr == nil && config.Enabled && config.ReapprovalAfterEdit && before.Status == model.AppStatusPublished {
+	if configErr == nil && resubmitAfterEdit(config, before.Status) {
 		if result, submitErr := s.repository.SubmitApp(r.Context(), id, principal.User.ID); submitErr == nil {
 			updated = result.App
 		} else {
@@ -97,6 +97,28 @@ func (s *Server) deleteApp(w http.ResponseWriter, r *http.Request) {
 	}
 	s.recordAudit(r, "app.archive", "app", id.String(), before, archived)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// resubmitAfterEdit reports whether editing an app puts it back into the review
+// queue. A published app only re-enters when the workflow asks for re-approval,
+// but a rejected app has no other way in: updating the app is the only
+// submission path an owner has and UpdateApp leaves the status alone, so
+// without this a rejected app stays rejected however well the owner fixes what
+// the reviewer asked for. A disabled workflow never resubmits, because
+// submission then publishes at once and that would push an app a reviewer
+// turned down straight into the catalog.
+func resubmitAfterEdit(config model.WorkflowConfig, currentStatus string) bool {
+	if !config.Enabled {
+		return false
+	}
+	switch currentStatus {
+	case model.AppStatusRejected:
+		return true
+	case model.AppStatusPublished:
+		return config.ReapprovalAfterEdit
+	default:
+		return false
+	}
 }
 
 func appIDParam(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {

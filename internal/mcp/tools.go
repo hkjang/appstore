@@ -46,7 +46,7 @@ var appToolGrants = []toolGrant{
 		"name": stringProperty("앱 이름"), "slug": stringProperty("URL slug"), "summary": stringProperty("한줄 설명"),
 		"description": stringProperty("상세 설명"), "serviceUrl": stringProperty("서비스 접속 URL"), "categoryId": stringProperty("카테고리 ID"),
 	}, "name", "slug", "summary", "description", "serviceUrl", "categoryId")), Permission: "apps:submit", AuthOnly: true},
-	{Tool: tool("app_update", "앱 수정", "소유한 앱을 수정합니다.", requiredObjectSchema(map[string]any{
+	{Tool: tool("app_update", "앱 수정", "소유한 앱을 수정합니다. 승인 workflow가 켜져 있으면 반려된 앱은 수정과 함께 다시 검토 대기 상태가 됩니다.", requiredObjectSchema(map[string]any{
 		"id": stringProperty("앱 ID"), "name": stringProperty("앱 이름"), "summary": stringProperty("한줄 설명"),
 		"description": stringProperty("상세 설명"), "serviceUrl": stringProperty("서비스 접속 URL"),
 	}, "id")), Permission: "apps:update", AuthOnly: true},
