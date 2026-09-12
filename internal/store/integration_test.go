@@ -6,11 +6,13 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	appstore "github.com/hkjang/appstore"
+	"github.com/hkjang/appstore/internal/analytics"
 	"github.com/hkjang/appstore/internal/auth"
 	"github.com/hkjang/appstore/internal/config"
 	"github.com/hkjang/appstore/internal/database"
@@ -672,5 +674,28 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	}
 	if err := repository.DeleteUser(ctx, uuid.New()); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unknown user deletion error = %v, want ErrNotFound", err)
+	}
+
+	// Visitor tracking is not seeded: a database that has never seen the
+	// setting reads as "off", and an oversized snippet never reaches the row.
+	if _, err := pool.Exec(ctx, `DELETE FROM system_settings WHERE key = 'analytics'`); err != nil {
+		t.Fatal(err)
+	}
+	tracking, err := repository.GetAnalyticsSettings(ctx)
+	if err != nil || tracking != analytics.Default() {
+		t.Fatalf("unseeded analytics = %#v err=%v, want default (off)", tracking, err)
+	}
+	tracking.Provider = analytics.ProviderCustom
+	tracking.CustomSnippet = strings.Repeat("x", analytics.MaxSnippetBytes+1)
+	if _, err := repository.UpdateAnalyticsSettings(ctx, tracking, &credential.User.ID); err == nil {
+		t.Fatal("oversized snippet must not be stored")
+	}
+	if _, err := repository.GetSettingRaw(ctx, "analytics"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("rejected update must not create the row: err=%v", err)
+	}
+	tracking = analytics.Config{Enabled: true, Provider: " Momento ", MomentoURL: "https://momento.corp.example/", MomentoSiteID: "appstore", MomentoProxy: true, Placement: "HEAD"}
+	saved, err := repository.UpdateAnalyticsSettings(ctx, tracking, &credential.User.ID)
+	if err != nil || saved.Provider != analytics.ProviderMomento || saved.MomentoURL != "https://momento.corp.example" || saved.Placement != analytics.PlacementHead || !saved.Active("/apps") {
+		t.Fatalf("analytics round trip = %#v err=%v", saved, err)
 	}
 }

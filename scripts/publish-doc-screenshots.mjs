@@ -384,6 +384,15 @@ const pages = [
     alt: "암호화와 개인 Key 회전 정책을 관리하는 보안 전체 화면",
   },
   {
+    id: "admin-analytics",
+    screen: "admin-analytics",
+    route: "/admin/analytics",
+    routePattern: "/admin/analytics",
+    access: "admin",
+    title: "Visitor analytics",
+    alt: "방문 추적 provider와 정책이 차단한 출처를 관리하는 방문 추적 전체 화면",
+  },
+  {
     id: "admin-audit",
     screen: "admin-audit",
     route: "/admin/audit",

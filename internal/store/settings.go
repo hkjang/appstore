@@ -3,10 +3,12 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/hkjang/appstore/internal/analytics"
 	"github.com/hkjang/appstore/internal/model"
 )
 
@@ -20,6 +22,17 @@ func (r *Repository) GetSetting(ctx context.Context, key string, destination any
 		return fmt.Errorf("decode setting %q: %w", key, err)
 	}
 	return nil
+}
+
+// GetSettingRaw returns the stored JSON of one setting, or ErrNotFound when
+// the row was never written.
+func (r *Repository) GetSettingRaw(ctx context.Context, key string) (json.RawMessage, error) {
+	var value []byte
+	err := r.pool.QueryRow(ctx, `SELECT value FROM system_settings WHERE key = $1`, normalizeKey(key)).Scan(&value)
+	if err != nil {
+		return nil, normalizeError("get setting", err)
+	}
+	return json.RawMessage(value), nil
 }
 
 func (r *Repository) PutSetting(ctx context.Context, key string, value any, updatedBy *uuid.UUID) error {
@@ -382,4 +395,30 @@ func (r *Repository) DeleteAIModel(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("delete AI model: %w", ErrNotFound)
 	}
 	return nil
+}
+
+// GetAnalyticsSettings returns the visitor tracking configuration. A row that
+// was never written means a fresh installation, which is tracking off — so no
+// migration seeds it and an upgrade changes nothing.
+func (r *Repository) GetAnalyticsSettings(ctx context.Context) (analytics.Config, error) {
+	settings := analytics.Default()
+	err := r.GetSetting(ctx, "analytics", &settings)
+	if errors.Is(err, ErrNotFound) {
+		return analytics.Default(), nil
+	}
+	if err != nil {
+		return analytics.Config{}, err
+	}
+	return settings.Normalize(), nil
+}
+
+func (r *Repository) UpdateAnalyticsSettings(ctx context.Context, settings analytics.Config, updatedBy *uuid.UUID) (analytics.Config, error) {
+	settings = settings.Normalize()
+	if err := settings.Validate(); err != nil {
+		return analytics.Config{}, err
+	}
+	if err := r.PutSetting(ctx, "analytics", settings, updatedBy); err != nil {
+		return analytics.Config{}, err
+	}
+	return r.GetAnalyticsSettings(ctx)
 }

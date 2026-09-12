@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hkjang/appstore/internal/ai"
+	"github.com/hkjang/appstore/internal/analytics"
 	appauth "github.com/hkjang/appstore/internal/auth"
 	"github.com/hkjang/appstore/internal/buildinfo"
 	appcrypto "github.com/hkjang/appstore/internal/crypto"
@@ -31,6 +32,7 @@ type Server struct {
 	apiLimiter        *fixedWindowLimiter
 	mcpLimiter        *fixedWindowLimiter
 	loginLimiter      *fixedWindowLimiter
+	violations        *analytics.Recorder
 }
 
 func New(repository *store.Repository, box *appcrypto.SecretBox, logger *slog.Logger) (*Server, error) {
@@ -50,6 +52,7 @@ func New(repository *store.Repository, box *appcrypto.SecretBox, logger *slog.Lo
 		oidc:     &appauth.OIDCClient{Box: box, HTTPClient: &http.Client{Timeout: 15 * time.Second}},
 		streamer: &ai.Streamer{Box: box}, startedAt: time.Now().UTC(), dummyPasswordHash: dummyHash,
 		apiLimiter: newFixedWindowLimiter(), mcpLimiter: newFixedWindowLimiter(), loginLimiter: newFixedWindowLimiter(),
+		violations: analytics.NewRecorder(),
 	}, nil
 }
 
@@ -57,6 +60,7 @@ func (s *Server) Handler() (http.Handler, error) {
 	router := chi.NewRouter()
 	router.Use(RequestIDMiddleware)
 	router.Use(SecurityHeaders)
+	router.Use(s.ContentSecurityPolicy)
 	router.Use(func(next http.Handler) http.Handler { return Recoverer(s.logger, next) })
 	router.Use(func(next http.Handler) http.Handler { return AccessLog(s.logger, next) })
 
@@ -78,6 +82,7 @@ func (s *Server) Handler() (http.Handler, error) {
 		Enabled:      s.mcpPolicy,
 	}
 	router.Mount("/mcp", s.mcpRateLimit(mcpServer))
+	router.HandleFunc(analytics.MomentoProxyPath+"/*", s.momentoProxy)
 
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Use(NoStore)
@@ -89,6 +94,7 @@ func (s *Server) Handler() (http.Handler, error) {
 		api.Get("/apps/{app}", s.getApp)
 		api.Get("/categories", s.listCategories)
 		api.Get("/branding/{kind}", s.brandingAsset)
+		api.Post("/analytics/csp-report", s.receiveCSPReport)
 
 		api.Get("/auth/session", s.sessionState)
 		api.Post("/auth/bootstrap/login", s.bootstrapLogin)
@@ -135,6 +141,7 @@ func (s *Server) Handler() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	spa.Decorate = decorateIndex
 	router.Handle("/*", spa)
 	return router, nil
 }
@@ -185,6 +192,11 @@ func (s *Server) adminRoutes(r chi.Router) {
 	r.With(permission("settings:write")).Delete("/admin/security/templates/{id}", s.adminDeleteKeyTemplate)
 	r.With(permission("settings:write")).Post("/admin/branding/{kind}", s.adminUploadBranding)
 	r.With(permission("settings:write")).Delete("/admin/branding/{kind}", s.adminDeleteBranding)
+	r.With(permission("settings:read")).Get("/admin/analytics", s.adminAnalytics)
+	r.With(permission("settings:write")).Put("/admin/analytics", s.adminUpdateAnalytics)
+	r.With(permission("settings:read")).Get("/admin/analytics/violations", s.adminAnalyticsViolations)
+	r.With(permission("settings:write")).Delete("/admin/analytics/violations", s.adminClearAnalyticsViolations)
+	r.With(permission("settings:write")).Post("/admin/analytics/allowed-hosts", s.adminAllowAnalyticsHost)
 	r.With(permission("settings:read")).Get("/admin/settings", s.adminSystemSettings)
 	r.With(permission("settings:write")).Put("/admin/settings", s.adminUpdateSystemSettings)
 	r.With(permission("settings:read")).Get("/admin/api-keys", s.adminAPIKeys)

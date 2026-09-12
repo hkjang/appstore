@@ -12,6 +12,9 @@ import (
 
 type SPAHandler struct {
 	dist fs.FS
+	// Decorate may rewrite the page shell per request; it is how the tracking
+	// snippet gets into index.html without a second copy of the file.
+	Decorate func(r *http.Request, page []byte) []byte
 }
 
 func NewSPAHandler() (*SPAHandler, error) {
@@ -48,6 +51,9 @@ func (s *SPAHandler) serveFile(w http.ResponseWriter, r *http.Request, name stri
 	if name == "index.html" {
 		contentType = "text/html; charset=utf-8"
 		w.Header().Set("Cache-Control", "no-cache")
+		if s.Decorate != nil {
+			value = s.Decorate(r, value)
+		}
 	} else if strings.Contains(name, ".") {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	}

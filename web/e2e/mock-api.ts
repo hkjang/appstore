@@ -519,6 +519,35 @@ export async function installMockApi(
         rateLimitPerMinute: 60,
         protocolVersion: "2026-07-28",
       });
+    if (path === "/api/v1/admin/analytics/violations")
+      return json({
+        items: [
+          {
+            origin: "https://pixel.corp.example",
+            directive: "img-src",
+            page: "https://appstore.corp.example/apps",
+            count: 12,
+            firstSeen: "2026-09-01T08:00:00Z",
+            lastSeen: "2026-09-01T08:30:00Z",
+            allowed: false,
+          },
+        ],
+      });
+    if (path === "/api/v1/admin/analytics")
+      return json({
+        enabled: true,
+        provider: "momento",
+        momentoUrl: "https://momento.corp.example",
+        momentoSiteId: "appstore",
+        momentoProxy: true,
+        measurementId: "",
+        matomoUrl: "",
+        matomoSiteId: "",
+        customSnippet: "",
+        allowedHosts: "",
+        includeAdmin: false,
+        placement: "head",
+      });
     if (path === "/api/v1/admin/security")
       return json({
         maxKeys: 5,

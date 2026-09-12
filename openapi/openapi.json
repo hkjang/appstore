@@ -194,6 +194,20 @@
       "get": {"tags":["Admin"],"summary":"REST API 정책","operationId":"getAPISettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"API settings"}}},
       "put": {"tags":["Admin"],"summary":"REST API 정책 변경","operationId":"updateAPISettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"}}}
     },
+    "/api/v1/analytics/csp-report": {
+      "post": {"tags":["Public"],"summary":"브라우저 CSP 위반 신고 수신","description":"방문 추적이 켜진 페이지의 정책에만 report-uri로 실립니다. 차단된 출처와 지시어를 메모리에 최대 100건 기억하고 언제나 204를 돌려줍니다.","operationId":"receiveCSPReport","requestBody":{"content":{"application/csp-report":{"schema":{"type":"object"}},"application/json":{"schema":{"type":"object"}}}},"responses":{"204":{"description":"Accepted"}}}
+    },
+    "/api/v1/admin/analytics": {
+      "get": {"tags":["Admin"],"summary":"방문 추적 설정","operationId":"getAnalyticsSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Analytics settings","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AnalyticsSettings"}}}}}},
+      "put": {"tags":["Admin"],"summary":"방문 추적 설정 변경","description":"provider가 momento일 때 momentoProxy를 켜면 /momento/*가 수집기로 전달되어 외부 출처가 정책에 등장하지 않습니다. customSnippet은 8KB까지 저장됩니다.","operationId":"updateAnalyticsSettings","security":[{"cookieSession":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AnalyticsSettings"}}}},"responses":{"200":{"description":"Updated","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AnalyticsSettings"}}}},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/analytics/violations": {
+      "get": {"tags":["Admin"],"summary":"정책이 차단한 출처 목록","operationId":"listAnalyticsViolations","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Blocked origins, most recent first","content":{"application/json":{"schema":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/CspViolation"}}}}}}}}},
+      "delete": {"tags":["Admin"],"summary":"차단 기록 비우기","operationId":"clearAnalyticsViolations","security":[{"cookieSession":[]}],"responses":{"204":{"description":"Cleared"}}}
+    },
+    "/api/v1/admin/analytics/allowed-hosts": {
+      "post": {"tags":["Admin"],"summary":"차단된 출처를 허용 목록에 추가","operationId":"allowAnalyticsHost","security":[{"cookieSession":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["origin"],"properties":{"origin":{"type":"string","format":"uri","example":"https://momento.corp.example"}}}}}},"responses":{"200":{"description":"Updated settings","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AnalyticsSettings"}}}},"422":{"$ref":"#/components/responses/Error"}}}
+    },
     "/api/v1/admin/mcp": {
       "get": {"tags":["Admin"],"summary":"MCP 2026-07-28 정책","operationId":"getMCPSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"MCP settings"}}},
       "put": {"tags":["Admin"],"summary":"MCP 정책 변경","operationId":"updateMCPSettings","security":[{"cookieSession":[]}],"responses":{"200":{"description":"Updated"}}}
@@ -237,6 +251,8 @@
       "Error": {"description":"Standard error envelope","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}}
     },
     "schemas": {
+      "AnalyticsSettings": {"type":"object","required":["enabled","provider"],"properties":{"enabled":{"type":"boolean","default":false},"provider":{"type":"string","enum":["none","momento","ga4","gtm","matomo","custom"],"default":"none"},"momentoUrl":{"type":"string","format":"uri"},"momentoSiteId":{"type":"string","maxLength":64},"momentoProxy":{"type":"boolean","default":true,"description":"같은 오리진 /momento/* 프록시로 수집기에 전달"},"measurementId":{"type":"string","maxLength":64},"matomoUrl":{"type":"string","format":"uri"},"matomoSiteId":{"type":"string","maxLength":64},"customSnippet":{"type":"string","maxLength":8192},"allowedHosts":{"type":"string","description":"쉼표·공백·줄바꿈으로 구분한 https://host 목록"},"includeAdmin":{"type":"boolean","default":false},"placement":{"type":"string","enum":["head","body"],"default":"head"}}},
+      "CspViolation": {"type":"object","properties":{"origin":{"type":"string"},"directive":{"type":"string"},"page":{"type":"string"},"count":{"type":"integer"},"firstSeen":{"type":"string","format":"date-time"},"lastSeen":{"type":"string","format":"date-time"},"allowed":{"type":"boolean"}}},
       "Version": {"type":"object","required":["version","commit","buildDate","goVersion","environment"],"properties":{"version":{"type":"string"},"commit":{"type":"string"},"buildDate":{"type":"string"},"goVersion":{"type":"string"},"environment":{"type":"string"}}},
       "PublicConfig": {"type":"object","required":["siteName","siteUrl","theme","publicMode","oidcEnabled","workflowEnabled"],"properties":{"siteName":{"type":"string"},"siteUrl":{"type":"string"},"logoUrl":{"type":"string"},"faviconUrl":{"type":"string"},"siteDescription":{"type":"string"},"heroEyebrow":{"type":"string"},"heroTitle":{"type":"string"},"heroPrimaryLabel":{"type":"string"},"heroSecondaryLabel":{"type":"string"},"theme":{"type":"string"},"publicMode":{"type":"boolean"},"oidcEnabled":{"type":"boolean"},"workflowEnabled":{"type":"boolean"}}},
       "Category": {"type":"object","required":["id","slug","name","icon","appCount"],"properties":{"id":{"type":"string","format":"uuid"},"slug":{"type":"string"},"name":{"type":"string"},"icon":{"type":"string"},"description":{"type":"string"},"position":{"type":"integer"},"appCount":{"type":"integer"}}},

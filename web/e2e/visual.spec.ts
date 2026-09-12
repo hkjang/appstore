@@ -79,6 +79,11 @@ const adminRoutes: CaptureRoute[] = [
     path: "/admin/security",
     heading: "보안·키 정책",
   },
+  {
+    name: "admin-analytics",
+    path: "/admin/analytics",
+    heading: "방문 추적",
+  },
   { name: "admin-audit", path: "/admin/audit", heading: "감사 로그" },
   {
     name: "admin-settings",

@@ -228,3 +228,13 @@ export interface BrandingAsset {
   updatedAt: string;
   url: string;
 }
+
+export interface CspViolation {
+  origin: string;
+  directive: string;
+  page?: string;
+  count: number;
+  firstSeen: string;
+  lastSeen: string;
+  allowed: boolean;
+}
