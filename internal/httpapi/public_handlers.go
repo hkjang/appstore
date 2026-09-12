@@ -16,12 +16,15 @@ type publicConfigResponse struct {
 	// The banner wording is empty when the administrator has not set it; the
 	// store front then renders its shipped default.
 	model.HomeCopy
-	SiteURL         string `json:"siteUrl,omitempty"`
-	LogoURL         string `json:"logoUrl,omitempty"`
-	FaviconURL      string `json:"faviconUrl,omitempty"`
-	PublicMode      bool   `json:"publicMode"`
-	OIDCEnabled     bool   `json:"oidcEnabled"`
-	OIDCConfigured  bool   `json:"oidcConfigured"`
+	SiteURL        string `json:"siteUrl,omitempty"`
+	LogoURL        string `json:"logoUrl,omitempty"`
+	FaviconURL     string `json:"faviconUrl,omitempty"`
+	PublicMode     bool   `json:"publicMode"`
+	OIDCEnabled    bool   `json:"oidcEnabled"`
+	OIDCConfigured bool   `json:"oidcConfigured"`
+	// OIDCAutoLogin tells the browser it may try a silent (prompt=none)
+	// sign-in before showing a login screen. Only true when SSO is usable.
+	OIDCAutoLogin   bool   `json:"oidcAutoLogin"`
 	WorkflowEnabled bool   `json:"workflowEnabled"`
 	AnonymousMCP    bool   `json:"anonymousMcp"`
 	Theme           string `json:"theme"`
@@ -33,9 +36,10 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 	if err := s.repository.Pool().QueryRow(r.Context(), `SELECT value FROM system_settings WHERE key = 'system'`).Scan(&raw); err == nil {
 		_ = json.Unmarshal(raw, &settings)
 	}
-	var oidcEnabled bool
+	var oidcEnabled, oidcAutoLogin bool
 	var issuer, clientID, clientSecret string
-	_ = s.repository.Pool().QueryRow(r.Context(), `SELECT enabled, issuer_url, client_id, client_secret_encrypted FROM oidc_settings WHERE singleton`).Scan(&oidcEnabled, &issuer, &clientID, &clientSecret)
+	_ = s.repository.Pool().QueryRow(r.Context(), `SELECT enabled, auto_login, issuer_url, client_id, client_secret_encrypted FROM oidc_settings WHERE singleton`).Scan(&oidcEnabled, &oidcAutoLogin, &issuer, &clientID, &clientSecret)
+	oidcConfigured := issuer != "" && clientID != "" && clientSecret != ""
 	workflow, _ := s.repository.GetWorkflowConfig(r.Context())
 	anonymousMCP := true
 	if err := s.repository.Pool().QueryRow(r.Context(), `SELECT value FROM system_settings WHERE key = 'mcp'`).Scan(&raw); err == nil {
@@ -62,8 +66,8 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 		SiteName: settings.SiteName, HomeCopy: settings.HomeCopy,
 		SiteURL: settings.SiteURL, LogoURL: logoURL,
 		FaviconURL: faviconURL,
-		PublicMode: settings.PublicMode, OIDCEnabled: oidcEnabled,
-		OIDCConfigured: issuer != "" && clientID != "" && clientSecret != "", WorkflowEnabled: workflow.Enabled,
+		PublicMode: settings.PublicMode, OIDCEnabled: oidcEnabled, OIDCConfigured: oidcConfigured,
+		OIDCAutoLogin: oidcEnabled && oidcConfigured && oidcAutoLogin, WorkflowEnabled: workflow.Enabled,
 		AnonymousMCP: anonymousMCP, Theme: settings.Theme,
 	})
 }

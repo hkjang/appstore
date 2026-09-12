@@ -92,7 +92,8 @@ func (s *Server) oidcLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirectURL := s.oidcRedirectURL(r)
-	request, err := s.oidc.Start(r.Context(), settings, redirectURL, r.URL.Query().Get("returnTo"))
+	silent := silentLoginRequested(r.URL.Query().Get("prompt"), settings)
+	request, err := s.oidc.Start(r.Context(), settings, redirectURL, r.URL.Query().Get("returnTo"), silent)
 	if err != nil {
 		s.logger.WarnContext(r.Context(), "OIDC login start failed", "error", err, "request_id", RequestID(r.Context()))
 		WriteError(w, r, &APIError{Status: http.StatusBadGateway, Code: "OIDC_UNAVAILABLE", Message: "SSO 공급자에 연결할 수 없습니다."})
@@ -100,7 +101,7 @@ func (s *Server) oidcLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.repository.CreateOIDCAuthRequest(r.Context(), store.OIDCAuthRequest{
 		StateHash: request.StateHash, Nonce: request.Nonce, Verifier: request.Verifier,
-		ReturnTo: request.ReturnTo, ExpiresAt: request.ExpiresAt,
+		ReturnTo: request.ReturnTo, Silent: request.Silent, ExpiresAt: request.ExpiresAt,
 	}); err != nil {
 		WriteError(w, r, err)
 		return
@@ -108,12 +109,41 @@ func (s *Server) oidcLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, request.URL, http.StatusFound)
 }
 
+// silentLoginRequested decides whether a login start may carry prompt=none.
+// The browser asks for it, but only the administrator setting grants it: an
+// unrequested silent attempt is quietly downgraded to an ordinary login so a
+// crafted address cannot change where the redirects happen.
+func silentLoginRequested(prompt string, settings model.OIDCSettings) bool {
+	return prompt == "none" && settings.AutoLogin
+}
+
+// silentRefusalPath is where a refused silent attempt lands. The sso=none
+// marker tells the browser not to try again even if its session storage was
+// cleared in between, which is the last of the three guards against a redirect
+// loop; returnTo keeps the deep link for the manual login that follows.
+func silentRefusalPath(returnTo string) string {
+	path := "/login?sso=none"
+	if returnTo = appauth.SafeReturnTo(returnTo); returnTo != "/" {
+		path += "&returnTo=" + url.QueryEscape(returnTo)
+	}
+	return path
+}
+
 func (s *Server) oidcCallback(w http.ResponseWriter, r *http.Request) {
+	state, code := r.URL.Query().Get("state"), r.URL.Query().Get("code")
 	if providerError := r.URL.Query().Get("error"); providerError != "" {
+		// prompt=none answers login_required whenever the provider holds no
+		// session. That is an ordinary outcome for a silent attempt, not a
+		// failure, so it lands on the login screen instead of an error.
+		if state != "" {
+			if stored, err := s.repository.ConsumeOIDCAuthRequest(r.Context(), s.box.Digest("oidc-state:"+state)); err == nil && stored.Silent {
+				http.Redirect(w, r, silentRefusalPath(stored.ReturnTo), http.StatusFound)
+				return
+			}
+		}
 		WriteError(w, r, &APIError{Status: http.StatusUnauthorized, Code: "OIDC_DENIED", Message: "SSO 로그인이 취소되었거나 거부되었습니다."})
 		return
 	}
-	state, code := r.URL.Query().Get("state"), r.URL.Query().Get("code")
 	if state == "" || code == "" {
 		WriteError(w, r, &APIError{Status: http.StatusBadRequest, Code: "OIDC_CALLBACK_INVALID", Message: "SSO 응답이 올바르지 않습니다."})
 		return
@@ -209,29 +239,7 @@ func (s *Server) createSession(r *http.Request, user model.User) (appauth.Sessio
 }
 
 func (s *Server) loadOIDCSettings(r *http.Request) (model.OIDCSettings, error) {
-	var settings model.OIDCSettings
-	var roleMappings, groupMappings, scopes []byte
-	err := s.repository.Pool().QueryRow(r.Context(), `
-		SELECT enabled, issuer_url, client_id, client_secret_encrypted,
-			role_claim_path, group_claim_path, role_mappings, group_mappings, scopes, updated_at
-		FROM oidc_settings WHERE singleton`).Scan(
-		&settings.Enabled, &settings.IssuerURL, &settings.ClientID, &settings.ClientSecret,
-		&settings.RoleClaimPath, &settings.GroupClaimPath, &roleMappings, &groupMappings, &scopes, &settings.UpdatedAt,
-	)
-	if err != nil {
-		return model.OIDCSettings{}, err
-	}
-	settings.ClientSecretSet = settings.ClientSecret != ""
-	if err := json.Unmarshal(roleMappings, &settings.RoleMappings); err != nil {
-		return model.OIDCSettings{}, err
-	}
-	if err := json.Unmarshal(groupMappings, &settings.GroupMappings); err != nil {
-		return model.OIDCSettings{}, err
-	}
-	if err := json.Unmarshal(scopes, &settings.Scopes); err != nil {
-		return model.OIDCSettings{}, err
-	}
-	return settings, nil
+	return s.repository.GetOIDCSettings(r.Context())
 }
 
 func (s *Server) loadSystemSettings(r *http.Request) model.SystemSettings {

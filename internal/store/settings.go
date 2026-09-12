@@ -155,10 +155,10 @@ func (r *Repository) GetOIDCSettings(ctx context.Context) (model.OIDCSettings, e
 	var settings model.OIDCSettings
 	var roleJSON, groupJSON, scopesJSON []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT enabled, issuer_url, client_id, client_secret_encrypted,
+		SELECT enabled, issuer_url, client_id, auto_login, client_secret_encrypted,
 			role_claim_path, group_claim_path, role_mappings, group_mappings,
 			scopes, updated_at FROM oidc_settings WHERE singleton`).Scan(
-		&settings.Enabled, &settings.IssuerURL, &settings.ClientID, &settings.ClientSecret,
+		&settings.Enabled, &settings.IssuerURL, &settings.ClientID, &settings.AutoLogin, &settings.ClientSecret,
 		&settings.RoleClaimPath, &settings.GroupClaimPath, &roleJSON, &groupJSON,
 		&scopesJSON, &settings.UpdatedAt)
 	if err != nil {
@@ -197,7 +197,7 @@ func (r *Repository) UpdateOIDCSettings(ctx context.Context, settings model.OIDC
 	}
 
 	secretExpression := `client_secret_encrypted`
-	args := []any{settings.Enabled, settings.IssuerURL, settings.ClientID}
+	args := []any{settings.Enabled, settings.IssuerURL, settings.ClientID, settings.AutoLogin}
 	if encryptedSecret != nil {
 		args = append(args, *encryptedSecret)
 		secretExpression = fmt.Sprintf("$%d", len(args))
@@ -207,7 +207,7 @@ func (r *Repository) UpdateOIDCSettings(ctx context.Context, settings model.OIDC
 		jsonValue(settings.Scopes), updatedBy)
 	base := len(args) - 5
 	query := fmt.Sprintf(`
-		UPDATE oidc_settings SET enabled = $1, issuer_url = $2, client_id = $3,
+		UPDATE oidc_settings SET enabled = $1, issuer_url = $2, client_id = $3, auto_login = $4,
 			client_secret_encrypted = %s, role_claim_path = $%d, group_claim_path = $%d,
 			role_mappings = $%d, group_mappings = $%d, scopes = $%d,
 			updated_by = $%d, updated_at = now() WHERE singleton`,

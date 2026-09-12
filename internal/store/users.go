@@ -415,15 +415,18 @@ type OIDCAuthRequest struct {
 	Nonce     string
 	Verifier  string
 	ReturnTo  string
+	// Silent marks a prompt=none attempt, whose refusal is an ordinary answer
+	// rather than a failure.
+	Silent    bool
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }
 
 func (r *Repository) CreateOIDCAuthRequest(ctx context.Context, request OIDCAuthRequest) error {
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO oidc_auth_requests(state_hash, nonce, verifier, return_to, expires_at)
-		VALUES ($1, $2, $3, $4, $5)`, request.StateHash, request.Nonce,
-		request.Verifier, request.ReturnTo, request.ExpiresAt)
+		INSERT INTO oidc_auth_requests(state_hash, nonce, verifier, return_to, silent, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6)`, request.StateHash, request.Nonce,
+		request.Verifier, request.ReturnTo, request.Silent, request.ExpiresAt)
 	return normalizeError("create OIDC auth request", err)
 }
 
@@ -432,9 +435,9 @@ func (r *Repository) ConsumeOIDCAuthRequest(ctx context.Context, stateHash []byt
 	err := r.pool.QueryRow(ctx, `
 		DELETE FROM oidc_auth_requests
 		WHERE state_hash = $1 AND expires_at > now()
-		RETURNING state_hash, nonce, verifier, return_to, expires_at, created_at`, stateHash,
+		RETURNING state_hash, nonce, verifier, return_to, silent, expires_at, created_at`, stateHash,
 	).Scan(&request.StateHash, &request.Nonce, &request.Verifier, &request.ReturnTo,
-		&request.ExpiresAt, &request.CreatedAt)
+		&request.Silent, &request.ExpiresAt, &request.CreatedAt)
 	return request, normalizeError("consume OIDC auth request", err)
 }
 

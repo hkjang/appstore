@@ -31,6 +31,7 @@ type LoginRequest struct {
 	Nonce     string
 	Verifier  string
 	ReturnTo  string
+	Silent    bool
 	ExpiresAt time.Time
 }
 
@@ -70,7 +71,11 @@ type discoveryDocument struct {
 	CodeChallengeMethods  []string `json:"code_challenge_methods_supported"`
 }
 
-func (c *OIDCClient) Start(ctx context.Context, settings model.OIDCSettings, redirectURL, returnTo string) (LoginRequest, error) {
+// Start builds the authorization request. A silent request adds prompt=none,
+// which asks the provider to answer from an existing session only: it never
+// renders a login screen, so it either returns a code at once or comes back to
+// the callback with error=login_required.
+func (c *OIDCClient) Start(ctx context.Context, settings model.OIDCSettings, redirectURL, returnTo string, silent bool) (LoginRequest, error) {
 	if !settings.Enabled {
 		return LoginRequest{}, errors.New("OIDC is disabled")
 	}
@@ -96,15 +101,19 @@ func (c *OIDCClient) Start(ctx context.Context, settings model.OIDCSettings, red
 	}
 	config := oauthConfig(provider, settings, secret, redirectURL)
 	challenge := sha256.Sum256([]byte(verifier))
-	authURL := config.AuthCodeURL(
-		state,
+	options := []oauth2.AuthCodeOption{
 		oidc.Nonce(nonce),
 		oauth2.SetAuthURLParam("code_challenge", base64.RawURLEncoding.EncodeToString(challenge[:])),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
-	)
+	}
+	if silent {
+		options = append(options, oauth2.SetAuthURLParam("prompt", "none"))
+	}
+	authURL := config.AuthCodeURL(state, options...)
 	return LoginRequest{
 		URL: authURL, State: state, StateHash: c.Box.Digest("oidc-state:" + state),
-		Nonce: nonce, Verifier: verifier, ReturnTo: SafeReturnTo(returnTo), ExpiresAt: time.Now().Add(10 * time.Minute),
+		Nonce: nonce, Verifier: verifier, ReturnTo: SafeReturnTo(returnTo), Silent: silent,
+		ExpiresAt: time.Now().Add(10 * time.Minute),
 	}, nil
 }
 

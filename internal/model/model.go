@@ -202,9 +202,12 @@ type KeyPermissionTemplate struct {
 }
 
 type OIDCSettings struct {
-	Enabled         bool                `json:"enabled"`
-	IssuerURL       string              `json:"issuerUrl"`
-	ClientID        string              `json:"clientId"`
+	Enabled   bool   `json:"enabled"`
+	IssuerURL string `json:"issuerUrl"`
+	ClientID  string `json:"clientId"`
+	// AutoLogin signs a visitor in silently (prompt=none) when the identity
+	// provider still holds a session for them. Off by default.
+	AutoLogin       bool                `json:"autoLogin"`
 	ClientSecret    string              `json:"-"`
 	ClientSecretSet bool                `json:"clientSecretSet"`
 	RoleClaimPath   string              `json:"roleClaimPath"`

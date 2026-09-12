@@ -23,6 +23,8 @@ export interface PublicConfig {
   publicMode: boolean;
   oidcEnabled: boolean;
   oidcConfigured?: boolean;
+  /** SSO may be tried silently (prompt=none) before showing a login screen. */
+  oidcAutoLogin?: boolean;
   workflowEnabled: boolean;
   anonymousMcp?: boolean;
   theme?: "light" | "dark" | "system";

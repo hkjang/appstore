@@ -13,6 +13,13 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
+import {
+  beginSilentSso,
+  clearSilentSsoState,
+  markSignedOut,
+  shouldAttemptSilentSso,
+} from "../features/auth/silent-sso";
+import { useLocation } from "react-router-dom";
 import { api, setCsrfToken } from "../lib/api";
 import type { Session } from "../types";
 
@@ -120,6 +127,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await queryClient.invalidateQueries({ queryKey: ["session"] });
       },
       logout: async () => {
+        // Marked before the session goes away: a silent SSO attempt right
+        // after signing out would make the sign-out look broken.
+        markSignedOut();
         await api.logout();
         setCsrfToken();
         queryClient.setQueryData(["session"], {
@@ -169,12 +179,50 @@ function FaviconEffect() {
   return null;
 }
 
+/**
+ * Tries a silent SSO sign-in once the session and public config are known.
+ * Someone already signed in at the identity provider then lands on the page
+ * they opened without seeing a login screen; someone who is not is sent back
+ * to /login?sso=none by the callback and never bounced again.
+ */
+function SilentSsoEffect() {
+  const auth = useAuth();
+  const location = useLocation();
+  const config = useQuery({
+    queryKey: ["public-config"],
+    queryFn: ({ signal }) => api.publicConfig(signal),
+    staleTime: 60_000,
+  });
+  const authenticated = auth.session?.authenticated ?? false;
+  const settled = !auth.isPending && !auth.error && !!config.data;
+  useEffect(() => {
+    if (!settled) return;
+    if (authenticated) {
+      // A session exists again, so a later sign-out may be followed by a
+      // silent attempt in a new tab as usual.
+      clearSilentSsoState();
+      return;
+    }
+    if (
+      !shouldAttemptSilentSso({
+        config: config.data,
+        pathname: location.pathname,
+        search: location.search,
+      })
+    )
+      return;
+    beginSilentSso(location.pathname + location.search);
+  }, [settled, authenticated, config.data, location.pathname, location.search]);
+  return null;
+}
+
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
           <FaviconEffect />
+          <SilentSsoEffect />
           {children}
         </AuthProvider>
       </ThemeProvider>
