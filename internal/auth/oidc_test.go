@@ -4,8 +4,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
+
+	appcrypto "github.com/hkjang/appstore/internal/crypto"
+	"github.com/hkjang/appstore/internal/model"
 )
 
 func discoveryServer(t *testing.T, body func(issuer string) string) *httptest.Server {
@@ -86,5 +90,47 @@ func TestDiscoverReportsWhyItFailed(t *testing.T) {
 	if _, err := client.Discover(context.Background(), notFound.URL); err == nil ||
 		!strings.Contains(err.Error(), "HTTP 404") {
 		t.Fatalf("expected the HTTP status in the error, got %v", err)
+	}
+}
+
+func TestStartAddsPromptNoneOnlyForSilentRequests(t *testing.T) {
+	server := discoveryServer(t, func(issuer string) string {
+		return `{
+			"issuer": "` + issuer + `",
+			"authorization_endpoint": "` + issuer + `/protocol/openid-connect/auth",
+			"token_endpoint": "` + issuer + `/protocol/openid-connect/token",
+			"jwks_uri": "` + issuer + `/protocol/openid-connect/certs"
+		}`
+	})
+	box, err := appcrypto.NewSecretBox("01234567890123456789012345678901")
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret, err := box.Encrypt("client-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &OIDCClient{HTTPClient: server.Client(), Box: box}
+	settings := model.OIDCSettings{Enabled: true, IssuerURL: server.URL, ClientID: "appstore", ClientSecret: secret}
+	for _, silent := range []bool{false, true} {
+		request, err := client.Start(context.Background(), settings, "https://store.example.test/api/v1/auth/oidc/callback", "/my/apps", silent)
+		if err != nil {
+			t.Fatalf("Start(silent=%v): %v", silent, err)
+		}
+		parsed, err := url.Parse(request.URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// prompt=none asks the provider to answer from an existing session only,
+		// so it must be absent from an ordinary login that expects a screen.
+		if got := parsed.Query().Get("prompt"); (got == "none") != silent {
+			t.Fatalf("silent=%v prompt=%q url=%s", silent, got, request.URL)
+		}
+		if request.Silent != silent || request.ReturnTo != "/my/apps" {
+			t.Fatalf("silent=%v request = %+v", silent, request)
+		}
+		if parsed.Query().Get("code_challenge_method") != "S256" || parsed.Query().Get("state") != request.State {
+			t.Fatalf("silent=%v lost PKCE or state: %s", silent, request.URL)
+		}
 	}
 }

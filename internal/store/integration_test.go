@@ -191,12 +191,14 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	stateDigest := sha256.Sum256([]byte("state:" + suffix))
 	if err := repository.CreateOIDCAuthRequest(ctx, OIDCAuthRequest{
 		StateHash: stateDigest[:], Nonce: "nonce", Verifier: "verifier",
-		ReturnTo: "/submit", ExpiresAt: time.Now().Add(time.Minute),
+		ReturnTo: "/submit", Silent: true, ExpiresAt: time.Now().Add(time.Minute),
 	}); err != nil {
 		t.Fatal(err)
 	}
+	// The callback tells a refused silent attempt from a failed interactive
+	// login only by what the row remembers.
 	authRequest, err := repository.ConsumeOIDCAuthRequest(ctx, stateDigest[:])
-	if err != nil || authRequest.ReturnTo != "/submit" {
+	if err != nil || authRequest.ReturnTo != "/submit" || !authRequest.Silent {
 		t.Fatalf("consume OIDC request = %#v err=%v", authRequest, err)
 	}
 	if _, err := repository.ConsumeOIDCAuthRequest(ctx, stateDigest[:]); !errors.Is(err, ErrNotFound) {
@@ -553,6 +555,14 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	storedOIDC, err = repository.UpdateOIDCSettings(ctx, storedOIDC, nil, &credential.User.ID)
 	if err != nil || storedOIDC.ClientSecret != oidcSecret {
 		t.Fatalf("OIDC secret was not preserved = %#v err=%v", storedOIDC, err)
+	}
+	// Silent sign-in is an explicit opt-in that survives a round trip.
+	if storedOIDC.AutoLogin {
+		t.Fatalf("auto_login must default to off: %#v", storedOIDC)
+	}
+	storedOIDC.AutoLogin = true
+	if storedOIDC, err = repository.UpdateOIDCSettings(ctx, storedOIDC, nil, &credential.User.ID); err != nil || !storedOIDC.AutoLogin {
+		t.Fatalf("auto_login was not stored = %#v err=%v", storedOIDC, err)
 	}
 
 	provider, err := repository.CreateAIProvider(ctx, model.AIProvider{

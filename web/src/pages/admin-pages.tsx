@@ -1724,6 +1724,7 @@ const DISCOVERY_ROWS: ReadonlyArray<readonly [DiscoveryRowKey, string]> = [
 export function AdminAuthenticationPage() {
   const state = useAdminSettings("authentication", {
     enabled: false,
+    autoLogin: false,
     issuerUrl: "",
     clientId: "appstore",
     roleClaimPath: "realm_access.roles",
@@ -1768,6 +1769,12 @@ export function AdminAuthenticationPage() {
       }
     >
       <SettingSwitch state={state} name="enabled" label="OIDC 활성화" />
+      <SettingSwitch
+        state={state}
+        name="autoLogin"
+        label="자동 로그인 (Silent SSO)"
+        help="Keycloak에 이미 로그인한 사람은 로그인 화면 없이 바로 들어옵니다. 세션이 없으면 탭당 한 번만 조용히 확인한 뒤 로그인 화면을 보여 줍니다."
+      />
       <div className="form-grid">
         <Field
           label="Issuer URL"
