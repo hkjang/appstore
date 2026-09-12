@@ -5,6 +5,7 @@ import { AppFormPage } from "../pages/app-form-page";
 import { LoginPage } from "../pages/auth-pages";
 import {
   AdminAiPage,
+  AdminAnalyticsPage,
   AdminApiKeysPage,
   AdminApiPage,
   AdminAppDetailPage,
@@ -122,6 +123,7 @@ export function AppRouter() {
           element={<AdminAuthenticationPage />}
         />
         <Route path="admin/security" element={<AdminSecurityPage />} />
+        <Route path="admin/analytics" element={<AdminAnalyticsPage />} />
         <Route path="admin/audit" element={<AdminAuditPage />} />
         <Route path="admin/settings" element={<AdminSystemSettingsPage />} />
       </Route>

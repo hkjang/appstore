@@ -32,7 +32,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { api, streamAiChat } from "../lib/api";
+import { api, ApiError, streamAiChat } from "../lib/api";
 import {
   brandingSizeError,
   clampToken,
@@ -44,6 +44,7 @@ import type {
   AppStatus,
   AuditEntry,
   Category,
+  CspViolation,
   KeyPermissionDefinition,
   KeyPermissionTemplate,
   OidcTestResult,
@@ -2588,6 +2589,344 @@ export function AdminMcpPage() {
       <div className="notice">
         MCP Endpoint <code>/mcp</code>
       </div>
+    </SettingsShell>
+  );
+}
+const ANALYTICS_PROVIDERS: ReadonlyArray<readonly [string, string]> = [
+  ["none", "사용 안 함"],
+  ["momento", "Momento (사내 수집기)"],
+  ["ga4", "Google Analytics 4"],
+  ["gtm", "Google Tag Manager"],
+  ["matomo", "Matomo"],
+  ["custom", "직접 붙여 넣기"],
+];
+
+const MAX_SNIPPET_BYTES = 8 * 1024;
+
+/**
+ * Bytes a pasted snippet occupies once encoded, which is the limit the server
+ * enforces. Counting characters would let a Korean comment slip past it.
+ */
+export function snippetBytes(value: string): number {
+  return new TextEncoder().encode(value).length;
+}
+
+/**
+ * Visitor tracking. The hard part is not the script tag but the content
+ * security policy: pages are locked to script-src 'self', so the server adds
+ * a per-request nonce and the snippet's own origins to the policy and records
+ * what the browser still refuses. This screen shows those refusals so an
+ * administrator can allow an origin with one click instead of reading the
+ * browser console.
+ */
+export function AdminAnalyticsPage() {
+  const client = useQueryClient();
+  const state = useAdminSettings("analytics", {
+    enabled: false,
+    provider: "none",
+    momentoUrl: "",
+    momentoSiteId: "",
+    momentoProxy: true,
+    measurementId: "",
+    matomoUrl: "",
+    matomoSiteId: "",
+    customSnippet: "",
+    allowedHosts: "",
+    includeAdmin: false,
+    placement: "head",
+  });
+  const provider = text(state.settings.provider, "none");
+  const enabled = bool(state.settings.enabled);
+  const snippet = text(state.settings.customSnippet);
+  const snippetSize = snippetBytes(snippet);
+  const violations = useQuery({
+    queryKey: ["admin", "analytics", "violations"],
+    queryFn: ({ signal }) =>
+      api.admin<{ items: CspViolation[] }>("analytics/violations", signal),
+    enabled: !!state.query.data,
+    refetchInterval: enabled ? 15_000 : false,
+  });
+  const refresh = async () => {
+    await client.invalidateQueries({ queryKey: ["admin", "analytics"] });
+  };
+  const allow = useMutation({
+    mutationFn: (origin: string) =>
+      api.adminAction<unknown>("analytics/allowed-hosts", { origin }),
+    onSuccess: refresh,
+  });
+  const clear = useMutation({
+    mutationFn: () => api.deleteAdmin("analytics/violations"),
+    onSuccess: refresh,
+  });
+  const fieldErrors = recordFrom(
+    state.save.error instanceof ApiError ? state.save.error.details : undefined,
+  );
+  const fieldError = (name: string) => text(fieldErrors[name]) || undefined;
+  const rows = arrayFrom<CspViolation>(violations.data, ["violations"]);
+
+  return (
+    <SettingsShell
+      title="방문 추적"
+      eyebrow="Analytics"
+      description="관리자가 화면에서 방문 추적 스크립트를 붙입니다. 기본값은 꺼짐이고, 켜면 요청마다 nonce를 붙인 콘텐츠 보안 정책으로 스니펫만 허용합니다."
+      state={state}
+    >
+      <SettingSwitch
+        state={state}
+        name="enabled"
+        label="방문 추적 사용"
+        help="끄면 어떤 페이지에도 스니펫이 들어가지 않고 정책도 원래대로 좁아집니다."
+      />
+      <div className="form-grid">
+        <Field
+          label="Provider"
+          id="analytics-provider"
+          error={fieldError("provider")}
+        >
+          <Select
+            id="analytics-provider"
+            value={provider}
+            onChange={(event) => state.set("provider", event.target.value)}
+          >
+            {ANALYTICS_PROVIDERS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field
+          label="삽입 위치"
+          id="analytics-placement"
+          help="대부분의 추적 도구는 head를 권장합니다."
+        >
+          <Select
+            id="analytics-placement"
+            value={text(state.settings.placement, "head")}
+            onChange={(event) => state.set("placement", event.target.value)}
+          >
+            <option value="head">head</option>
+            <option value="body">body</option>
+          </Select>
+        </Field>
+      </div>
+      {provider === "momento" && (
+        <>
+          <div className="form-grid">
+            <Field
+              label="Momento 수집기 주소"
+              id="analytics-momento-url"
+              help="사내 Momento 수집기의 origin. 예: https://momento.corp.example"
+              error={fieldError("momentoUrl")}
+            >
+              <Input
+                id="analytics-momento-url"
+                type="url"
+                placeholder="https://momento.corp.example"
+                value={text(state.settings.momentoUrl)}
+                onChange={(event) =>
+                  state.set("momentoUrl", event.target.value)
+                }
+              />
+            </Field>
+            <Field
+              label="사이트 ID"
+              id="analytics-momento-site"
+              error={fieldError("momentoSiteId")}
+            >
+              <Input
+                id="analytics-momento-site"
+                maxLength={64}
+                value={text(state.settings.momentoSiteId)}
+                onChange={(event) =>
+                  state.set("momentoSiteId", event.target.value)
+                }
+              />
+            </Field>
+          </div>
+          <SettingSwitch
+            state={state}
+            name="momentoProxy"
+            label="같은 오리진 프록시 사용 (/momento/*)"
+            help="이 서비스가 /momento/* 를 수집기로 넘깁니다. 브라우저는 이 서비스 주소만 보므로 외부 출처가 정책에 등장하지 않습니다. 권장."
+          />
+        </>
+      )}
+      {(provider === "ga4" || provider === "gtm") && (
+        <Field
+          label={provider === "ga4" ? "측정 ID (G-…)" : "컨테이너 ID (GTM-…)"}
+          id="analytics-measurement"
+          help="데이터가 Google로 나갑니다. 폐쇄망에서는 동작하지 않습니다."
+          error={fieldError("measurementId")}
+        >
+          <Input
+            id="analytics-measurement"
+            maxLength={64}
+            value={text(state.settings.measurementId)}
+            onChange={(event) => state.set("measurementId", event.target.value)}
+          />
+        </Field>
+      )}
+      {provider === "matomo" && (
+        <div className="form-grid">
+          <Field
+            label="Matomo 주소"
+            id="analytics-matomo-url"
+            error={fieldError("matomoUrl")}
+          >
+            <Input
+              id="analytics-matomo-url"
+              type="url"
+              placeholder="https://matomo.corp.example"
+              value={text(state.settings.matomoUrl)}
+              onChange={(event) => state.set("matomoUrl", event.target.value)}
+            />
+          </Field>
+          <Field
+            label="사이트 ID"
+            id="analytics-matomo-site"
+            error={fieldError("matomoSiteId")}
+          >
+            <Input
+              id="analytics-matomo-site"
+              maxLength={64}
+              value={text(state.settings.matomoSiteId)}
+              onChange={(event) =>
+                state.set("matomoSiteId", event.target.value)
+              }
+            />
+          </Field>
+        </div>
+      )}
+      {provider === "custom" && (
+        <Field
+          label="추적 스니펫"
+          id="analytics-snippet"
+          help={`<script> 태그를 그대로 붙여 넣습니다. 모든 <script>에 요청마다 nonce가 붙고, 스니펫 안의 http(s) 출처는 정책에 자동으로 더해집니다. ${snippetSize.toLocaleString()} / ${MAX_SNIPPET_BYTES.toLocaleString()} bytes`}
+          error={
+            snippetSize > MAX_SNIPPET_BYTES
+              ? "추적 코드는 8KB를 넘을 수 없습니다."
+              : fieldError("customSnippet")
+          }
+        >
+          <Textarea
+            id="analytics-snippet"
+            rows={8}
+            spellCheck={false}
+            value={snippet}
+            onChange={(event) => state.set("customSnippet", event.target.value)}
+          />
+        </Field>
+      )}
+      <Field
+        label="추가 허용 출처"
+        id="analytics-allowed"
+        help="스니펫에서 자동으로 읽지 못한 출처를 https://host 형식으로 더합니다. 쉼표나 줄바꿈으로 구분합니다."
+        error={fieldError("allowedHosts")}
+      >
+        <Textarea
+          id="analytics-allowed"
+          rows={2}
+          spellCheck={false}
+          placeholder="https://pixel.corp.example"
+          value={text(state.settings.allowedHosts)}
+          onChange={(event) => state.set("allowedHosts", event.target.value)}
+        />
+      </Field>
+      <SettingSwitch
+        state={state}
+        name="includeAdmin"
+        label="관리자 콘솔에서도 추적"
+        help="기본은 아니오. /admin 화면의 방문은 대개 원하는 방문 데이터가 아닙니다."
+      />
+      <div className="notice">
+        <ShieldCheck size={19} /> 정책은 'unsafe-inline'으로 풀지 않습니다.
+        추적을 끄면 <code>script-src 'self'</code>로 즉시 돌아갑니다.
+      </div>
+      <section className="mt-6" aria-labelledby="analytics-violations-heading">
+        <div className="section-header">
+          <h2 id="analytics-violations-heading" className="section-title">
+            정책이 차단한 출처
+          </h2>
+          <div className="form-actions">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={violations.isFetching}
+              onClick={() => void violations.refetch()}
+            >
+              <RefreshCw size={16} /> 새로고침
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={clear.isPending || rows.length === 0}
+              onClick={() => clear.mutate()}
+            >
+              <Trash2 size={16} /> 기록 비우기
+            </Button>
+          </div>
+        </div>
+        <p className="field-help">
+          추적이 켜진 페이지에서 브라우저가 거부한 요청을 최근 100건까지
+          기억합니다. 같은 출처는 한 줄로 모입니다. 허용하면 설정의 추가 허용
+          출처에 들어갑니다.
+        </p>
+        {(allow.error || clear.error) && (
+          <p className="field-error" role="alert">
+            {(allow.error ?? clear.error)?.message}
+          </p>
+        )}
+        {rows.length === 0 ? (
+          <div className="notice mt-3">
+            <CheckCircle2 size={19} /> 기록된 차단이 없습니다.
+          </div>
+        ) : (
+          <div className="table-scroll mt-3">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>출처</th>
+                  <th>지시어</th>
+                  <th>횟수</th>
+                  <th>마지막</th>
+                  <th className="text-right">허용</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((item) => (
+                  <tr key={`${item.directive} ${item.origin}`}>
+                    <td>
+                      <code>{item.origin}</code>
+                      {item.page && (
+                        <div className="field-help">{item.page}</div>
+                      )}
+                    </td>
+                    <td>
+                      <code>{item.directive}</code>
+                    </td>
+                    <td>{item.count}</td>
+                    <td>{formatDateTime(item.lastSeen)}</td>
+                    <td className="text-right">
+                      {item.allowed ? (
+                        <Badge tone="positive">허용됨</Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled={allow.isPending}
+                          onClick={() => allow.mutate(item.origin)}
+                        >
+                          허용에 추가
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </SettingsShell>
   );
 }

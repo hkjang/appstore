@@ -419,7 +419,7 @@
       "alt": "앱과 사용자 운영 상태를 요약한 서비스 관리자 대시보드 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "a4e183240e70182be40d8232c8a76a55f235e41d1a4f74e1d92a5102695f7601",
+      "sha256": "c054737f9c22d8b7eacb8fcb02cca2c31aa2ad0b2355528c6ac5bc3e7426f41d",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -435,7 +435,7 @@
       "alt": "모든 등록 앱을 관리하는 관리자 목록 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "77f51df1e2b9c97361cf867431b0214f1261c320b7cd26894cc7ae9d26570d46",
+      "sha256": "33182d59bceb58c30f09f424b1c7f587af344d6f043c4d1d85dac77a6827f9a3",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -451,7 +451,7 @@
       "alt": "관리자가 카탈로그에 앱을 직접 등록하는 신규 등록 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "6686bfdb954742c33477989256d4dd26d457df64ab82bf5ad1373a5f7bf267b3",
+      "sha256": "12ab0523f6bf3e7fe359393cd61bc5648e770f34e03e22a8d7ecd916c7130a21",
       "width": 1440,
       "height": 1574,
       "fullPage": true
@@ -467,7 +467,7 @@
       "alt": "앱 상세 정보와 게시 상태를 수정하고 삭제하는 관리자 상세 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "834c1c73b27733df64f717fb112bfb2cb30210b7402d3feb15d7f9ec8b9117e7",
+      "sha256": "689e955d9e1d0273e58858c4d8629859deff9f3f6bdb810780cad3269ef757a0",
       "width": 1440,
       "height": 1574,
       "fullPage": true
@@ -483,7 +483,7 @@
       "alt": "앱 카테고리를 관리하는 관리자 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "4f1e618fbfef40e0b1b2fd66ffb7e5742a6fbb2418747c0f5b1a577acc5d31eb",
+      "sha256": "4acd9b94928df49f69dca2deca161349936680db00c0a82a09b11416ee7b19ae",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -499,7 +499,7 @@
       "alt": "테마에 맞춘 스크롤 목록으로 사용자를 관리하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "0ca452ae8e1d0a7602414ce4bb47e0b7e800f213599c63dcd5a760e785160764",
+      "sha256": "19cd8bedb002b0771b258ca986b75431d6bdeeba97c51b1f0b829dbb661f50f5",
       "width": 1440,
       "height": 1022,
       "fullPage": true
@@ -515,7 +515,7 @@
       "alt": "변경 가능한 역할과 권한 체계를 관리하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "363157f38ab194986b804514cd43e038d7f2c73493e206b2ab9a7425950eb778",
+      "sha256": "f14158b7f2a0a5d222fc00e3d1a5e26fd6f04fb24c454312b262be51c919ff45",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -531,7 +531,7 @@
       "alt": "서비스 전체 앱 검토 현황을 관리하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "335775c39e464ecf45257e418d55e90570871a0154240c2605714cd269f11eea",
+      "sha256": "18548b2a3fdc89b2a4ab43819a2c4c242e37be6e0485277ee371ef7630245727",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -547,7 +547,7 @@
       "alt": "선택형 팀장 검토와 승인 정책을 구성하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "828c9b03f89655c6840da2d4f467d45154251a15bbe43f608e85ead5aba88ff5",
+      "sha256": "30cbdb59f5607ad7b25a6e4adf4397c47a5b537a667b81bbcf818d5dc01cf55e",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -563,7 +563,7 @@
       "alt": "AI 공급자와 최대 262144 토큰 및 Streaming을 설정하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "c15473fcbfd4a4eaa375a001529138a7d5268bc0e8b9705b22df1eb8ed090b19",
+      "sha256": "1b6b99a63efe89a1d33eaf40457cda9187a07746eed31efd769e8db9ee5cee44",
       "width": 1440,
       "height": 1810,
       "fullPage": true
@@ -579,7 +579,7 @@
       "alt": "REST API 공개 범위와 호출 정책을 구성하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "42174f6eb27f5cc9ce42613027f0e3438ba2f8d4685f971f38303a9b647c490e",
+      "sha256": "5183cc1ca1045f44765ef48974d4b990ec05c6f845790a96712e9d08aa3320b4",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -595,7 +595,7 @@
       "alt": "MCP 접근 방식과 도구 권한을 구성하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "048e5b08736135917d1eed6b9a363ef02cff8907acc0dd176d8072ad8c75b3d9",
+      "sha256": "02d8229a2a5dcef84de8afddd3baa2a8522d6adb720b49d938a0e9e6189a34cc",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -611,7 +611,7 @@
       "alt": "서비스 전체 API Key 상태와 폐기를 관리하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "dba04d7b30e94cabf29dbcda5caf0e1cd5fcc76e3949e6728a838432930a18c3",
+      "sha256": "8c5a6a43a783f462b05ae0bf08e8826a7ab28663a04ca78e40a70a48839cc610",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -627,7 +627,7 @@
       "alt": "Keycloak OIDC discovery와 역할 매핑을 설정하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "df91013600396c26924e5e0f5f441dcde47b880c43fa330133a36cb3295944ee",
+      "sha256": "fb67ecd3ac3c90f1e3ce8c3a77e25679e63875ef5acba9e7a13ef7d427ed8fb1",
       "width": 1440,
       "height": 1126,
       "fullPage": true
@@ -643,9 +643,25 @@
       "alt": "암호화와 개인 Key 회전 정책을 관리하는 보안 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "4b44cb48341f0f908973092e5828485fbc58faed140d45e1a930556735b89d77",
+      "sha256": "253c8a9aeb8db42e1c91c8f475c86c91e24320589ef5173383ce020d8a92c006",
       "width": 1440,
       "height": 1472,
+      "fullPage": true
+    },
+    {
+      "id": "admin-analytics-desktop",
+      "route": "/admin/analytics",
+      "routePattern": "/admin/analytics",
+      "access": "admin",
+      "viewport": "desktop",
+      "output": "assets/screenshots/captures/admin-analytics-desktop.webp",
+      "title": "Visitor analytics",
+      "alt": "방문 추적 provider와 정책이 차단한 출처를 관리하는 방문 추적 전체 화면",
+      "status": "captured",
+      "version": "v2.5.8",
+      "sha256": "067cf1ac90ae67e153456c559574ba66591c105bd70169696b972b0e30e29c0d",
+      "width": 1440,
+      "height": 1329,
       "fullPage": true
     },
     {
@@ -659,7 +675,7 @@
       "alt": "삭제할 수 없는 관리자 감사 로그 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "049a33b7d898c1806bbcf1ea99847d7b92b3fb03c43f02b873af9502b14023f8",
+      "sha256": "9bd763ea63ed1b83d064c20ba41ee74bf9f8c2b534043dfce8c5bba65965cc49",
       "width": 1440,
       "height": 1000,
       "fullPage": true
@@ -675,7 +691,7 @@
       "alt": "서비스 접속 URL과 공개 모드를 관리하는 시스템 설정 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "95fa2aedf4d3266dd19803838d359749a1c0ae84111e2bc2536a148197fb9165",
+      "sha256": "06bceb93e53b88408029a24035016ec8f6952e87ce031b0a781cf47d9c25ecfe",
       "width": 1440,
       "height": 1709,
       "fullPage": true
@@ -1237,9 +1253,9 @@
       "alt": "AI 공급자와 최대 262144 토큰 및 Streaming을 설정하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "a48237addc69be916e0eb14ab6c2c4d7a0c193bb35b5ffd3d5a054013d8d485a",
+      "sha256": "b1c67b105e599f7374ac0aa735b5bbe33abf6908107b678753e56cd6be77ff56",
       "width": 1082,
-      "height": 9012,
+      "height": 8867,
       "fullPage": true
     },
     {
@@ -1301,7 +1317,7 @@
       "alt": "Keycloak OIDC discovery와 역할 매핑을 설정하는 전체 화면",
       "status": "captured",
       "version": "v2.5.8",
-      "sha256": "4cbff8b5dfe7a0fb39e579c62076543c0e07dfc7762f24763bdb5ecc25e4773b",
+      "sha256": "d19595554c06df422e71bf50baa1a31c2b5c61fb34aa88cbdd953656159ac0d3",
       "width": 1082,
       "height": 4323,
       "fullPage": true
@@ -1320,6 +1336,22 @@
       "sha256": "be8d1b70742541fb7957a87e93b283d9ef4b85c0957092cc6a03550034743182",
       "width": 1082,
       "height": 4888,
+      "fullPage": true
+    },
+    {
+      "id": "admin-analytics-mobile",
+      "route": "/admin/analytics",
+      "routePattern": "/admin/analytics",
+      "access": "admin",
+      "viewport": "mobile",
+      "output": "assets/screenshots/captures/admin-analytics-mobile.webp",
+      "title": "Visitor analytics",
+      "alt": "방문 추적 provider와 정책이 차단한 출처를 관리하는 방문 추적 전체 화면",
+      "status": "captured",
+      "version": "v2.5.8",
+      "sha256": "9f59f78fa5e1a6606f83741e3c846ff71c43cc4c7ea235a847bfad332f2ee863",
+      "width": 1082,
+      "height": 4581,
       "fullPage": true
     },
     {

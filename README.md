@@ -23,6 +23,7 @@ AppStore는 누구나 사내 애플리케이션을 탐색하고, 인증된 사�
 - PostgreSQL에 저장해 업그레이드에도 유지되는 로고·파비콘 업로드와 주소 가져오기
 - URL 기반 메뉴·검색 상태, SPA refresh fallback과 전역 오류 상태
 - 로그인 화면과 profile context menu의 build version 표시
+- 기본 OFF인 방문 추적 스크립트 삽입 — Momento(사내 수집기, 같은 오리진 프록시)·GA4·GTM·Matomo·직접 붙여 넣기, 요청마다 nonce를 붙인 CSP와 차단된 출처 표시
 - 감사 로그, 암호화된 OIDC·AI secret과 non-root container 운영
 
 ## 기술 구조
