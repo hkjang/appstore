@@ -33,6 +33,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { api, ApiError, streamAiChat } from "../lib/api";
+import { APP_STATUSES, AppStatusBadge } from "../features/apps/app-status";
 import {
   brandingSizeError,
   clampToken,
@@ -288,19 +289,6 @@ function Meta({ label, value }: { label: string; value: string }) {
       <dd>{value}</dd>
     </div>
   );
-}
-
-const APP_STATUSES = [
-  { value: "draft", label: "초안", tone: undefined },
-  { value: "pending_review", label: "검토 대기", tone: "warning" },
-  { value: "published", label: "게시됨", tone: "positive" },
-  { value: "rejected", label: "반려", tone: "danger" },
-  { value: "archived", label: "보관됨", tone: undefined },
-] as const;
-
-function AppStatusBadge({ status }: { status?: string }) {
-  const entry = APP_STATUSES.find((item) => item.value === status);
-  return <Badge tone={entry?.tone}>{entry?.label ?? status ?? "—"}</Badge>;
 }
 
 function AppDeleteDialog({

@@ -30,7 +30,7 @@ const personalRoutes: CaptureRoute[] = [
   { name: "my-apps", path: "/my/apps", heading: "내가 등록한 앱" },
   {
     name: "my-app-edit",
-    path: "/my/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/edit",
+    path: "/my/apps/ffffffff-ffff-4fff-8fff-ffffffffffff/edit",
     heading: "앱 수정",
   },
   { name: "my-keys", path: "/my/keys", heading: "API · MCP 키" },
