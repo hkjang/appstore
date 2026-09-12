@@ -43,6 +43,31 @@ function renderMyApps(items: Record<string, unknown>[]) {
 }
 
 describe("My applications", () => {
+  it("labels each card with the status the owner cannot otherwise see", async () => {
+    renderMyApps([
+      myApp({ status: "draft" }),
+      myApp({
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        slug: "flow-studio",
+        name: "Flow Studio",
+        status: "pending_review",
+      }),
+      myApp({
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        slug: "secure-vault",
+        name: "Secure Vault",
+        status: "archived",
+      }),
+    ]);
+
+    const cards = await screen.findAllByRole("article");
+    expect(cards).toHaveLength(3);
+    expect(cards[0]).toHaveTextContent("초안");
+    expect(cards[1]).toHaveTextContent("검토 대기");
+    expect(cards[2]).toHaveTextContent("보관됨");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("shows why a rejected app was sent back", async () => {
     renderMyApps([
       myApp({

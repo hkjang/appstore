@@ -85,7 +85,7 @@ export function MyDashboardPage() {
         <div className="card-grid">
           {apps.data.slice(0, 3).map((app) => (
             <div key={app.id}>
-              <AppCard app={app} />
+              <AppCard app={app} showStatus />
               <RejectionNotice app={app} className="mt-2" />
             </div>
           ))}
@@ -123,7 +123,7 @@ export function MyAppsPage() {
         <div className="card-grid">
           {apps.data.map((app) => (
             <div key={app.id}>
-              <AppCard app={app} />
+              <AppCard app={app} showStatus />
               <RejectionNotice app={app} className="mt-2" />
               <div className="mt-2 text-right">
                 <ButtonLink

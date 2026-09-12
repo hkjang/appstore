@@ -5,8 +5,18 @@ import type { StoreApp } from "../../types";
 import { AppIcon, Badge, Button } from "../../components/ui";
 import { useFavorites } from "./favorites";
 import { AppAdminLink, useCanManageApps } from "./admin-shortcut";
+import { AppStatusBadge } from "./app-status";
 
-export function AppCard({ app }: { app: StoreApp }) {
+// The public catalog only ever lists published apps, so the status is noise
+// there; an owner's own list mixes drafts, pending, rejected and archived apps
+// and needs it to tell them apart.
+export function AppCard({
+  app,
+  showStatus = false,
+}: {
+  app: StoreApp;
+  showStatus?: boolean;
+}) {
   const { isFavorite, toggle } = useFavorites();
   const favorite = isFavorite(app.slug);
   const canManage = useCanManageApps();
@@ -25,6 +35,7 @@ export function AppCard({ app }: { app: StoreApp }) {
           </div>
         </div>
         <div className="badge-row" aria-label="앱 특성">
+          {showStatus && <AppStatusBadge status={app.status} />}
           {(app.category?.name || app.categoryName) && (
             <Badge>{app.category?.name || app.categoryName}</Badge>
           )}

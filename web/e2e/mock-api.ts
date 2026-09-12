@@ -117,6 +117,46 @@ const review = {
   createdAt: "2026-09-01T07:00:00Z",
 };
 
+// The signed-in user's own list. The public catalog above only carries
+// published apps; an owner also sees the ones that were sent back, together
+// with the review that rejected them (what /me/apps returns).
+const rejectedApp = {
+  id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+  slug: "release-radar",
+  name: "Release Radar",
+  summary: "배포 일정과 변경 사항을 한 화면에 모으는 알림 보드",
+  description: "팀별 배포 일정, 변경 로그와 장애 공지를 한곳에서 봅니다.",
+  icon: "RR",
+  serviceUrl: "https://radar.internal.example",
+  category,
+  categoryId: category.id,
+  tags: ["Release", "Notice"],
+  language: "Go",
+  framework: "React",
+  supportsMcp: false,
+  supportsApi: false,
+  ownerName: "AppStore 관리자",
+  team: "Platform",
+  version: "0.3.0",
+  visibility: "public",
+  status: "rejected",
+  featured: false,
+  trendingScore: 0,
+  updatedAt: "2026-09-02T02:00:00Z",
+  review: {
+    id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+    appId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    level: 1,
+    status: "rejected",
+    reason:
+      "서비스 URL이 사내망에서 열리지 않습니다.\n담당팀 이름을 실제 조직도 기준으로 적어 주세요.",
+    reviewerName: "검토자 김",
+    decidedAt: "2026-09-02T01:30:00Z",
+    createdAt: "2026-09-01T09:00:00Z",
+  },
+};
+const myApps = [...apps.slice(0, 2), rejectedApp];
+
 // Mirrors the server order: ranked apps first in the order an editor chose,
 // then everything unranked by most recent change.
 function byFeaturedOrder(
@@ -225,7 +265,7 @@ export async function installMockApi(
           );
     }
     if (path === "/api/v1/me") return json(user);
-    if (path === "/api/v1/me/apps") return json(apps.slice(0, 2));
+    if (path === "/api/v1/me/apps") return json(myApps);
     if (path === "/api/v1/me/keys") {
       return json([
         {

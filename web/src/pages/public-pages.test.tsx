@@ -20,6 +20,7 @@ describe("Apps route state", () => {
                 name: "Agent Hub",
                 summary: "AI 에이전트 카탈로그",
                 category: { id: "ai", slug: "ai", name: "AI" },
+                status: "published",
               },
             ],
             total: 1,
@@ -60,6 +61,9 @@ describe("Apps route state", () => {
     expect(
       await screen.findByRole("heading", { name: "Agent Hub" }),
     ).toBeVisible();
+    // Everything in the public catalog is published; only an owner's own
+    // list labels cards with their status.
+    expect(screen.queryByText("게시됨")).toBeNull();
     expect(
       fetchMock.mock.calls.some(([url]) => String(url).includes("q=agent")),
     ).toBe(true);
