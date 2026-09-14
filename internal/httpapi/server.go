@@ -15,6 +15,7 @@ import (
 	appauth "github.com/hkjang/appstore/internal/auth"
 	"github.com/hkjang/appstore/internal/buildinfo"
 	appcrypto "github.com/hkjang/appstore/internal/crypto"
+	"github.com/hkjang/appstore/internal/mail"
 	"github.com/hkjang/appstore/internal/mcp"
 	"github.com/hkjang/appstore/internal/store"
 	"github.com/hkjang/appstore/openapi"
@@ -33,6 +34,7 @@ type Server struct {
 	mcpLimiter        *fixedWindowLimiter
 	loginLimiter      *fixedWindowLimiter
 	violations        *analytics.Recorder
+	mail              *mail.Service
 }
 
 func New(repository *store.Repository, box *appcrypto.SecretBox, logger *slog.Logger) (*Server, error) {
@@ -53,6 +55,7 @@ func New(repository *store.Repository, box *appcrypto.SecretBox, logger *slog.Lo
 		streamer: &ai.Streamer{Box: box}, startedAt: time.Now().UTC(), dummyPasswordHash: dummyHash,
 		apiLimiter: newFixedWindowLimiter(), mcpLimiter: newFixedWindowLimiter(), loginLimiter: newFixedWindowLimiter(),
 		violations: analytics.NewRecorder(),
+		mail:       mail.NewService(repository, box.Decrypt, logger),
 	}, nil
 }
 
@@ -197,6 +200,10 @@ func (s *Server) adminRoutes(r chi.Router) {
 	r.With(permission("settings:read")).Get("/admin/analytics/violations", s.adminAnalyticsViolations)
 	r.With(permission("settings:write")).Delete("/admin/analytics/violations", s.adminClearAnalyticsViolations)
 	r.With(permission("settings:write")).Post("/admin/analytics/allowed-hosts", s.adminAllowAnalyticsHost)
+	r.With(permission("settings:read")).Get("/admin/mail", s.adminMail)
+	r.With(permission("settings:write")).Put("/admin/mail", s.adminUpdateMail)
+	r.With(permission("settings:write")).Post("/admin/mail/test", s.adminTestMail)
+	r.With(permission("settings:read")).Get("/admin/mail/deliveries", s.adminMailDeliveries)
 	r.With(permission("settings:read")).Get("/admin/settings", s.adminSystemSettings)
 	r.With(permission("settings:write")).Put("/admin/settings", s.adminUpdateSystemSettings)
 	r.With(permission("settings:read")).Get("/admin/api-keys", s.adminAPIKeys)

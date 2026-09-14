@@ -559,6 +559,76 @@ export async function installMockApi(
         rateLimitPerMinute: 60,
         protocolVersion: "2026-07-28",
       });
+    if (path === "/api/v1/admin/mail/deliveries")
+      return json({
+        items: [
+          {
+            id: "delivery-1",
+            event: "review.requested",
+            recipient: "reviewer@corp.example",
+            subject: "[AppStore] 'Release Radar' 앱이 검토를 기다립니다",
+            reference: "app-9",
+            status: "sent",
+            attempts: 1,
+            createdAt: "2026-09-01T09:00:00Z",
+            updatedAt: "2026-09-01T09:00:01Z",
+          },
+          {
+            id: "delivery-2",
+            event: "review.decided",
+            recipient: "owner@corp.example",
+            subject: "[AppStore] 'Release Radar' 앱이 반려되었습니다",
+            reference: "app-9",
+            status: "failed",
+            attempts: 2,
+            errorMessage:
+              "SMTP 연결 실패: dial tcp 10.0.0.25:25: connection refused",
+            createdAt: "2026-09-01T09:05:00Z",
+            updatedAt: "2026-09-01T09:05:04Z",
+          },
+        ],
+        total: 2,
+        status: { sent: 1, failed: 1 },
+      });
+    if (path === "/api/v1/admin/mail")
+      return json({
+        enabled: true,
+        smtpHost: "relay.corp.example",
+        smtpPort: 25,
+        security: "auto",
+        skipTlsVerify: false,
+        username: "",
+        passwordSet: false,
+        fromAddress: "appstore-noreply@corp.example",
+        fromName: "AppStore",
+        baseUrl: "",
+        timeoutSeconds: 10,
+        events: {
+          "review.requested": true,
+          "review.decided": true,
+          "app.status_changed": true,
+        },
+        availableEvents: [
+          {
+            name: "review.requested",
+            switch: "review_requested",
+            label: "검토 요청",
+            help: "앱이 검토 대기에 들어가면 그 단계를 처리할 수 있는 검토자·팀장에게 보냅니다.",
+          },
+          {
+            name: "review.decided",
+            switch: "review_decided",
+            label: "검토 결과",
+            help: "앱이 승인되거나 반려되면 등록한 사람에게 보냅니다. 중간 단계 승인은 보내지 않습니다.",
+          },
+          {
+            name: "app.status_changed",
+            switch: "app_status",
+            label: "관리자 상태 변경",
+            help: "관리자가 다른 사람의 앱 게시 상태를 바꾸면 소유자에게 보냅니다.",
+          },
+        ],
+      });
     if (path === "/api/v1/admin/analytics/violations")
       return json({
         items: [

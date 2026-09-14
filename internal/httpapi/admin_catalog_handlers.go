@@ -75,6 +75,7 @@ func (s *Server) adminSetAppStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.recordAudit(r, "app.status.update", "app", id.String(), before, after)
+	s.notifyAppStatusChanged(r.Context(), before, after, CurrentPrincipal(r.Context()).User.ID)
 	WriteJSON(w, http.StatusOK, after)
 }
 
@@ -162,6 +163,7 @@ func (s *Server) adminUpdateApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.recordAudit(r, "app.update", "app", id.String(), before, after)
+	s.notifyAppStatusChanged(r.Context(), before, after, CurrentPrincipal(r.Context()).User.ID)
 	WriteJSON(w, http.StatusOK, after)
 }
 

@@ -84,6 +84,7 @@ const adminRoutes: CaptureRoute[] = [
     path: "/admin/analytics",
     heading: "방문 추적",
   },
+  { name: "admin-mail", path: "/admin/mail", heading: "메일 알림" },
   { name: "admin-audit", path: "/admin/audit", heading: "감사 로그" },
   {
     name: "admin-settings",

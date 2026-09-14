@@ -30,6 +30,7 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.recordAudit(r, "app.create", "app", app.ID.String(), nil, result)
+	s.notifyReviewRequested(r.Context(), result.Review, principal.User.ID)
 	WriteJSON(w, http.StatusCreated, result.App)
 }
 
@@ -66,6 +67,7 @@ func (s *Server) updateApp(w http.ResponseWriter, r *http.Request) {
 	if configErr == nil && resubmitAfterEdit(config, before.Status) {
 		if result, submitErr := s.repository.SubmitApp(r.Context(), id, principal.User.ID); submitErr == nil {
 			updated = result.App
+			s.notifyReviewRequested(r.Context(), result.Review, principal.User.ID)
 		} else {
 			WriteError(w, r, submitErr)
 			return
