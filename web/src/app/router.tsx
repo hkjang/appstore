@@ -13,6 +13,7 @@ import {
   AdminAuditPage,
   AdminAuthenticationPage,
   AdminCategoriesPage,
+  AdminMailPage,
   AdminDashboardPage,
   AdminMcpPage,
   AdminReviewsPage,
@@ -124,6 +125,7 @@ export function AppRouter() {
         />
         <Route path="admin/security" element={<AdminSecurityPage />} />
         <Route path="admin/analytics" element={<AdminAnalyticsPage />} />
+        <Route path="admin/mail" element={<AdminMailPage />} />
         <Route path="admin/audit" element={<AdminAuditPage />} />
         <Route path="admin/settings" element={<AdminSystemSettingsPage />} />
       </Route>

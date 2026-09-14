@@ -122,6 +122,7 @@ func (s *Server) decideReview(w http.ResponseWriter, r *http.Request, decision, 
 		action = "app.reject"
 	}
 	s.recordAudit(r, action, "review", id.String(), before, result)
+	s.notifyReviewDecided(r.Context(), result, principal.User.ID)
 	WriteJSON(w, http.StatusOK, result.Review)
 }
 

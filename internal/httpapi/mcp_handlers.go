@@ -100,6 +100,7 @@ func (s *Server) mcpSubmitApp(ctx context.Context, caller mcp.Caller, arguments 
 		return nil, err
 	}
 	s.recordMCPAudit(ctx, caller, "app.create", "app", app.ID.String(), nil, result)
+	s.notifyReviewRequested(ctx, result.Review, userID)
 	return result, nil
 }
 
@@ -141,6 +142,7 @@ func (s *Server) mcpUpdateApp(ctx context.Context, caller mcp.Caller, arguments 
 			return nil, submitErr
 		}
 		after = result.App
+		s.notifyReviewRequested(ctx, result.Review, userID)
 	}
 	s.recordMCPAudit(ctx, caller, "app.update", "app", id.String(), before, after)
 	return after, nil

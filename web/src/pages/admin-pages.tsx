@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   ExternalLink,
   Image as ImageIcon,
+  MailCheck,
   Plus,
   Play,
   RefreshCw,
@@ -48,6 +49,9 @@ import type {
   CspViolation,
   KeyPermissionDefinition,
   KeyPermissionTemplate,
+  MailDelivery,
+  MailDeliveryPage,
+  MailEvent,
   OidcTestResult,
   PersonalKey,
   StoreApp,
@@ -3351,6 +3355,349 @@ export function AdminSecurityPage() {
     </SettingsShell>
   );
 }
+const MAIL_SECURITIES: ReadonlyArray<readonly [string, string]> = [
+  ["auto", "자동 (서버가 알리면 STARTTLS)"],
+  ["none", "없음 (평문, 사내 릴레이 기본)"],
+  ["starttls", "STARTTLS 필수"],
+  ["tls", "TLS (465)"],
+];
+
+const MAIL_STATUS_TONES: Record<
+  MailDelivery["status"],
+  "positive" | "danger" | "warning"
+> = { sent: "positive", failed: "danger", queued: "warning" };
+
+/**
+ * Mail notifications. Sending happens in the background and every attempt
+ * is logged, so this screen is two things: the relay settings with a test
+ * button — relay settings are rarely right the first time — and the delivery
+ * log that answers "did it go out?". The password is never read back; the
+ * screen only says whether one is set.
+ */
+export function AdminMailPage() {
+  const client = useQueryClient();
+  const state = useAdminSettings("mail", {
+    enabled: false,
+    smtpHost: "",
+    smtpPort: 25,
+    security: "auto",
+    skipTlsVerify: false,
+    username: "",
+    passwordSet: false,
+    fromAddress: "",
+    fromName: "AppStore",
+    baseUrl: "",
+    timeoutSeconds: 10,
+    events: {},
+  });
+  const [password, setPassword] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const events = arrayFrom<MailEvent>(state.query.data, ["availableEvents"]);
+  const switches = recordFrom(state.settings.events);
+  const enabled = bool(state.settings.enabled);
+  const deliveries = useQuery({
+    queryKey: ["admin", "mail", "deliveries"],
+    queryFn: ({ signal }) =>
+      api.admin<MailDeliveryPage>("mail/deliveries?limit=50", signal),
+    enabled: !!state.query.data,
+    refetchInterval: enabled ? 15_000 : false,
+  });
+  const test = useMutation({
+    mutationFn: () =>
+      api.adminAction<{ sent: boolean; recipient: string }>("mail/test", {
+        recipient: recipient.trim(),
+      }),
+    onSettled: async () => {
+      await client.invalidateQueries({
+        queryKey: ["admin", "mail", "deliveries"],
+      });
+    },
+  });
+  const fieldErrors = recordFrom(
+    state.save.error instanceof ApiError ? state.save.error.details : undefined,
+  );
+  const fieldError = (name: string) => text(fieldErrors[name]) || undefined;
+  const rows = deliveries.data?.items ?? [];
+  const counts = recordFrom(deliveries.data?.status);
+
+  return (
+    <SettingsShell
+      title="메일 알림"
+      eyebrow="Mail"
+      description="사내 SMTP 릴레이로 검토 요청·검토 결과·관리자 상태 변경을 알립니다. 기본값은 꺼짐이고, 메일은 배경에서 보내므로 릴레이가 죽어 있어도 화면은 평소처럼 동작합니다."
+      state={state}
+      transform={(settings) => {
+        const { passwordSet: _set, ...rest } = settings;
+        return password ? { ...rest, password } : rest;
+      }}
+      extraActions={
+        <Button
+          variant="secondary"
+          disabled={test.isPending || !enabled}
+          onClick={() => test.mutate()}
+        >
+          <MailCheck size={17} /> {test.isPending ? "보내는 중…" : "시험 발송"}
+        </Button>
+      }
+    >
+      <SettingSwitch
+        state={state}
+        name="enabled"
+        label="메일 알림 사용"
+        help="끄면 아무것도 보내지 않고 기록도 남기지 않습니다. 켜려면 릴레이 주소와 보내는 주소가 있어야 합니다."
+      />
+      <div className="form-grid">
+        <Field
+          label="SMTP 릴레이 주소"
+          id="mail-host"
+          help="사내 릴레이 호스트 이름이나 IP. 폐쇄망에서는 postra를 권장합니다."
+          error={fieldError("smtpHost")}
+        >
+          <Input
+            id="mail-host"
+            placeholder="relay.corp.example"
+            value={text(state.settings.smtpHost)}
+            onChange={(event) => state.set("smtpHost", event.target.value)}
+          />
+        </Field>
+        <Field
+          label="포트"
+          id="mail-port"
+          help="사내 릴레이는 대개 25입니다."
+          error={fieldError("smtpPort")}
+        >
+          <Input
+            id="mail-port"
+            type="number"
+            min={1}
+            max={65535}
+            value={number(state.settings.smtpPort, 25)}
+            onChange={(event) =>
+              state.set("smtpPort", Number(event.target.value))
+            }
+          />
+        </Field>
+        <Field
+          label="보안"
+          id="mail-security"
+          help="자동은 서버가 STARTTLS를 알리면 쓰고 아니면 평문으로 보냅니다."
+          error={fieldError("security")}
+        >
+          <Select
+            id="mail-security"
+            value={text(state.settings.security, "auto")}
+            onChange={(event) => state.set("security", event.target.value)}
+          >
+            {MAIL_SECURITIES.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field
+          label="제한 시간 (초)"
+          id="mail-timeout"
+          error={fieldError("timeoutSeconds")}
+        >
+          <Input
+            id="mail-timeout"
+            type="number"
+            min={1}
+            max={120}
+            value={number(state.settings.timeoutSeconds, 10)}
+            onChange={(event) =>
+              state.set("timeoutSeconds", Number(event.target.value))
+            }
+          />
+        </Field>
+      </div>
+      <SettingSwitch
+        state={state}
+        name="skipTlsVerify"
+        label="TLS 인증서 검증 생략"
+        help="사내 릴레이가 사설 인증서를 쓸 때만 켭니다."
+      />
+      <div className="form-grid">
+        <Field
+          label="사용자 이름"
+          id="mail-username"
+          help="인증 없는 릴레이가 흔하므로 선택 사항입니다. 비우면 인증하지 않습니다."
+          error={fieldError("fromName")}
+        >
+          <Input
+            id="mail-username"
+            autoComplete="off"
+            value={text(state.settings.username)}
+            onChange={(event) => state.set("username", event.target.value)}
+          />
+        </Field>
+        <Field
+          label="비밀번호"
+          id="mail-password"
+          help={
+            bool(state.settings.passwordSet)
+              ? "설정됨. 기존 값은 조회되지 않습니다. 변경할 때만 입력하세요."
+              : "설정되지 않음. 인증이 필요한 릴레이라면 입력하세요."
+          }
+        >
+          <Input
+            id="mail-password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="저장된 비밀번호는 표시하지 않음"
+          />
+        </Field>
+        <Field
+          label="보내는 주소"
+          id="mail-from"
+          error={fieldError("fromAddress")}
+        >
+          <Input
+            id="mail-from"
+            type="email"
+            placeholder="appstore-noreply@corp.example"
+            value={text(state.settings.fromAddress)}
+            onChange={(event) => state.set("fromAddress", event.target.value)}
+          />
+        </Field>
+        <Field label="보내는 이름" id="mail-from-name">
+          <Input
+            id="mail-from-name"
+            maxLength={100}
+            value={text(state.settings.fromName)}
+            onChange={(event) => state.set("fromName", event.target.value)}
+          />
+        </Field>
+      </div>
+      <Field
+        label="메일 속 링크의 기준 주소"
+        id="mail-base-url"
+        help="비워 두면 시스템 설정의 서비스 접속 URL을 씁니다."
+        error={fieldError("baseUrl")}
+      >
+        <Input
+          id="mail-base-url"
+          type="url"
+          placeholder="https://apps.corp.example"
+          value={text(state.settings.baseUrl)}
+          onChange={(event) => state.set("baseUrl", event.target.value)}
+        />
+      </Field>
+      <h2 className="section-title !text-xl !mt-4 !mb-2">보낼 이벤트</h2>
+      <p className="field-help mb-2">
+        자기가 한 일은 자기에게 보내지 않습니다. 시끄러우면 종류별로 끕니다.
+      </p>
+      {events.map((event) => (
+        <div className="switch-row" key={event.name}>
+          <div>
+            <strong>{event.label}</strong>
+            <div className="field-help">{event.help}</div>
+          </div>
+          <Switch
+            checked={switches[event.name] !== false}
+            onChange={(value) =>
+              state.set("events", { ...switches, [event.name]: value })
+            }
+            label={event.label}
+          />
+        </div>
+      ))}
+      <Field
+        label="시험 발송 받는 사람"
+        id="mail-test-recipient"
+        help="저장한 설정으로 실제 한 통을 보냅니다. 비우면 내 계정의 이메일로 보냅니다. 먼저 설정을 저장하세요."
+      >
+        <Input
+          id="mail-test-recipient"
+          type="email"
+          placeholder="me@corp.example"
+          value={recipient}
+          onChange={(event) => setRecipient(event.target.value)}
+        />
+      </Field>
+      {test.data && (
+        <div className="notice" role="status">
+          <CheckCircle2 size={19} /> {test.data.recipient} 로 보냈습니다. 받은
+          편지함을 확인하세요.
+        </div>
+      )}
+      {test.error && (
+        <p className="field-error" role="alert">
+          {test.error.message}
+        </p>
+      )}
+      <section className="mt-6" aria-labelledby="mail-deliveries-heading">
+        <div className="section-header">
+          <h2 id="mail-deliveries-heading" className="section-title">
+            발송 기록
+          </h2>
+          <div className="form-actions">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={deliveries.isFetching}
+              onClick={() => void deliveries.refetch()}
+            >
+              <RefreshCw size={16} /> 새로고침
+            </Button>
+          </div>
+        </div>
+        <p className="field-help">
+          시도마다 남깁니다 — 언제, 어떤 이벤트로, 누구에게, 제목이 무엇이었고,
+          되었는지. 본문은 담지 않습니다. 성공 {number(counts.sent)} · 실패{" "}
+          {number(counts.failed)} · 대기 {number(counts.queued)}
+        </p>
+        {rows.length === 0 ? (
+          <div className="notice mt-3">
+            <CheckCircle2 size={19} /> 아직 보낸 메일이 없습니다.
+          </div>
+        ) : (
+          <div className="table-scroll mt-3">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>시각</th>
+                  <th>이벤트</th>
+                  <th>받는 사람</th>
+                  <th>제목</th>
+                  <th>결과</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((item) => (
+                  <tr key={item.id}>
+                    <td>{formatDateTime(item.createdAt)}</td>
+                    <td>
+                      <code>{item.event}</code>
+                    </td>
+                    <td>{item.recipient}</td>
+                    <td>{item.subject}</td>
+                    <td>
+                      <Badge tone={MAIL_STATUS_TONES[item.status]}>
+                        {item.status === "sent"
+                          ? "성공"
+                          : item.status === "failed"
+                            ? "실패"
+                            : "대기"}
+                      </Badge>
+                      {item.errorMessage && (
+                        <div className="field-help">{item.errorMessage}</div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </SettingsShell>
+  );
+}
+
 export function AdminSystemSettingsPage() {
   const state = useAdminSettings("settings", {
     siteName: "AppStore",

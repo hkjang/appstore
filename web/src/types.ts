@@ -240,3 +240,29 @@ export interface CspViolation {
   lastSeen: string;
   allowed: boolean;
 }
+
+export interface MailEvent {
+  name: string;
+  switch: string;
+  label: string;
+  help: string;
+}
+
+export interface MailDelivery {
+  id: string;
+  event: string;
+  recipient: string;
+  subject: string;
+  reference?: string;
+  status: "queued" | "sent" | "failed";
+  attempts: number;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MailDeliveryPage {
+  items: MailDelivery[];
+  total: number;
+  status: Record<string, number>;
+}

@@ -393,6 +393,15 @@ const pages = [
     alt: "방문 추적 provider와 정책이 차단한 출처를 관리하는 방문 추적 전체 화면",
   },
   {
+    id: "admin-mail",
+    screen: "admin-mail",
+    route: "/admin/mail",
+    routePattern: "/admin/mail",
+    access: "admin",
+    title: "Mail notifications",
+    alt: "SMTP 릴레이 설정, 보낼 이벤트 스위치, 시험 발송과 발송 기록을 관리하는 메일 알림 전체 화면",
+  },
+  {
     id: "admin-audit",
     screen: "admin-audit",
     route: "/admin/audit",
