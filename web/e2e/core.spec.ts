@@ -396,3 +396,40 @@ test("관리자는 앱 관리에서 추천 우선순위를 지정하거나 지�
   await rank.fill("");
   expect((await savedRank()).featuredRank).toBeNull();
 });
+
+test("가이드 문서는 비로그인 방문자도 앱 상세에서 내려받는다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  await page.goto("/apps/agent-hub");
+  await expect(
+    page.getByRole("heading", { name: "가이드 문서" }),
+  ).toBeVisible();
+  const download = page.getByRole("link", { name: /내려받기/ });
+  await expect(download).toHaveAttribute(
+    "href",
+    "/api/v1/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/documents/f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1",
+  );
+  await expect(page.getByText("agent-hub-운영-가이드.pdf")).toBeVisible();
+});
+
+test("소유자는 앱 수정 화면에서 가이드 문서를 첨부하고 삭제를 예약한다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  await expect(page.getByText("Agent Hub 운영 가이드")).toBeVisible();
+  await page.getByLabel("가이드 문서 파일 선택").setInputFiles({
+    name: "설치 안내.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 install guide"),
+  });
+  await expect(page.getByText("저장 시 업로드됩니다")).toBeVisible();
+  await page
+    .getByRole("button", { name: "삭제", exact: false })
+    .first()
+    .click();
+  await expect(page.getByText("저장 시 삭제됩니다")).toBeVisible();
+  await page.getByRole("button", { name: "변경 저장" }).click();
+  await expect(page.getByText("앱 정보가 저장되었습니다.")).toBeVisible();
+});

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -275,6 +276,54 @@ func TestPostgreSQLRepositoryIntegration(t *testing.T) {
 	}
 	if err := repository.RemoveFavorite(ctx, user.ID, app.ID); err != nil {
 		t.Fatal(err)
+	}
+
+	// Guide files hang off the app and carry their bytes through PostgreSQL,
+	// so the listing stays cheap and a download still returns the original.
+	guide, err := repository.CreateAppDocument(ctx, app.ID, AppDocumentInput{
+		Title: "운영 가이드", FileName: "운영 가이드.pdf",
+		ContentType: "application/pdf", Content: []byte("%PDF-1.4 guide"),
+		UploadedBy: &user.ID,
+	})
+	if err != nil || guide.Size != len("%PDF-1.4 guide") || guide.UploaderName == "" {
+		t.Fatalf("created app document = %#v err=%v", guide, err)
+	}
+	if _, err := repository.CreateAppDocument(ctx, app.ID, AppDocumentInput{
+		FileName: "운영 가이드.PDF", ContentType: "application/pdf", Content: []byte("again"),
+	}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("duplicate document name err = %v", err)
+	}
+	documents, err := repository.ListAppDocuments(ctx, app.ID)
+	if err != nil || len(documents) != 1 || documents[0].ID != guide.ID {
+		t.Fatalf("app documents = %#v err=%v", documents, err)
+	}
+	stored, content, err := repository.GetAppDocumentContent(ctx, app.ID, guide.ID)
+	if err != nil || string(content) != "%PDF-1.4 guide" || stored.Title != "운영 가이드" {
+		t.Fatalf("document content = %q doc=%#v err=%v", content, stored, err)
+	}
+	// A document identifier from one app must not be readable through another.
+	if _, _, err := repository.GetAppDocumentContent(ctx, uuid.New(), guide.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-app document read err = %v", err)
+	}
+	for index := 1; index < MaxAppDocuments; index++ {
+		if _, err := repository.CreateAppDocument(ctx, app.ID, AppDocumentInput{
+			FileName: fmt.Sprintf("guide-%d.md", index), ContentType: "text/markdown; charset=utf-8",
+			Content: []byte("# guide"),
+		}); err != nil {
+			t.Fatalf("document %d: %v", index, err)
+		}
+	}
+	if _, err := repository.CreateAppDocument(ctx, app.ID, AppDocumentInput{
+		FileName: "one-too-many.md", ContentType: "text/markdown; charset=utf-8",
+		Content: []byte("# guide"),
+	}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("document over the per-app limit err = %v", err)
+	}
+	if err := repository.DeleteAppDocument(ctx, app.ID, guide.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.DeleteAppDocument(ctx, app.ID, guide.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("second document delete err = %v", err)
 	}
 
 	workflowConfig.Enabled = true

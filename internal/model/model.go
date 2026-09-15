@@ -91,6 +91,25 @@ type AppInput struct {
 	Visibility  string   `json:"visibility"`
 }
 
+// AppDocument is a guide file attached to an app. The bytes stay in
+// PostgreSQL, so an uploaded manual survives replacing the service image;
+// this record is the metadata every listing needs.
+type AppDocument struct {
+	ID           uuid.UUID  `json:"id"`
+	AppID        uuid.UUID  `json:"appId"`
+	Title        string     `json:"title"`
+	FileName     string     `json:"fileName"`
+	ContentType  string     `json:"contentType"`
+	Size         int        `json:"size"`
+	Checksum     string     `json:"checksum"`
+	UploadedBy   *uuid.UUID `json:"uploadedBy,omitempty"`
+	UploaderName string     `json:"uploaderName,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	// DownloadURL is filled in by the API layer so a client never builds the
+	// path itself.
+	DownloadURL string `json:"downloadUrl,omitempty"`
+}
+
 type AppListOptions struct {
 	Query      string
 	Category   string

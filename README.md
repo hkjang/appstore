@@ -21,6 +21,7 @@ AppStore는 누구나 사내 애플리케이션을 탐색하고, 인증된 사�
 - SSE 기본 AI streaming, cancel 전파와 최대 262,144 token 설정
 - Ctrl/Cmd+K 빠른 이동 팔레트로 메뉴·앱·관리 화면 한 번에 검색
 - PostgreSQL에 저장해 업그레이드에도 유지되는 로고·파비콘 업로드와 주소 가져오기
+- 앱마다 최대 10개까지 첨부하는 가이드 문서(PDF·Office·Markdown, 파일당 20MB)와 앱 상세 화면의 로그인 없는 내려받기
 - URL 기반 메뉴·검색 상태, SPA refresh fallback과 전역 오류 상태
 - 로그인 화면과 profile context menu의 build version 표시
 - 기본 OFF인 방문 추적 스크립트 삽입 — Momento(사내 수집기, 같은 오리진 프록시)·GA4·GTM·Matomo·직접 붙여 넣기, 요청마다 nonce를 붙인 CSP와 차단된 출처 표시

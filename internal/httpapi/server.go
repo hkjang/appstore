@@ -92,6 +92,8 @@ func (s *Server) Handler() (http.Handler, error) {
 		api.Get("/public/config", s.publicConfig)
 		api.Get("/apps", s.listApps)
 		api.Get("/apps/{app}", s.getApp)
+		api.Get("/apps/{app}/documents", s.listAppDocuments)
+		api.Get("/apps/{app}/documents/{document}", s.downloadAppDocument)
 		api.Get("/categories", s.listCategories)
 		api.Get("/branding/{kind}", s.brandingAsset)
 		api.Post("/analytics/csp-report", s.receiveCSPReport)
@@ -122,6 +124,8 @@ func (s *Server) Handler() (http.Handler, error) {
 			protected.With(permission("apps:submit")).Post("/apps", s.createApp)
 			protected.With(permission("apps:update")).Put("/apps/{app}", s.updateApp)
 			protected.With(permission("apps:delete")).Delete("/apps/{app}", s.deleteApp)
+			protected.With(permission("apps:update")).Post("/apps/{app}/documents", s.uploadAppDocument)
+			protected.With(permission("apps:update")).Delete("/apps/{app}/documents/{document}", s.deleteAppDocument)
 
 			protected.With(permission("reviews:read")).Get("/reviews", s.listReviews)
 			protected.With(permission("reviews:read")).Get("/reviews/{id}", s.getReview)
