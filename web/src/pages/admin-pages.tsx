@@ -33,6 +33,10 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { api, ApiError, streamAiChat } from "../lib/api";
+import {
+  GuideDocumentsField,
+  useGuideDocumentDraft,
+} from "../features/apps/guide-documents";
 import { APP_STATUSES, AppStatusBadge } from "../features/apps/app-status";
 import {
   brandingSizeError,
@@ -727,12 +731,13 @@ export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
     create ? emptyAppForm : undefined,
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const documents = useGuideDocumentDraft(create ? undefined : id);
   useEffect(() => {
     if (app.data) setForm(formFromApp(app.data));
   }, [app.data]);
 
   const save = useMutation({
-    mutationFn: (input: AdminAppForm) => {
+    mutationFn: async (input: AdminAppForm) => {
       const payload = {
         ...input,
         tags: parseList(input.tags),
@@ -743,9 +748,12 @@ export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
           ? Number(input.featuredRank)
           : null,
       };
-      return create
-        ? api.createAdminApp(payload)
-        : api.updateAdminApp(id, payload);
+      const saved = create
+        ? await api.createAdminApp(payload)
+        : await api.updateAdminApp(id, payload);
+      // Attachments need an app to hang on, so they follow the save.
+      await documents.apply(saved?.id ?? id);
+      return saved;
     },
     onSuccess: async (saved) => {
       setForm(formFromApp(saved));
@@ -1013,6 +1021,7 @@ export function AdminAppDetailPage({ create = false }: { create?: boolean }) {
                 label="추천 앱"
               />
             </div>
+            <GuideDocumentsField draft={documents} idPrefix="admin-app" />
             <Field
               label="추천 우선순위"
               id="admin-app-featured-rank"

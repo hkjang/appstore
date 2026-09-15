@@ -6,6 +6,10 @@ import { api } from "../lib/api";
 import { parseList } from "../lib/utils";
 import { RejectionNotice } from "../features/apps/rejection-notice";
 import {
+  GuideDocumentsField,
+  useGuideDocumentDraft,
+} from "../features/apps/guide-documents";
+import {
   Button,
   Card,
   ErrorState,
@@ -72,6 +76,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
   });
   const [form, setForm] = useState<FormState>(empty);
   const [complete, setComplete] = useState(false);
+  const documents = useGuideDocumentDraft(edit ? id : undefined);
   useEffect(() => {
     if (!existing.data) return;
     setForm({
@@ -94,13 +99,19 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
     });
   }, [existing.data]);
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const payload = {
         ...form,
         tags: parseList(form.tags),
         screenshots: parseList(form.screenshots),
       };
-      return edit ? api.updateApp(id, payload) : api.createApp(payload);
+      const saved = edit
+        ? await api.updateApp(id, payload)
+        : await api.createApp(payload);
+      // Attachments need the app to exist, so they are applied once it does.
+      // A failure here surfaces on the form with the app already saved.
+      await documents.apply(saved?.id ?? id);
+      return saved;
     },
     onSuccess: async () => {
       setComplete(true);
@@ -324,6 +335,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
               required
             />
           </Field>
+          <GuideDocumentsField draft={documents} idPrefix="app" />
           <div className="switch-row">
             <div>
               <strong>MCP 지원</strong>

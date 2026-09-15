@@ -87,6 +87,21 @@ const apps = [
   },
 ];
 
+const appDocuments = [
+  {
+    id: "f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1",
+    appId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    title: "Agent Hub 운영 가이드",
+    fileName: "agent-hub-운영-가이드.pdf",
+    contentType: "application/pdf",
+    size: 384000,
+    createdAt: "2026-09-02T02:00:00Z",
+    uploaderName: "김개발",
+    downloadUrl:
+      "/api/v1/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/documents/f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1",
+  },
+];
+
 const adminUser = {
   id: "99999999-9999-4999-8999-999999999999",
   username: "admin",
@@ -247,6 +262,29 @@ export async function installMockApi(
         total: sorted.length,
         limit: 24,
         offset: 0,
+      });
+    }
+    if (path.includes("/documents")) {
+      if (request.method() === "DELETE")
+        return route.fulfill({ status: 204, body: "" });
+      if (request.method() === "POST")
+        return json({ ...appDocuments[0], id: "new-document-id" }, 201);
+      if (path.endsWith("/documents")) {
+        const reference = decodeURIComponent(path.split("/")[4] ?? "");
+        const owning = apps.find(
+          (item) => item.slug === reference || item.id === reference,
+        );
+        return json({
+          items: owning?.id === appDocuments[0]?.appId ? appDocuments : [],
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        headers: {
+          "content-disposition": `attachment; filename="guide.pdf"`,
+        },
+        body: "%PDF-1.4 mock guide",
       });
     }
     if (path.startsWith("/api/v1/apps/") && request.method() === "GET") {

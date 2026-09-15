@@ -76,6 +76,21 @@ export interface StoreApp {
   review?: Review;
 }
 
+/** A guide file attached to an app; the bytes stay on the server. */
+export interface AppDocument {
+  id: string;
+  appId: string;
+  title: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  checksum?: string;
+  uploadedBy?: string;
+  uploaderName?: string;
+  createdAt: string;
+  downloadUrl?: string;
+}
+
 export interface User {
   id: string;
   subject?: string;

@@ -13,6 +13,7 @@ import {
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
+import { AppGuideDocuments } from "../features/apps/guide-documents";
 import { formatDate } from "../lib/utils";
 import { AppCard } from "../features/apps/app-card";
 import { heroCopy } from "../features/home/hero-copy";
@@ -521,6 +522,7 @@ export function AppDetailPage() {
             <Meta label="업데이트" value={formatDate(item.updatedAt)} />
           </dl>
         </Card>
+        <AppGuideDocuments appSlug={item.slug} />
       </div>
     </div>
   );

@@ -1306,6 +1306,46 @@ button {
   min-width: 0;
 }
 
+.document-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.document-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text-muted);
+}
+.document-row.is-removed {
+  opacity: 0.55;
+}
+.document-row.is-removed .document-name strong {
+  text-decoration: line-through;
+}
+.document-name {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.document-name strong {
+  color: var(--text);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.document-meta {
+  color: var(--text-faint);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 .palette-trigger {
   gap: 8px;
   font-weight: 500;

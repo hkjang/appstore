@@ -1,6 +1,7 @@
 import type {
   AiStreamEvent,
   AiModelLimit,
+  AppDocument,
   ApiProblem,
   BrandingAsset,
   AuditEntry,
@@ -294,6 +295,29 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(input),
     }),
+  appDocuments: async (app: string, signal?: AbortSignal) =>
+    listFrom<AppDocument>(
+      await apiFetch<unknown>(
+        `/api/v1/apps/${encodeURIComponent(app)}/documents`,
+        { signal },
+      ),
+      ["documents"],
+    ),
+  uploadAppDocument: (app: string, file: File, title?: string) => {
+    const body = new FormData();
+    body.append("file", file);
+    if (title?.trim()) body.append("title", title.trim());
+    // A 20MB manual over a company VPN needs more than the default budget.
+    return apiFetch<AppDocument>(
+      `/api/v1/apps/${encodeURIComponent(app)}/documents`,
+      { method: "POST", body, timeoutMs: 120_000 },
+    );
+  },
+  deleteAppDocument: (app: string, id: string) =>
+    apiFetch<void>(
+      `/api/v1/apps/${encodeURIComponent(app)}/documents/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
   reviews: async (signal?: AbortSignal) =>
     listFrom<Review>(await apiFetch<unknown>("/api/v1/reviews", { signal }), [
       "reviews",
