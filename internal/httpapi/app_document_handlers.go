@@ -16,30 +16,9 @@ import (
 	"github.com/hkjang/appstore/internal/store"
 )
 
-// maxDocumentBytes caps one guide file. A manual with screen captures fits
-// comfortably; anything larger belongs on a file share, not in the catalog
-// database that every backup copies.
-const maxDocumentBytes = 20 << 20
-
-// documentContentTypes maps the extensions a guide may use to the type served
-// back on download. The extension decides, not the browser's guess: the same
-// .docx arrives as application/octet-stream from one client and as the Office
-// type from another.
-var documentContentTypes = map[string]string{
-	".pdf":      "application/pdf",
-	".md":       "text/markdown; charset=utf-8",
-	".markdown": "text/markdown; charset=utf-8",
-	".txt":      "text/plain; charset=utf-8",
-	".csv":      "text/csv; charset=utf-8",
-	".doc":      "application/msword",
-	".docx":     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	".ppt":      "application/vnd.ms-powerpoint",
-	".pptx":     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	".xls":      "application/vnd.ms-excel",
-	".xlsx":     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	".hwp":      "application/x-hwp",
-	".hwpx":     "application/hwp+zip",
-}
+// maxDocumentBytes and documentContentTypes are shared with the bundled
+// guide sync, so a file one accepts is never refused by the other.
+const maxDocumentBytes = model.MaxAppDocumentBytes
 
 const documentExtensionHint = "PDF, Markdown, 텍스트, CSV, Word, PowerPoint, Excel, 한글 문서만 첨부할 수 있습니다."
 
@@ -68,8 +47,7 @@ func sanitizeDocumentFileName(value string) string {
 }
 
 func documentContentType(fileName string) (string, bool) {
-	contentType, ok := documentContentTypes[strings.ToLower(path.Ext(fileName))]
-	return contentType, ok
+	return model.AppDocumentContentType(fileName)
 }
 
 // documentTitle falls back to the file name without its extension, so a list

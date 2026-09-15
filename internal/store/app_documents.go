@@ -127,3 +127,32 @@ func (r *Repository) DeleteAppDocument(ctx context.Context, appID, documentID uu
 	}
 	return nil
 }
+
+// ReplaceAppDocument swaps the bytes of one guide in place, so a re-issued
+// manual keeps its slot and a reader who bookmarked the download link gets the
+// new file. The upload date moves to now: the list shows when the current
+// bytes arrived, not when the name was first taken.
+func (r *Repository) ReplaceAppDocument(ctx context.Context, appID, documentID uuid.UUID, input AppDocumentInput) (model.AppDocument, error) {
+	fileName := strings.TrimSpace(input.FileName)
+	contentType := strings.TrimSpace(input.ContentType)
+	if fileName == "" || contentType == "" || len(input.Content) == 0 {
+		return model.AppDocument{}, fmt.Errorf("app document: %w", ErrInvalid)
+	}
+	sum := sha256.Sum256(input.Content)
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE app_documents
+		SET title = $3, file_name = $4, content_type = $5, content = $6, size = $7,
+		    checksum = $8, uploaded_by = $9, created_at = now()
+		WHERE app_id = $1 AND id = $2`,
+		appID, documentID, strings.TrimSpace(input.Title), fileName, contentType, input.Content,
+		len(input.Content), hex.EncodeToString(sum[:]), input.UploadedBy)
+	if err != nil {
+		return model.AppDocument{}, normalizeError("replace app document", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return model.AppDocument{}, fmt.Errorf("replace app document: %w", ErrNotFound)
+	}
+	document, err := scanAppDocument(r.pool.QueryRow(ctx,
+		`SELECT `+appDocumentColumns+appDocumentFrom+` WHERE d.id = $1`, documentID))
+	return document, normalizeError("read app document", err)
+}

@@ -10,10 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	appstore "github.com/hkjang/appstore"
 	"github.com/hkjang/appstore/internal/buildinfo"
 	"github.com/hkjang/appstore/internal/config"
 	appcrypto "github.com/hkjang/appstore/internal/crypto"
 	"github.com/hkjang/appstore/internal/database"
+	"github.com/hkjang/appstore/internal/guides"
 	"github.com/hkjang/appstore/internal/httpapi"
 	"github.com/hkjang/appstore/internal/store"
 )
@@ -45,7 +47,10 @@ func run(logger *slog.Logger) error {
 	}
 	defer pool.Close()
 
-	service, err := httpapi.New(store.New(pool), box, logger)
+	repository := store.New(pool)
+	attachBundledGuides(repository, logger)
+
+	service, err := httpapi.New(repository, box, logger)
 	if err != nil {
 		return err
 	}
@@ -83,4 +88,23 @@ func run(logger *slog.Logger) error {
 	defer cancelShutdown()
 	logger.Info("appstore shutting down")
 	return server.Shutdown(shutdownCtx)
+}
+
+// attachBundledGuides runs before the listener opens, so /health/ready means
+// the manuals of this release are already on their apps. A failure is logged
+// rather than fatal: a catalog without one manual beats no catalog at all.
+func attachBundledGuides(repository *store.Repository, logger *slog.Logger) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	summary, err := guides.Sync(ctx, repository, appstore.BundledGuides, logger)
+	attrs := []any{
+		"apps", summary.Apps, "unmatched", summary.Unmatched,
+		"attached", summary.Attached, "replaced", summary.Replaced,
+		"unchanged", summary.Unchanged, "failed", summary.Failed,
+	}
+	if err != nil {
+		logger.Error("bundled guide sync stopped early", append(attrs, "error", err)...)
+		return
+	}
+	logger.Info("bundled guides synced", attrs...)
 }
