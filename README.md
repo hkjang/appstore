@@ -22,6 +22,7 @@ AppStore는 누구나 사내 애플리케이션을 탐색하고, 인증된 사�
 - Ctrl/Cmd+K 빠른 이동 팔레트로 메뉴·앱·관리 화면 한 번에 검색
 - PostgreSQL에 저장해 업그레이드에도 유지되는 로고·파비콘 업로드와 주소 가져오기
 - 앱마다 최대 10개까지 첨부하는 가이드 문서(PDF·Office·Markdown, 파일당 20MB)와 앱 상세 화면의 로그인 없는 내려받기
+- 바이너리에 실린 사내 서비스별 사용자·관리자 가이드 — 기동할 때마다 소문자로 바꾼 slug가 같은 앱에 자동 첨부되고, 바뀐 파일만 교체
 - URL 기반 메뉴·검색 상태, SPA refresh fallback과 전역 오류 상태
 - 로그인 화면과 profile context menu의 build version 표시
 - 기본 OFF인 방문 추적 스크립트 삽입 — Momento(사내 수집기, 같은 오리진 프록시)·GA4·GTM·Matomo·직접 붙여 넣기, 요청마다 nonce를 붙인 CSP와 차단된 출처 표시
@@ -100,6 +101,13 @@ go run ./cmd/server
 
 # terminal 2
 npm --prefix web run dev
+```
+
+`guides/<slug>/`에 든 파일은 `go:embed`로 바이너리에 실려 기동할 때마다 slug가 같은 앱에 첨부됩니다. 디렉터리 이름과 앱 slug를 각각 소문자로 바꿔 같을 때만 붙고(`DataWorks`와 `dataworks`는 같은 앱), 같은 이름의 문서가 이미 같은 내용이면 건너뜁니다. aidev가 서비스마다 모아 둔 가이드를 다시 가져오려면 릴리스 전에 아래를 실행하고 함께 커밋합니다.
+
+```bash
+make guides                                    # ../aidev/docs/guides 에서 복사
+make guides GUIDES_SOURCE=/path/to/guides      # 다른 위치에서 복사
 ```
 
 전체 E2E는 다음과 같이 실행합니다.

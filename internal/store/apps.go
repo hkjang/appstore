@@ -203,6 +203,15 @@ func (r *Repository) GetAppBySlug(ctx context.Context, slug string, includeAll b
 	return app, normalizeError("get app by slug", err)
 }
 
+// GetAppBySlugFold finds an app whose slug equals the given one once both are
+// lowered, regardless of status or visibility. The bundled guide sync uses it
+// so a directory named DataWorks still lands on the app "dataworks".
+func (r *Repository) GetAppBySlugFold(ctx context.Context, slug string) (model.App, error) {
+	app, err := scanApp(r.pool.QueryRow(ctx, `SELECT `+appColumns+appFrom+
+		` WHERE lower(a.slug) = lower($1) ORDER BY a.slug LIMIT 1`, normalizeFilter(slug)))
+	return app, normalizeError("get app by slug fold", err)
+}
+
 func validateAppInput(input model.AppInput) (model.AppInput, error) {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Slug = normalizeKey(input.Slug)

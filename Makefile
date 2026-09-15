@@ -12,7 +12,7 @@ LDFLAGS := -s -w \
 	-X github.com/hkjang/appstore/internal/buildinfo.BuildDate=$(BUILD_DATE)
 
 .PHONY: help web-install web-build embed-web build run test test-go test-web test-e2e \
-	screenshots check check-env check-offline check-docs image archive \
+	screenshots guides check check-env check-offline check-docs image archive \
 	verify-archive clean
 
 help: ## Show available targets.
@@ -48,6 +48,9 @@ screenshots: web-build ## Capture every route and publish full-page WebP docs (V
 	cd web && npm run test:e2e
 	node ./scripts/publish-doc-screenshots.mjs web/test-results '$(VERSION)'
 	./scripts/check-docs.sh
+
+guides: ## Refresh guides/ from the collected service guides (GUIDES_SOURCE=../aidev/docs/guides).
+	./scripts/sync-guides.sh $(GUIDES_SOURCE)
 
 check: check-env check-offline check-docs ## Validate configuration and offline documentation contracts.
 
