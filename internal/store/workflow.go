@@ -227,6 +227,30 @@ func (r *Repository) GetReview(ctx context.Context, id uuid.UUID) (model.Review,
 	return review, normalizeError("get review", err)
 }
 
+// ListAppReviews returns every review an app has been through, newest first.
+// A reviewer deciding the current one needs to see what was asked before and
+// what the last reviewer wrote, which the queue row alone never says.
+func (r *Repository) ListAppReviews(ctx context.Context, appID uuid.UUID, limit int) ([]model.Review, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	rows, err := r.pool.Query(ctx, `SELECT `+reviewColumns+reviewFrom+`
+		WHERE rv.app_id = $1 ORDER BY rv.created_at DESC, rv.id DESC LIMIT $2`, appID, limit)
+	if err != nil {
+		return nil, normalizeError("list app reviews", err)
+	}
+	defer rows.Close()
+	reviews := []model.Review{}
+	for rows.Next() {
+		review, err := scanReview(rows)
+		if err != nil {
+			return nil, normalizeError("scan app review", err)
+		}
+		reviews = append(reviews, review)
+	}
+	return reviews, normalizeError("iterate app reviews", rows.Err())
+}
+
 // LatestReviewsByApp returns the newest review of each requested app: the one
 // that explains the status the app is sitting in, so an owner can be told why a
 // submission was rejected without holding the reviews:read permission. Apps

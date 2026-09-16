@@ -488,3 +488,30 @@ test("관리자는 SecCheck 연동을 설정하고 연결을 확인한다", asyn
   await page.getByRole("button", { name: "연결 테스트" }).click();
   await expect(page.getByText(/SecCheck에 연결했습니다/)).toBeVisible();
 });
+
+test("검토자는 앱 내용과 이전 검토를 보고 의견과 함께 결정한다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/review/dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+  // The app's name is both the page title and the heading of its card, so the
+  // page's own heading is the one to look at.
+  await expect(
+    page.getByRole("heading", { name: "Flow Studio", level: 1 }),
+  ).toBeVisible();
+  // What the decision rests on: the app itself, its guide, its security state
+  // and what the last reviewer said.
+  await expect(
+    page.getByText("조직의 API와 이벤트를 연결해 업무 흐름을 구성합니다."),
+  ).toBeVisible();
+  await expect(page.getByText("Flow Studio 운영 가이드")).toBeVisible();
+  await expect(page.getByText("보안 심의 완료")).toBeVisible();
+  await expect(page.getByText(/사내망에서 열리지 않았습니다/)).toBeVisible();
+
+  // A rejection needs a note; an approval may carry one.
+  await page.getByRole("button", { name: /반려/ }).click();
+  await expect(page.getByText(/사유를 입력하세요/)).toBeVisible();
+  await page.getByLabel("검토 의견").fill("사내망 접속을 확인했습니다.");
+  await page.getByRole("button", { name: /승인 및 게시/ }).click();
+  await expect(page).toHaveURL(/\/review$/);
+});

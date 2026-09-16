@@ -279,6 +279,14 @@ export interface SecurityCheckView {
   verified: boolean;
 }
 
+/** What the review screen shows: the review plus what it is about. */
+export interface ReviewDetail extends Review {
+  app?: StoreApp;
+  documents?: AppDocument[];
+  securityCheck?: SecurityCheckView;
+  history?: Review[];
+}
+
 export interface SecurityCheckSettings {
   enabled: boolean;
   baseUrl: string;
