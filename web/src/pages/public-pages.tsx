@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Blocks,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Heart,
   Rocket,
@@ -10,10 +12,20 @@ import {
   Star,
   Tags,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { AppGuideDocuments } from "../features/apps/guide-documents";
+import { SecurityVerifiedBadge } from "../features/security-check/verified-badge";
+import type { StoreApp } from "../types";
 import { formatDate } from "../lib/utils";
 import { AppCard } from "../features/apps/app-card";
 import { heroCopy } from "../features/home/hero-copy";
@@ -457,6 +469,7 @@ export function AppDetailPage() {
                   {item.status}
                 </Badge>
               )}
+              <SecurityVerifiedBadge app={item} showDate />
             </div>
             <h1 className="detail-title">{item.name}</h1>
             <p className="detail-summary">{item.summary}</p>
@@ -489,20 +502,13 @@ export function AppDetailPage() {
         </header>
       </Card>
       <div className="detail-body">
-        <Card className="prose-card">
-          <h2>앱 소개</h2>
-          <p>{item.description || item.summary}</p>
-          {item.tags?.length ? (
-            <>
-              <h2 className="!mt-8">태그</h2>
-              <div className="badge-row">
-                {item.tags.map((tag) => (
-                  <Badge key={tag}>{tag}</Badge>
-                ))}
-              </div>
-            </>
-          ) : null}
-        </Card>
+        {/* The guide files sit in the same column as the introduction rather
+            than in a third grid cell: a long 정보 card used to decide where
+            row two started, which pushed the downloads off the first screen. */}
+        <div className="detail-main">
+          <AppIntroCard app={item} />
+          <AppGuideDocuments appSlug={item.slug} />
+        </div>
         <Card className="prose-card">
           <h2>정보</h2>
           <dl className="meta-list">
@@ -522,9 +528,80 @@ export function AppDetailPage() {
             <Meta label="업데이트" value={formatDate(item.updatedAt)} />
           </dl>
         </Card>
-        <AppGuideDocuments appSlug={item.slug} />
       </div>
     </div>
+  );
+}
+
+/**
+ * 앱 소개 whose long description is folded away.
+ *
+ * The description is free text an owner types, and a thorough one ran long
+ * enough to push everything below it — the guide downloads included — past the
+ * fold. It is clamped to a few lines, and the toggle only appears when there is
+ * something left to show.
+ */
+function AppIntroCard({ app }: { app: StoreApp }) {
+  const description = app.description || app.summary;
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const intro = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    const element = intro.current;
+    if (!element) return;
+    // Measuring while expanded reports no overflow, so the answer from the
+    // clamped render is the one that decides whether the toggle belongs.
+    // A narrower window fits fewer lines, so the same text can start needing
+    // the toggle without the app ever re-rendering.
+    const measure = () => {
+      if (!expanded) {
+        setOverflows(element.scrollHeight - element.clientHeight > 4);
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [description, expanded]);
+  return (
+    <Card className="prose-card">
+      <h2>앱 소개</h2>
+      <p
+        ref={intro}
+        className={expanded ? "app-intro" : "app-intro is-clamped"}
+      >
+        {description}
+      </p>
+      {overflows && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="app-intro-toggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? (
+            <>
+              접기 <ChevronUp size={16} aria-hidden="true" />
+            </>
+          ) : (
+            <>
+              더 보기 <ChevronDown size={16} aria-hidden="true" />
+            </>
+          )}
+        </Button>
+      )}
+      {app.tags?.length ? (
+        <>
+          <h2 className="!mt-8">태그</h2>
+          <div className="badge-row">
+            {app.tags.map((tag) => (
+              <Badge key={tag}>{tag}</Badge>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </Card>
   );
 }
 

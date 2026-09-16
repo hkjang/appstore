@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { PublicLayout, RequireAuth } from "../components/route-guards";
 import { ForbiddenState, NotFoundState } from "../components/ui";
 import { AppFormPage } from "../pages/app-form-page";
+import { AdminSecurityCheckPage } from "../features/security-check/admin-page";
+import { AppSecurityCheckPage } from "../features/security-check/owner-page";
 import { LoginPage } from "../pages/auth-pages";
 import {
   AdminAiPage,
@@ -83,6 +85,7 @@ export function AppRouter() {
         <Route path="my" element={<MyDashboardPage />} />
         <Route path="my/apps" element={<MyAppsPage />} />
         <Route path="my/apps/:id/edit" element={<AppFormPage edit />} />
+        <Route path="my/apps/:id/security" element={<AppSecurityCheckPage />} />
         <Route path="my/keys" element={<MyKeysPage />} />
         <Route path="my/profile" element={<ProfilePage />} />
         <Route path="my/activity" element={<ActivityPage />} />
@@ -123,6 +126,10 @@ export function AppRouter() {
           element={<AdminAuthenticationPage />}
         />
         <Route path="admin/security" element={<AdminSecurityPage />} />
+        <Route
+          path="admin/security-check"
+          element={<AdminSecurityCheckPage />}
+        />
         <Route path="admin/analytics" element={<AdminAnalyticsPage />} />
         <Route path="admin/audit" element={<AdminAuditPage />} />
         <Route path="admin/settings" element={<AdminSystemSettingsPage />} />

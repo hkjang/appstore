@@ -95,7 +95,9 @@ func (s *Server) mcpSubmitApp(ctx context.Context, caller mcp.Caller, arguments 
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.repository.SubmitApp(ctx, app.ID, userID)
+	// An MCP client registers apps through the same gate as the web form: with
+	// security required and nothing approved, the app waits as a draft.
+	result, err := s.submitOrHold(ctx, app, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +138,7 @@ func (s *Server) mcpUpdateApp(ctx context.Context, caller mcp.Caller, arguments 
 	}
 	workflow, workflowErr := s.repository.GetWorkflowConfig(ctx)
 	if workflowErr == nil && resubmitAfterEdit(workflow, before.Status) {
-		result, submitErr := s.repository.SubmitApp(ctx, id, userID)
+		result, submitErr := s.submitOrHold(ctx, after, userID)
 		if submitErr != nil {
 			return nil, submitErr
 		}

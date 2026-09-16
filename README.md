@@ -15,6 +15,7 @@ AppStore는 누구나 사내 애플리케이션을 탐색하고, 인증된 사�
 - 개인 영역과 서비스 관리자 영역의 명확한 분리
 - 관리자 앱 카탈로그의 검색·상태 필터와 앱 상세 정보 수정·게시 상태 변경·영구 삭제
 - 기본 OFF인 선택형 팀장 검토·승인·반려 Workflow와, 승인 ON일 때 SSO 사용자 기본 역할을 contributor로 올리는 정책
+- 기본 OFF인 SecCheck 보안 심의 연동 — 등록자가 최종 승인을 받아야 앱이 검토 대기로 넘어가고, 승인된 앱에는 **보안 심의 완료** 라벨이 붙습니다
 - 원문을 저장하지 않는 개인 API·MCP Key와 회전 Grace Period
 - 변경 가능한 역할, permission과 Key permission template
 - REST API v1, OpenAPI 문서와 권한별 MCP tool

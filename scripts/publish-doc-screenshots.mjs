@@ -186,6 +186,15 @@ const pages = [
     alt: "반려 사유 안내 아래에 소유한 앱의 정보를 수정하는 양식이 이어지는 전체 화면",
   },
   {
+    id: "my-app-security",
+    screen: "my-app-security",
+    route: "/my/apps/ffffffff-ffff-4fff-8fff-ffffffffffff/security",
+    routePattern: "/my/apps/:id/security",
+    access: "owner",
+    title: "App security review",
+    alt: "SecCheck 심의 설명에 붙여 넣을 연동 정보와 심의 상태를 보여 주는 앱 보안 심의 전체 화면",
+  },
+  {
     id: "my-keys",
     screen: "my-keys",
     route: "/my/keys",
@@ -382,6 +391,15 @@ const pages = [
     access: "admin",
     title: "Security and key policy",
     alt: "암호화와 개인 Key 회전 정책을 관리하는 보안 전체 화면",
+  },
+  {
+    id: "admin-security-check",
+    screen: "admin-security-check",
+    route: "/admin/security-check",
+    routePattern: "/admin/security-check",
+    access: "admin",
+    title: "Security review integration",
+    alt: "SecCheck 주소와 API Key, 보안 심의 필수 설정을 관리하는 전체 화면",
   },
   {
     id: "admin-analytics",

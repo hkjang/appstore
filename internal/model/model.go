@@ -69,6 +69,10 @@ type App struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
 	PublishedAt   *time.Time `json:"publishedAt,omitempty"`
+	// SecurityVerified is SecCheck approval for exactly this content; it drops
+	// to false the moment the app is edited or the connection changes.
+	SecurityVerified   bool       `json:"securityVerified"`
+	SecurityVerifiedAt *time.Time `json:"securityVerifiedAt,omitempty"`
 }
 
 type AppInput struct {

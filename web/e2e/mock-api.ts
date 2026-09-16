@@ -102,6 +102,45 @@ const appDocuments = [
   },
 ];
 
+const securityBinding = [
+  "[APPSTORE-SECURITY-CHECK:v1]",
+  "app_id=ffffffff-ffff-4fff-8fff-ffffffffffff",
+  "challenge=99999999-9999-4999-8999-999999999999",
+  'name="Release Radar"',
+  'slug="release-radar"',
+  'service_url="https://radar.internal.example"',
+  'version="0.9.0"',
+  "content_sha256=2b1f0c1d6f8a4c2e9d70f1a35c7b8e0d1f2a3b4c5d6e7f8091a2b3c4d5e6f7a8",
+  "[/APPSTORE-SECURITY-CHECK]",
+].join("\n");
+
+const securityCheckView = {
+  enabled: true,
+  configured: true,
+  appId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+  appName: "Release Radar",
+  appStatus: "draft",
+  bindingText: securityBinding,
+  newReviewUrl: "https://seccheck.internal.example/reviews/new",
+  reviewUrl:
+    "https://seccheck.internal.example/reviews/77777777-7777-4777-8777-777777777777",
+  reviewId: "77777777-7777-4777-8777-777777777777",
+  reviewNumber: "SEC-2026-0042",
+  status: "APPROVAL_PENDING",
+  finalResult: "",
+  checkedAt: "2026-09-16T01:00:00Z",
+  verified: false,
+};
+
+const securityCheckSettings = {
+  enabled: true,
+  baseUrl: "https://seccheck.internal.example",
+  apiKeySet: true,
+  timeoutSeconds: 10,
+  revision: 3,
+  updatedAt: "2026-09-16T00:30:00Z",
+};
+
 const adminUser = {
   id: "99999999-9999-4999-8999-999999999999",
   username: "admin",
@@ -263,6 +302,27 @@ export async function installMockApi(
         limit: 24,
         offset: 0,
       });
+    }
+    if (path.includes("/security-check")) {
+      if (path.startsWith("/api/v1/admin/security-check")) {
+        if (path.endsWith("/test"))
+          return json({
+            ok: true,
+            account: "appstore",
+            displayName: "AppStore 연동",
+            roles: ["AUDITOR"],
+          });
+        return json(securityCheckSettings);
+      }
+      if (request.method() === "POST")
+        return json({
+          ...securityCheckView,
+          status: "APPROVED",
+          finalResult: "APPROVED",
+          verified: true,
+          approvedAt: "2026-09-16T01:05:00Z",
+        });
+      return json(securityCheckView);
     }
     if (path.includes("/documents")) {
       if (request.method() === "DELETE")

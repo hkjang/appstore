@@ -98,6 +98,11 @@ export const adminGroups: NavGroup[] = [
       { to: "/admin/api-keys", label: "API 키", icon: KeyRound },
       { to: "/admin/authentication", label: "인증·SSO", icon: Shield },
       { to: "/admin/security", label: "보안·키 정책", icon: SlidersHorizontal },
+      {
+        to: "/admin/security-check",
+        label: "보안 심의 연동",
+        icon: ShieldCheck,
+      },
       { to: "/admin/analytics", label: "방문 추적", icon: ChartNoAxesCombined },
       { to: "/admin/settings", label: "시스템 설정", icon: Settings },
     ],

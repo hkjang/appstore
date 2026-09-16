@@ -74,6 +74,9 @@ export interface StoreApp {
   updatedAt?: string;
   /** Latest review of an owned app; /me/apps carries it so owners read why. */
   review?: Review;
+  /** SecCheck approval for exactly this content; an edit clears it. */
+  securityVerified?: boolean;
+  securityVerifiedAt?: string;
 }
 
 /** A guide file attached to an app; the bytes stay on the server. */
@@ -254,4 +257,40 @@ export interface CspViolation {
   firstSeen: string;
   lastSeen: string;
   allowed: boolean;
+}
+
+/** What an owner sees about their app's SecCheck review. */
+export interface SecurityCheckView {
+  enabled: boolean;
+  configured: boolean;
+  appId: string;
+  appName: string;
+  appStatus: AppStatus;
+  /** The block to paste into the SecCheck review description. */
+  bindingText: string;
+  newReviewUrl?: string;
+  reviewUrl?: string;
+  reviewId?: string;
+  reviewNumber?: string;
+  status: string;
+  finalResult?: string;
+  approvedAt?: string;
+  checkedAt?: string;
+  verified: boolean;
+}
+
+export interface SecurityCheckSettings {
+  enabled: boolean;
+  baseUrl: string;
+  apiKeySet: boolean;
+  timeoutSeconds: number;
+  revision?: number;
+  updatedAt?: string;
+}
+
+export interface SecurityCheckTestResult {
+  ok: boolean;
+  account?: string;
+  displayName?: string;
+  roles?: string[];
 }
