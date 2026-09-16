@@ -432,12 +432,12 @@
       "viewport": "desktop",
       "output": "assets/screenshots/captures/review-detail-desktop.webp",
       "title": "Review detail",
-      "alt": "앱 승인 또는 반려를 결정하는 검토 상세 전체 화면",
+      "alt": "앱 내용, 가이드 문서, 보안 심의 상태와 이전 검토를 함께 보여 주는 검토 상세 전체 화면",
       "status": "captured",
       "version": "v2.10.0",
-      "sha256": "7d2c99e04b73ca702df570c5066e95134834c880079ae1c0d2ae6e129eb43f37",
+      "sha256": "21ebd70044dfc3dff2f78b12008f959c9903cfa7b4708ea8076823a2bf551633",
       "width": 1440,
-      "height": 1000,
+      "height": 1351,
       "fullPage": true
     },
     {
@@ -1154,12 +1154,12 @@
       "viewport": "mobile",
       "output": "assets/screenshots/captures/review-detail-mobile.webp",
       "title": "Review detail",
-      "alt": "앱 승인 또는 반려를 결정하는 검토 상세 전체 화면",
+      "alt": "앱 내용, 가이드 문서, 보안 심의 상태와 이전 검토를 함께 보여 주는 검토 상세 전체 화면",
       "status": "captured",
       "version": "v2.10.0",
-      "sha256": "d9faa3b66e02b8537227e6b65ebefa1297b28f83001d75811323cfd87bef7b8b",
+      "sha256": "2a674e66cb9289eca8f3153143b297c4a0f5bddd08207e64c3b32be6176910d7",
       "width": 1082,
-      "height": 2202,
+      "height": 6402,
       "fullPage": true
     },
     {

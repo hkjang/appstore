@@ -14,6 +14,7 @@ import type {
   PersonalKey,
   PublicConfig,
   Review,
+  ReviewDetail,
   SecurityCheckSettings,
   SecurityCheckTestResult,
   SecurityCheckView,
@@ -358,15 +359,18 @@ export const api = {
       "reviews",
     ]),
   review: (id: string, signal?: AbortSignal) =>
-    apiFetch<Review>(`/api/v1/reviews/${encodeURIComponent(id)}`, { signal }),
-  approveReview: (id: string) =>
+    apiFetch<ReviewDetail>(`/api/v1/reviews/${encodeURIComponent(id)}`, {
+      signal,
+    }),
+  approveReview: (id: string, comment = "") =>
     apiFetch<Review>(`/api/v1/reviews/${encodeURIComponent(id)}/approve`, {
       method: "POST",
+      body: JSON.stringify({ comment }),
     }),
-  rejectReview: (id: string, reason: string) =>
+  rejectReview: (id: string, comment: string) =>
     apiFetch<Review>(`/api/v1/reviews/${encodeURIComponent(id)}/reject`, {
       method: "POST",
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ comment }),
     }),
   admin: <T>(resource: string, signal?: AbortSignal) =>
     apiFetch<T>(`/api/v1/admin/${resource}`, { signal }),

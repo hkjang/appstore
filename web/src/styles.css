@@ -1891,3 +1891,27 @@ button {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.review-history {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.review-history-item {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+}
+/* A reviewer's note keeps the line breaks they typed: a list of findings read
+   as one paragraph is the wrong list. */
+.review-history-comment {
+  margin: 6px 0 0;
+  color: var(--text-soft);
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

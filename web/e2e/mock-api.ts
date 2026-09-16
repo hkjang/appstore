@@ -171,6 +171,55 @@ const review = {
   createdAt: "2026-09-01T07:00:00Z",
 };
 
+// What the review screen asks for: the review plus the app it is about, the
+// guides attached to it, the SecCheck state and what earlier reviewers said.
+const reviewDetail = {
+  ...review,
+  app: apps[1],
+  documents: [
+    {
+      id: "e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2",
+      appId: apps[1]?.id,
+      title: "Flow Studio 운영 가이드",
+      fileName: "flow-studio-guide.pdf",
+      contentType: "application/pdf",
+      size: 245760,
+      createdAt: "2026-08-31T05:00:00Z",
+      downloadUrl: `/api/v1/apps/${apps[1]?.id}/documents/e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2`,
+    },
+  ],
+  securityCheck: {
+    enabled: true,
+    configured: true,
+    appId: apps[1]?.id,
+    appName: "Flow Studio",
+    appStatus: "pending_review",
+    bindingText: "",
+    reviewUrl:
+      "https://seccheck.internal.example/reviews/66666666-6666-4666-8666-666666666666",
+    reviewNumber: "SEC-2026-0031",
+    status: "APPROVED",
+    finalResult: "APPROVED",
+    approvedAt: "2026-08-31T08:00:00Z",
+    verified: true,
+  },
+  history: [
+    review,
+    {
+      id: "cdcdcdcd-cdcd-4cdc-8cdc-cdcdcdcdcdcd",
+      appId: apps[1]?.id,
+      appName: "Flow Studio",
+      level: 1,
+      status: "rejected",
+      reason:
+        "서비스 URL이 사내망에서 열리지 않았습니다. 확인 후 다시 제출하세요.",
+      reviewerName: "박검토",
+      createdAt: "2026-08-28T02:00:00Z",
+      decidedAt: "2026-08-28T06:00:00Z",
+    },
+  ],
+};
+
 // The signed-in user's own list. The public catalog above only carries
 // published apps; an owner also sees the ones that were sent back, together
 // with the review that rejected them (what /me/apps returns).
@@ -434,7 +483,12 @@ export async function installMockApi(
         },
       });
     if (path === "/api/v1/reviews") return json([review]);
-    if (path === `/api/v1/reviews/${review.id}`) return json(review);
+    if (path === `/api/v1/reviews/${review.id}`) return json(reviewDetail);
+    if (path.startsWith(`/api/v1/reviews/${review.id}/`))
+      return json({
+        ...review,
+        status: path.endsWith("/approve") ? "approved" : "rejected",
+      });
     if (path === "/api/v1/ai/chat/stream") {
       return route.fulfill({
         status: 200,
