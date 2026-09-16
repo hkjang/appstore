@@ -494,8 +494,10 @@ test("검토자는 앱 내용과 이전 검토를 보고 의견과 함께 결정
 }) => {
   await installMockApi(page, { authenticated: true });
   await page.goto("/review/dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+  // The app's name is both the page title and the heading of its card, so the
+  // page's own heading is the one to look at.
   await expect(
-    page.getByRole("heading", { name: "Flow Studio" }),
+    page.getByRole("heading", { name: "Flow Studio", level: 1 }),
   ).toBeVisible();
   // What the decision rests on: the app itself, its guide, its security state
   // and what the last reviewer said.
