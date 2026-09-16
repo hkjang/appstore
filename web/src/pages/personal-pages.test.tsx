@@ -68,6 +68,54 @@ describe("My applications", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("opens the edit screen from a card the public detail route would 404 on", async () => {
+    renderMyApps([
+      myApp({ status: "published", visibility: "public" }),
+      myApp({
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        slug: "flow-studio",
+        name: "Flow Studio",
+        status: "pending_review",
+      }),
+      myApp({
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        slug: "secure-vault",
+        name: "Secure Vault",
+        status: "published",
+        visibility: "private",
+      }),
+    ]);
+
+    // A published, public app still opens its catalog page.
+    const published = await screen.findByRole("heading", {
+      name: "Agent Hub",
+    });
+    expect(published.querySelector("a")).toHaveAttribute(
+      "href",
+      "/apps/agent-hub",
+    );
+    expect(
+      screen.getByRole("link", { name: "Agent Hub 상세 보기" }),
+    ).toHaveAttribute("href", "/apps/agent-hub");
+
+    // /apps/{slug} serves only published, public apps, so the other two have
+    // no page there: the name link goes to the owner's edit screen and the
+    // 자세히 button, with nothing to show, is left out.
+    for (const [name, id] of [
+      ["Flow Studio", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"],
+      ["Secure Vault", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+    ]) {
+      const heading = screen.getByRole("heading", { name });
+      expect(heading.querySelector("a")).toHaveAttribute(
+        "href",
+        `/my/apps/${id}/edit`,
+      );
+      expect(
+        screen.queryByRole("link", { name: `${name} 상세 보기` }),
+      ).toBeNull();
+    }
+  });
+
   it("shows why a rejected app was sent back", async () => {
     renderMyApps([
       myApp({

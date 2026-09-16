@@ -445,6 +445,23 @@ test("앱 카드는 이름 밖을 눌러도 앱 상세로 이동한다", async (
   await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
 });
 
+test("게시되지 않은 내 앱의 카드는 수정 화면으로 열린다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/my/apps");
+  // Release Radar was rejected, so /apps/release-radar would answer 404; the
+  // card has no 자세히 and its name (and the overlay it draws) opens the edit
+  // screen instead.
+  const card = page.locator(".app-card").filter({ hasText: "Release Radar" });
+  await expect(
+    card.getByRole("link", { name: "Release Radar 상세 보기" }),
+  ).toHaveCount(0);
+  await card.getByRole("link", { name: "Release Radar", exact: true }).click();
+  await expect(page).toHaveURL(
+    /\/my\/apps\/ffffffff-ffff-4fff-8fff-ffffffffffff\/edit$/,
+  );
+  await expect(page.getByRole("heading", { name: "앱 수정" })).toBeVisible();
+});
+
 test("관리자의 앱 카드는 자세히 글자 없이 아이콘만 보여 준다", async ({
   page,
 }) => {
