@@ -17,6 +17,8 @@ const appColumns = `
 	COALESCE(NULLIF(u.display_name, ''), u.username, ''), a.team,
 	a.app_version, a.visibility, a.status, a.featured, a.featured_rank, a.trending_score,
 	a.created_at, a.updated_at, a.published_at,
+	` + securityVerifiedSQL + `,
+	CASE WHEN ` + securityVerifiedSQL + ` THEN sc.approved_at ELSE NULL END,
 	c.id, c.slug, c.name, c.icon, c.description, c.position, c.active`
 
 // featuredOrder puts hand-ranked apps first in the order the editor chose and
@@ -52,6 +54,8 @@ func appListOrder(options model.AppListOptions) string {
 
 const appFrom = `
 	FROM apps a
+	CROSS JOIN security_check_settings ss
+	LEFT JOIN app_security_checks sc ON sc.review_id = a.security_review_id
 	JOIN categories c ON c.id = a.category_id
 	LEFT JOIN users u ON u.id = a.owner_id`
 
@@ -66,6 +70,7 @@ func scanApp(row rowScanner) (model.App, error) {
 		&app.SupportsMCP, &app.SupportsAPI, &app.OwnerID, &app.OwnerName,
 		&app.Team, &app.Version, &app.Visibility, &app.Status, &app.Featured,
 		&app.FeaturedRank, &app.TrendingScore, &app.CreatedAt, &app.UpdatedAt, &app.PublishedAt,
+		&app.SecurityVerified, &app.SecurityVerifiedAt,
 		&category.ID, &category.Slug, &category.Name, &category.Icon,
 		&category.Description, &category.Position, &category.Active,
 	)
@@ -101,6 +106,7 @@ func scanAppWithTotal(row rowScanner) (model.App, int, error) {
 		&app.SupportsMCP, &app.SupportsAPI, &app.OwnerID, &app.OwnerName,
 		&app.Team, &app.Version, &app.Visibility, &app.Status, &app.Featured,
 		&app.FeaturedRank, &app.TrendingScore, &app.CreatedAt, &app.UpdatedAt, &app.PublishedAt,
+		&app.SecurityVerified, &app.SecurityVerifiedAt,
 		&category.ID, &category.Slug, &category.Name, &category.Icon,
 		&category.Description, &category.Position, &category.Active,
 	)
@@ -294,7 +300,16 @@ func (r *Repository) UpdateApp(ctx context.Context, id uuid.UUID, input model.Ap
 	if err != nil {
 		return model.App{}, fmt.Errorf("update app category: %w", ErrInvalid)
 	}
-	result, err := r.pool.Exec(ctx, `
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return model.App{}, normalizeError("begin app update", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	before, err := scanApp(tx.QueryRow(ctx, `SELECT `+appColumns+appFrom+` WHERE a.id = $1 FOR UPDATE OF a`, id))
+	if err != nil {
+		return model.App{}, normalizeError("lock updated app", err)
+	}
+	result, err := tx.Exec(ctx, `
 		UPDATE apps SET category_id = $2, name = $3, slug = $4, summary = $5,
 			description = $6, icon = $7, gradient = $8, service_url = $9,
 			tags = $10, screenshots = $11, language = $12, framework = $13,
@@ -310,6 +325,16 @@ func (r *Repository) UpdateApp(ctx context.Context, id uuid.UUID, input model.Ap
 	}
 	if result.RowsAffected() == 0 {
 		return model.App{}, fmt.Errorf("update app: %w", ErrNotFound)
+	}
+	// Changed content means the approval SecCheck gave no longer describes this
+	// app, so the challenge rotates and the owner goes round again.
+	if securityRelevantChange(before, input) {
+		if err := rotateAppChallenge(ctx, tx, id); err != nil {
+			return model.App{}, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return model.App{}, normalizeError("commit app update", err)
 	}
 	return r.GetAppByID(ctx, id)
 }
@@ -434,7 +459,19 @@ func (r *Repository) SetAppStatus(ctx context.Context, id uuid.UUID, status stri
 	if !validAppStatus(status) {
 		return model.App{}, fmt.Errorf("set app status: %w", ErrInvalid)
 	}
-	result, err := r.pool.Exec(ctx, `
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return model.App{}, normalizeError("begin app status", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var locked uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT id FROM apps WHERE id = $1 FOR UPDATE`, id).Scan(&locked); err != nil {
+		return model.App{}, normalizeError("lock app status", err)
+	}
+	if err := gateAppStatus(ctx, tx, id, status); err != nil {
+		return model.App{}, err
+	}
+	result, err := tx.Exec(ctx, `
 		UPDATE apps SET status = $2, updated_at = now(),
 			published_at = CASE WHEN $2 = 'published' THEN COALESCE(published_at, now()) ELSE published_at END
 		WHERE id = $1`, id, status)
@@ -443,6 +480,9 @@ func (r *Repository) SetAppStatus(ctx context.Context, id uuid.UUID, status stri
 	}
 	if result.RowsAffected() == 0 {
 		return model.App{}, fmt.Errorf("set app status: %w", ErrNotFound)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return model.App{}, normalizeError("commit app status", err)
 	}
 	return r.GetAppByID(ctx, id)
 }

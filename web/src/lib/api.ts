@@ -14,6 +14,9 @@ import type {
   PersonalKey,
   PublicConfig,
   Review,
+  SecurityCheckSettings,
+  SecurityCheckTestResult,
+  SecurityCheckView,
   Session,
   StoreApp,
   User,
@@ -294,6 +297,38 @@ export const api = {
     apiFetch<StoreApp>(`/api/v1/apps/${encodeURIComponent(id)}`, {
       method: "PUT",
       body: JSON.stringify(input),
+    }),
+  appSecurityCheck: (appId: string, signal?: AbortSignal) =>
+    apiFetch<SecurityCheckView>(
+      `/api/v1/apps/${encodeURIComponent(appId)}/security-check`,
+      { signal },
+    ),
+  verifyAppSecurityCheck: (appId: string, reviewId: string) =>
+    apiFetch<SecurityCheckView>(
+      `/api/v1/apps/${encodeURIComponent(appId)}/security-check/verify`,
+      { method: "POST", body: JSON.stringify({ reviewId }), timeoutMs: 60_000 },
+    ),
+  submitApp: (appId: string) =>
+    apiFetch<StoreApp>(`/api/v1/apps/${encodeURIComponent(appId)}/submit`, {
+      method: "POST",
+      timeoutMs: 60_000,
+    }),
+  securityCheckSettings: (signal?: AbortSignal) =>
+    apiFetch<SecurityCheckSettings>("/api/v1/admin/security-check", { signal }),
+  updateSecurityCheckSettings: (input: {
+    enabled: boolean;
+    baseUrl: string;
+    apiKey?: string;
+    timeoutSeconds: number;
+  }) =>
+    apiFetch<SecurityCheckSettings>("/api/v1/admin/security-check", {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
+  testSecurityCheck: () =>
+    apiFetch<SecurityCheckTestResult>("/api/v1/admin/security-check/test", {
+      method: "POST",
+      timeoutMs: 60_000,
     }),
   appDocuments: async (app: string, signal?: AbortSignal) =>
     listFrom<AppDocument>(

@@ -6,6 +6,7 @@ import { AppIcon, Badge, Button } from "../../components/ui";
 import { useFavorites } from "./favorites";
 import { AppAdminLink, useCanManageApps } from "./admin-shortcut";
 import { AppStatusBadge } from "./app-status";
+import { SecurityVerifiedBadge } from "../security-check/verified-badge";
 
 // The public catalog only ever lists published apps, so the status is noise
 // there; an owner's own list mixes drafts, pending, rejected and archived apps
@@ -27,6 +28,9 @@ export function AppCard({
           <AppIcon app={app} />
           <div className="min-w-0">
             <h2 className="app-card-name">
+              {/* The link stretches over the whole card (see .app-card-name a
+                  in styles.css), so the summary and the badges open the app
+                  too — only the footer controls stay on top of it. */}
               <Link to={`/apps/${encodeURIComponent(app.slug)}`}>
                 {app.name}
               </Link>
@@ -36,6 +40,7 @@ export function AppCard({
         </div>
         <div className="badge-row" aria-label="앱 특성">
           {showStatus && <AppStatusBadge status={app.status} />}
+          <SecurityVerifiedBadge app={app} />
           {(app.category?.name || app.categoryName) && (
             <Badge>{app.category?.name || app.categoryName}</Badge>
           )}
@@ -69,11 +74,17 @@ export function AppCard({
           {canManage && (
             <AppAdminLink appId={app.id} appName={app.name} compact />
           )}
+          {/* An administrator's card already carries the admin shortcut next
+              to the favourite button; spelling out 자세히 as well crowds the
+              footer, so their row is icons only. */}
           <Link
-            className="button button-secondary button-sm"
+            className={`button button-secondary button-sm${canManage ? " button-icon" : ""}`}
             to={`/apps/${encodeURIComponent(app.slug)}`}
+            title={`${app.name} 상세 보기`}
+            aria-label={`${app.name} 상세 보기`}
           >
-            자세히 <ExternalLink size={15} aria-hidden="true" />
+            {!canManage && <span>자세히</span>}
+            <ExternalLink size={15} aria-hidden="true" />
           </Link>
         </div>
       </footer>

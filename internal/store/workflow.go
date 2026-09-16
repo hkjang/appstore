@@ -81,6 +81,18 @@ func (r *Repository) SubmitApp(ctx context.Context, appID, submitterID uuid.UUID
 	if err != nil {
 		return SubmitResult{}, err
 	}
+	// Submission is the step that puts an app in front of reviewers or, with
+	// the workflow off, straight into the catalog. Both need SecCheck to have
+	// cleared this exact content first.
+	enabled, err := securityCheckEnabled(ctx, tx)
+	if err != nil {
+		return SubmitResult{}, err
+	}
+	if enabled {
+		if err := requireSecurityCheck(ctx, tx, appID); err != nil {
+			return SubmitResult{}, err
+		}
+	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE reviews SET status = 'cancelled', decided_at = now()
 		WHERE app_id = $1 AND status = 'pending'`, appID); err != nil {

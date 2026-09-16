@@ -33,6 +33,11 @@ const personalRoutes: CaptureRoute[] = [
     path: "/my/apps/ffffffff-ffff-4fff-8fff-ffffffffffff/edit",
     heading: "앱 수정",
   },
+  {
+    name: "my-app-security",
+    path: "/my/apps/ffffffff-ffff-4fff-8fff-ffffffffffff/security",
+    heading: "보안 심의",
+  },
   { name: "my-keys", path: "/my/keys", heading: "API · MCP 키" },
   { name: "my-profile", path: "/my/profile", heading: "내 프로필" },
   { name: "my-activity", path: "/my/activity", heading: "내 활동 내역" },
@@ -78,6 +83,11 @@ const adminRoutes: CaptureRoute[] = [
     name: "admin-security",
     path: "/admin/security",
     heading: "보안·키 정책",
+  },
+  {
+    name: "admin-security-check",
+    path: "/admin/security-check",
+    heading: "보안 심의 연동",
   },
   {
     name: "admin-analytics",

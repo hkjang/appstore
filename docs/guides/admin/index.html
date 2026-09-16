@@ -25,7 +25,7 @@
     <main id="guide">
       <header class="section guide-hero"><span class="eyebrow">ADMINISTRATOR GUIDE</span><h1>인증부터 AI까지, 운영 설정을 화면에서 관리하기</h1><p class="lead">환경변수는 설치에 필요한 네 값으로 고정합니다. 운영 중 변경하는 서비스 URL, OIDC, 역할, Workflow, Key 정책, AI, API와 MCP는 관리자 화면과 감사 로그로 관리합니다.</p></header>
       <div class="section compact guide-layout">
-        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#bootstrap">최초 Bootstrap</a><a href="#system">시스템 설정</a><a href="#branding">로고·파비콘</a><a href="#copy">메인 배너 문구</a><a href="#oidc">Keycloak OIDC</a><a href="#roles">역할과 권한</a><a href="#workflow">승인 Workflow</a><a href="#keys">Key 정책</a><a href="#ai">AI 공급자</a><a href="#api-mcp">API와 MCP</a><a href="#apps">앱 카탈로그</a><a href="#users">사용자·감사</a><a href="#security">보안 점검</a></aside>
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#bootstrap">최초 Bootstrap</a><a href="#system">시스템 설정</a><a href="#branding">로고·파비콘</a><a href="#copy">메인 배너 문구</a><a href="#oidc">Keycloak OIDC</a><a href="#roles">역할과 권한</a><a href="#workflow">승인 Workflow</a><a href="#keys">Key 정책</a><a href="#ai">AI 공급자</a><a href="#api-mcp">API와 MCP</a><a href="#security-check">보안 심의 연동</a><a href="#apps">앱 카탈로그</a><a href="#users">사용자·감사</a><a href="#security">보안 점검</a></aside>
         <article class="guide-content">
           <div class="callout"><strong>이 문서는 대체되었습니다.</strong> 설치·환경 변수·운영·장애 대응까지 화면 캡처와 함께 담은 정본 관리자 가이드는 <a href="../../ADMIN_GUIDE.md">docs/ADMIN_GUIDE.md</a>이며 인쇄용 <a href="../../ADMIN_GUIDE.pdf">PDF</a>도 함께 제공합니다. 이 페이지는 웹 요약으로 남겨 두었고, 내용이 다르면 정본을 따릅니다.</div>
           <section id="bootstrap"><h2>1. 최초 Bootstrap 관리자</h2>
@@ -148,6 +148,18 @@
             <h3>REST API</h3><p>API 활성화, 익명 조회, rate limit과 Key permission을 관리합니다. 버전 경로는 <code>/api/v1</code>, OpenAPI는 <code>/openapi.json</code>과 <code>/docs</code>에서 제공합니다.</p>
             <h3>MCP</h3><p><code>/mcp</code> 활성화, 익명 조회, rate limit과 tool permission을 설정합니다. 익명 사용자는 조회 tool만, 인증 사용자는 자신의 앱 tool, 관리자는 운영 tool을 볼 수 있도록 최소 노출을 유지합니다.</p>
             <p>설정 변경 뒤 익명 요청, read-only Key, Contributor Key, Admin Key로 tool 목록과 실행 거부를 각각 시험합니다.</p>
+          </section>
+
+          <section id="security-check"><h2>8-1. 보안 심의 연동 (SecCheck)</h2>
+            <p><code>/admin/security-check</code>에서 SecCheck 주소와 조회용 API Key를 등록하고 <strong>보안 심의 필수</strong>를 켭니다. 기본값은 꺼짐이며, 켜기 전까지 등록 절차는 그대로입니다.</p>
+            <ul>
+              <li>켜면 등록한 앱이 <strong>초안</strong>에 머물고, 등록자가 SecCheck 최종 승인을 확인해야 검토 대기로 넘어갑니다.</li>
+              <li>승인 판단은 서버가 SecCheck에 직접 조회해서 합니다. 등록자가 보내는 값은 심의 ID뿐이며, <code>status=APPROVED</code>, <code>final_result=APPROVED</code>, 미처리 항목 0건을 모두 만족해야 합니다.</li>
+              <li>앱을 수정하면 앱마다 발급된 연동 정보가 새로 바뀌어 이전 승인이 무효가 됩니다. 관리자도 승인 없이 게시하거나 검토 대기로 돌릴 수 없습니다.</li>
+              <li>API Key는 <code>ENCRYPTION_KEY</code>로 암호화해 저장하고 화면에는 <strong>설정됨</strong>으로만 표시합니다. SecCheck에서 <code>AUDITOR</code> 또는 <code>SECURITY_REVIEWER</code> 역할의 read 키를 발급하세요.</li>
+              <li>이미 게시된 앱은 설정을 켜도 내려가지 않습니다.</li>
+            </ul>
+            <figure class="shot"><a href="../../assets/screenshots/captures/admin-security-check-desktop.webp" aria-label="보안 심의 연동 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-security-check-desktop.webp" width="1440" height="1000" decoding="async" alt="SecCheck 주소와 API Key, 보안 심의 필수 설정을 관리하는 전체 화면"></a><figcaption>v2.9.0 실제 화면입니다. 저장된 API Key는 화면으로 돌려주지 않습니다.</figcaption></figure>
           </section>
 
           <section id="apps"><h2>9. 앱 카탈로그 관리</h2>

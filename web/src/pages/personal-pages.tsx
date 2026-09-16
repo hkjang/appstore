@@ -125,7 +125,18 @@ export function MyAppsPage() {
             <div key={app.id}>
               <AppCard app={app} showStatus />
               <RejectionNotice app={app} className="mt-2" />
-              <div className="mt-2 text-right">
+              <div className="mt-2 flex justify-end gap-2">
+                {/* A draft is where an app waits for its security review, so
+                    that is where the owner needs the way in. */}
+                {(app.status === "draft" || app.securityVerified) && (
+                  <ButtonLink
+                    variant="secondary"
+                    size="sm"
+                    to={`/my/apps/${app.id}/security`}
+                  >
+                    보안 심의
+                  </ButtonLink>
+                )}
                 <ButtonLink
                   variant="secondary"
                   size="sm"

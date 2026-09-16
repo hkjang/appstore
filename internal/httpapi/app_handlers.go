@@ -24,9 +24,12 @@ func (s *Server) createApp(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 등록할 수 없습니다."))
 		return
 	}
-	result, err := s.repository.SubmitApp(r.Context(), app.ID, principal.User.ID)
+	// With the security gate on and nothing approved yet, the app is saved as
+	// a draft and the owner goes to the security screen; only an unrelated
+	// failure is an error.
+	result, err := s.submitOrHold(r.Context(), app, principal.User.ID)
 	if err != nil {
-		WriteError(w, r, storeError(err, "APP_NOT_FOUND", "앱을 제출할 수 없습니다."))
+		WriteError(w, r, submitError(err))
 		return
 	}
 	s.recordAudit(r, "app.create", "app", app.ID.String(), nil, result)
@@ -64,10 +67,10 @@ func (s *Server) updateApp(w http.ResponseWriter, r *http.Request) {
 	}
 	config, configErr := s.repository.GetWorkflowConfig(r.Context())
 	if configErr == nil && resubmitAfterEdit(config, before.Status) {
-		if result, submitErr := s.repository.SubmitApp(r.Context(), id, principal.User.ID); submitErr == nil {
+		if result, submitErr := s.submitOrHold(r.Context(), updated, principal.User.ID); submitErr == nil {
 			updated = result.App
 		} else {
-			WriteError(w, r, submitErr)
+			WriteError(w, r, submitError(submitErr))
 			return
 		}
 	}

@@ -433,3 +433,58 @@ test("소유자는 앱 수정 화면에서 가이드 문서를 첨부하고 삭�
   await page.getByRole("button", { name: "변경 저장" }).click();
   await expect(page.getByText("앱 정보가 저장되었습니다.")).toBeVisible();
 });
+
+test("앱 카드는 이름 밖을 눌러도 앱 상세로 이동한다", async ({ page }) => {
+  await installMockApi(page);
+  await page.goto("/apps");
+  const card = page.locator(".app-card").filter({ hasText: "Agent Hub" });
+  // The card's own padding: no text, no button — only the overlay the app name
+  // link draws over the card.
+  await card.first().click({ position: { x: 8, y: 8 } });
+  await expect(page).toHaveURL(/\/apps\/agent-hub$/);
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+});
+
+test("관리자의 앱 카드는 자세히 글자 없이 아이콘만 보여 준다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/apps");
+  const card = page.locator(".app-card").filter({ hasText: "Agent Hub" });
+  await expect(
+    card.getByRole("link", { name: "Agent Hub 상세 보기" }),
+  ).toHaveText("");
+  await expect(
+    card.getByRole("link", { name: "Agent Hub 관리 설정 열기" }),
+  ).toBeVisible();
+  await expect(card.getByText("자세히")).toHaveCount(0);
+});
+
+test("보안 심의를 마쳐야 앱을 제출할 수 있다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/my/apps/ffffffff-ffff-4fff-8fff-ffffffffffff/security");
+  await expect(page.getByRole("heading", { name: "보안 심의" })).toBeVisible();
+  // The block an owner pastes into SecCheck, and no way past it yet.
+  await expect(page.getByText("[APPSTORE-SECURITY-CHECK:v1]")).toBeVisible();
+  await expect(page.getByRole("button", { name: /검토 제출/ })).toHaveCount(0);
+
+  await page.getByLabel("심의 ID").fill("77777777-7777-4777-8777-777777777777");
+  await page.getByRole("button", { name: /심의 결과 확인/ }).click();
+  await expect(page.getByText(/보안 심의가 확인되었습니다/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /검토 제출/ })).toBeVisible();
+});
+
+test("관리자는 SecCheck 연동을 설정하고 연결을 확인한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.goto("/admin/security-check");
+  await expect(
+    page.getByRole("heading", { name: "보안 심의 연동" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("SecCheck 주소")).toHaveValue(
+    "https://seccheck.internal.example",
+  );
+  // The stored key is never sent back to the screen.
+  await expect(page.getByLabel("API Key")).toHaveValue("");
+  await page.getByRole("button", { name: "연결 테스트" }).click();
+  await expect(page.getByText(/SecCheck에 연결했습니다/)).toBeVisible();
+});
