@@ -142,6 +142,11 @@ func (r *Repository) UpdateMCPSettings(ctx context.Context, settings model.MCPSe
 	if settings.RateLimitPerMinute < 1 || settings.RateLimitPerMinute > 1_000_000 || settings.ProtocolVersion == "" {
 		return model.MCPSettings{}, fmt.Errorf("MCP settings: %w", ErrInvalid)
 	}
+	settings.OAuth.Resource = strings.TrimSpace(settings.OAuth.Resource)
+	settings.OAuth.Audience = uniqueStrings(settings.OAuth.Audience)
+	settings.OAuth.Scopes = uniqueStrings(settings.OAuth.Scopes)
+	// Status is a read-time projection, never stored.
+	settings.OAuth.Status = nil
 	if err := r.PutSetting(ctx, "mcp", settings, updatedBy); err != nil {
 		return model.MCPSettings{}, err
 	}
