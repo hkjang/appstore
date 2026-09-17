@@ -26,6 +26,7 @@ type Server struct {
 	logger            *slog.Logger
 	auth              *AuthMiddleware
 	oidc              *appauth.OIDCClient
+	accessTokens      *appauth.AccessTokenVerifier
 	streamer          *ai.Streamer
 	startedAt         time.Time
 	dummyPasswordHash string
@@ -48,9 +49,12 @@ func New(repository *store.Repository, box *appcrypto.SecretBox, logger *slog.Lo
 	}
 	return &Server{
 		repository: repository, box: box, logger: logger,
-		auth:     &AuthMiddleware{Repository: repository, Box: box},
-		oidc:     &appauth.OIDCClient{Box: box, HTTPClient: &http.Client{Timeout: 15 * time.Second}},
-		streamer: &ai.Streamer{Box: box}, startedAt: time.Now().UTC(), dummyPasswordHash: dummyHash,
+		auth: &AuthMiddleware{Repository: repository, Box: box},
+		oidc: &appauth.OIDCClient{Box: box, HTTPClient: &http.Client{Timeout: 15 * time.Second}},
+		// Discovery and key fetches for MCP SSO tokens share the web sign-in's
+		// timeout but not its per-request provider; see AccessTokenVerifier.
+		accessTokens: &appauth.AccessTokenVerifier{HTTPClient: &http.Client{Timeout: 15 * time.Second}},
+		streamer:     &ai.Streamer{Box: box}, startedAt: time.Now().UTC(), dummyPasswordHash: dummyHash,
 		apiLimiter: newFixedWindowLimiter(), mcpLimiter: newFixedWindowLimiter(), loginLimiter: newFixedWindowLimiter(),
 		violations: analytics.NewRecorder(),
 	}, nil
@@ -80,8 +84,14 @@ func (s *Server) Handler() (http.Handler, error) {
 		Provider:     mcp.AppTools{Execute: s.executeMCPTool},
 		Authenticate: s.authenticateMCP,
 		Enabled:      s.mcpPolicy,
+		Challenge:    s.mcpChallenge,
 	}
 	router.Mount("/mcp", s.mcpRateLimit(mcpServer))
+	// RFC 9728: where a refused MCP client learns which authorization server
+	// to sign in with. Both spellings, because clients try the path-suffixed
+	// one first and the bare one as a fallback.
+	router.Get("/.well-known/oauth-protected-resource", s.protectedResourceMetadata)
+	router.Get("/.well-known/oauth-protected-resource/*", s.protectedResourceMetadata)
 	router.HandleFunc(analytics.MomentoProxyPath+"/*", s.momentoProxy)
 
 	router.Route("/api/v1", func(api chi.Router) {
@@ -257,8 +267,22 @@ func (s *Server) apiDocsCSS(w http.ResponseWriter, _ *http.Request) {
 	serveDocAsset(w, "text/css; charset=utf-8", openapi.DocsCSS)
 }
 
+// authenticateMCP reads one Authorization: Bearer header two ways. A value
+// with the key prefix is a personal key, exactly as before. Otherwise, when
+// MCP SSO is live and the value has the shape of a JWT, it is a Keycloak
+// access token; when SSO is off, such a value is ignored the way it always
+// was, so an installation that never turned this on says nothing new.
 func (s *Server) authenticateMCP(r *http.Request) (mcp.Caller, error) {
-	principal, err := s.auth.Authenticate(r)
+	var principal *Principal
+	var err error
+	if token := bearerToken(r); apiKeyFromRequest(r) == "" && appauth.LooksLikeJWT(token) {
+		if config := s.mcpOAuth(r); config.Active {
+			principal, err = s.oauthPrincipal(r, config, token)
+		}
+	}
+	if principal == nil && err == nil {
+		principal, err = s.auth.Authenticate(r)
+	}
 	if err != nil {
 		return mcp.Caller{}, err
 	}

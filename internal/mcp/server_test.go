@@ -110,3 +110,53 @@ func TestAppToolsAreFilteredByPermission(t *testing.T) {
 		t.Fatalf("unexpected tool grants: %#v", seen)
 	}
 }
+
+// guards: Server.unauthorized
+func TestA401CarriesTheChallengeAndTheRefusalReason(t *testing.T) {
+	s := &Server{
+		Provider: fakeTools{},
+		Enabled:  func(context.Context) (bool, bool, error) { return true, false, nil },
+		Authenticate: func(r *http.Request) (Caller, error) {
+			if r.Header.Get("Authorization") == "" {
+				return Caller{}, ErrAnonymous
+			}
+			return Caller{}, &AuthError{Message: "token is for another audience"}
+		},
+		Challenge: func(_ *http.Request, rejected bool) string {
+			if rejected {
+				return `Bearer resource_metadata="https://apps.test/.well-known/oauth-protected-resource/mcp", error="invalid_token"`
+			}
+			return `Bearer resource_metadata="https://apps.test/.well-known/oauth-protected-resource/mcp"`
+		},
+	}
+	// No credential: the pointer, without an error code.
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, validRequest("tools/list", ""))
+	if w.Code != http.StatusUnauthorized || strings.Contains(w.Header().Get("WWW-Authenticate"), "invalid_token") ||
+		!strings.Contains(w.Header().Get("WWW-Authenticate"), "resource_metadata=") {
+		t.Fatalf("status=%d header=%q", w.Code, w.Header().Get("WWW-Authenticate"))
+	}
+	// A refused credential: the pointer with error="invalid_token", and the
+	// reason in the body so the person can act on it.
+	r := validRequest("tools/list", "")
+	r.Header.Set("Authorization", "Bearer a.b.c")
+	w = httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if w.Code != http.StatusUnauthorized || !strings.Contains(w.Header().Get("WWW-Authenticate"), `error="invalid_token"`) ||
+		!strings.Contains(w.Body.String(), "token is for another audience") {
+		t.Fatalf("status=%d header=%q body=%s", w.Code, w.Header().Get("WWW-Authenticate"), w.Body.String())
+	}
+}
+
+func TestA401WithoutAChallengeCarriesNoHeader(t *testing.T) {
+	s := &Server{
+		Provider:     fakeTools{},
+		Enabled:      func(context.Context) (bool, bool, error) { return true, false, nil },
+		Authenticate: func(*http.Request) (Caller, error) { return Caller{}, ErrAnonymous },
+	}
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, validRequest("tools/list", ""))
+	if w.Code != http.StatusUnauthorized || w.Header().Get("WWW-Authenticate") != "" {
+		t.Fatalf("status=%d header=%q", w.Code, w.Header().Get("WWW-Authenticate"))
+	}
+}

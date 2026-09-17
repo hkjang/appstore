@@ -180,6 +180,14 @@ export function MyKeysPage() {
   const [type, setType] = useState<"api" | "mcp">("api");
   const [permissions, setPermissions] = useState<string[]>(["apps:read"]);
   const [revealed, setRevealed] = useState<PersonalKey>();
+  // The SSO MCP address is public (the metadata document publishes it), so
+  // the page can offer it before a single key exists.
+  const publicConfig = useQuery({
+    queryKey: ["public-config"],
+    queryFn: ({ signal }) => api.publicConfig(signal),
+    staleTime: 60_000,
+  });
+  const ssoMcpUrl = publicConfig.data?.mcpOauthResource;
   const availablePermissions = useMemo(
     () =>
       keyOptions.data?.permissions?.filter((permission) => permission.active) ??
@@ -246,6 +254,24 @@ export function MyKeysPage() {
           >
             확인
           </Button>
+        </div>
+      )}
+      {!!ssoMcpUrl && (
+        <div className="notice mb-5" data-testid="sso-mcp-notice">
+          <div>
+            <strong>키 없이 SSO로 MCP 연결하기</strong> — MCP 클라이언트에 아래
+            주소만 넣으면 회사 계정으로 로그인 창이 열리고 키 없이 연결됩니다.
+            자동화 스크립트처럼 로그인 창을 띄울 수 없는 곳은 계속 개인 키를
+            씁니다. <code className="secret-code">{ssoMcpUrl}</code>{" "}
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="MCP 주소 복사"
+              onClick={() => void navigator.clipboard?.writeText(ssoMcpUrl)}
+            >
+              <Copy size={14} /> 복사
+            </Button>
+          </div>
         </div>
       )}
       {keys.isPending && <LoadingState />}

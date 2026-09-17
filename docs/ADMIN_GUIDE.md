@@ -388,6 +388,55 @@ Keycloak 역할 이름은 코드에 고정돼 있지 않습니다. `인증·SSO`
 
 MCP tool은 호출자의 권한에 따라 다르게 보입니다. 익명·인증 사용자는 조회 tool(`apps_list`, `apps_search`, `app_get`, `categories_list`, `featured_apps`, `trending_apps`, `mcp_apps`)을, 인증 사용자는 자기 앱 tool(`my_apps`, `app_submit`, `app_update`)을, 관리자는 운영 tool(`apps_manage`, `settings_get`, `workflow_get`)을 함께 봅니다.
 
+#### MCP SSO(OAuth) — 키 없이 Keycloak 토큰으로 연결
+
+개인 키(`aps_`)는 그대로 두고, 같은 `/mcp`에 **Keycloak 액세스 토큰**으로도 들어올 수 있게 하는 설정입니다. MCP 인가 규격(2025-06-18 이후)은 OAuth 2.1이라 Claude·Cursor 같은 클라이언트에 MCP 주소 하나만 주면 클라이언트가 스스로 로그인 창을 띄우고 토큰을 받아 옵니다. AppStore는 **리소스 서버**입니다 — 토큰을 발급하지 않고 검사만 하며, `/authorize`·`/token`·동적 클라이언트 등록을 제공하지 않습니다. 기본값은 꺼짐이고, 켜기 전까지는 아무것도 달라지지 않습니다.
+
+| 설정 | 저장 키 | 초기값 | 설명 |
+| --- | --- | --- | --- |
+| SSO 토큰 허용 | `mcp.oauth.enabled` | 꺼짐 | 켜도 MCP 사용·Issuer URL·리소스 식별자 세 가지가 다 있어야 동작합니다. 하나라도 없으면 화면에 이유가 보이고 서버는 꺼진 것처럼 동작합니다 |
+| 리소스 식별자 | `mcp.oauth.resource` | 빈 값 | 토큰의 `aud`가 가리켜야 하는 **공개 HTTPS 주소 + `/mcp`**. 비우면 3.2의 서비스 접속 URL + `/mcp`. 프록시 뒤의 `http://127.0.0.1:8080/mcp`가 아닙니다 |
+| 허용 대상 (Client ID) | `mcp.oauth.audience` | 빈 값 | 공백 구분. 토큰의 `aud` **또는 `azp`**가 여기 있으면 Audience 매퍼 없이 통과합니다 |
+| 범위 (키 권한) | `mcp.oauth.scopes` | `mcp:read apps:read` | SSO로 들어온 사람이 받는 키 권한. 4.5의 활성 키 권한만 적을 수 있고, 그 사람의 역할 권한을 넘지 않습니다 |
+| (재사용) Issuer URL | `oidc.issuer_url` | 3.3 | 인증 서버. 새로 만들지 않습니다 |
+
+동작은 셋입니다.
+
+1. `GET /.well-known/oauth-protected-resource`와 `…/mcp`가 인증 없이 맨 JSON 메타데이터(`resource`, `authorization_servers`=[Issuer], `bearer_methods_supported`, `scopes_supported`)를 냅니다. 꺼져 있으면 404입니다.
+2. `/mcp`의 401에 `WWW-Authenticate: Bearer realm="AppStore", resource_metadata="…/.well-known/oauth-protected-resource/mcp"`가 붙습니다(거부한 토큰이 있었으면 `error="invalid_token"` 추가). **MCP 경로에서만** 붙고 REST 401에는 붙지 않습니다.
+3. 같은 `Authorization: Bearer` 헤더에서 `aps_`로 시작하면 키, JWT 모양이면 토큰으로 봅니다. 토큰은 Keycloak JWKS로 서명·`iss`·`exp`·`nbf`를 검사하고, `typ`이 `ID`거나 `cnf`가 있으면 거부합니다. 그다음 **대상**을 봅니다 — `aud`에 리소스 식별자가 있거나, `aud` 또는 `azp`가 허용 대상에 있어야 합니다. 마지막으로 토큰의 `sub`로 **이미 웹 로그인한 활성 계정**을 찾습니다. 계정을 만들지 않고, 정지된 계정을 열지 않으며, 토큰의 role로 권한을 올리지 않습니다. 토큰은 `/mcp`에서만 받습니다 — REST·관리 API는 지금처럼 키와 세션만 받습니다.
+
+> 익명 MCP 조회가 켜져 있으면 토큰 없는 클라이언트는 401 대신 익명 tool을 받으므로 로그인 창이 뜨지 않습니다. SSO로 자기 앱까지 다루게 하려면 **Anonymous MCP 접근**을 끄세요.
+
+Keycloak 쪽 할 일:
+
+1. MCP 클라이언트용 **공개(public) 클라이언트**를 만듭니다. Standard Flow 켬, PKCE `S256`, Direct Access Grants·Implicit·Service accounts 끔. 3.3의 웹 로그인 클라이언트와 **다른** 클라이언트입니다.
+2. Valid Redirect URIs에 쓰는 MCP 클라이언트의 콜백을 정확히 적습니다(Claude는 `https://claude.ai/api/mcp/auth_callback`, 로컬 클라이언트는 `http://127.0.0.1:*/callback` 류). `*` 하나로 다 여는 것은 금지입니다.
+3. 정식 경로: 그 클라이언트(또는 전용 client scope)에 **Audience 매퍼** — Included Custom Audience = 리소스 식별자, Add to access token 켬, Add to ID token 끔. 호환 경로: 매퍼 없이 이 화면의 **허용 대상**에 클라이언트 ID를 적습니다(Keycloak 26은 `aud`에 `account`만 싣고 클라이언트 ID는 `azp`에 담습니다).
+4. 액세스 토큰 수명은 짧게(5분 안팎). AppStore는 introspection을 하지 않으므로 Keycloak에서 로그아웃해도 이미 발급된 토큰은 만료까지 삽니다.
+
+`curl`로 확인하기:
+
+```bash
+# 1. 메타데이터 — 200과 authorization_servers에 Issuer가 보여야 합니다. 꺼져 있으면 404.
+curl -s https://apps.example.com/.well-known/oauth-protected-resource/mcp
+# 2. 401에 길이 붙는지 — WWW-Authenticate: Bearer realm="AppStore", resource_metadata="…"
+curl -si -X POST https://apps.example.com/mcp -H 'Content-Type: application/json' \
+  -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/list' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"curl","version":"1"},"io.modelcontextprotocol/clientCapabilities":{}}}}' | grep -i -e '^HTTP' -e '^www-authenticate'
+# 3. 토큰으로 — 같은 요청에 -H "Authorization: Bearer $TOKEN"을 더하면 200과 tool 목록.
+```
+
+거부 메시지별 조치(401 본문의 `error.message`):
+
+| 메시지 | 조치 |
+| --- | --- |
+| `SSO 액세스 토큰이 유효하지 않습니다(서명·발급자·만료·종류)` | `docker logs`의 `MCP SSO token rejected` 줄에 원인이 있습니다. 만료면 클라이언트가 다시 로그인, 발급자가 다르면 3.3의 Issuer URL과 토큰의 `iss`를 맞춥니다. ID 토큰을 보내는 클라이언트는 액세스 토큰을 쓰게 합니다 |
+| `SSO 토큰이 이 서버를 위해 발급된 것이 아닙니다(aud=[account], azp="claude-mcp")` | 메시지에 적힌 `azp`를 **허용 대상**에 더하거나, Keycloak 클라이언트에 Audience 매퍼로 리소스 식별자를 넣습니다 |
+| `이 SSO 계정은 AppStore에 등록되지 않았습니다. 먼저 웹으로 한 번 로그인하세요.` | 그 사람이 브라우저로 AppStore에 한 번 로그인하면 계정이 생깁니다. 토큰은 계정을 만들지 않습니다 |
+| `이 SSO 계정은 AppStore에서 비활성 상태입니다.` | 관리자 → 사용자에서 활성으로 바꿉니다. 삭제된 계정은 되살리지 않습니다 |
+| 401인데 `WWW-Authenticate`가 없다 | SSO 토큰 허용이 꺼져 있거나 동작 조건이 빠져 있습니다. 화면의 스위치 아래 이유를 읽습니다 |
+
 ![AI 공급자 — provider와 모델별 token 한도, streaming 설정](assets/screenshots/captures/admin-ai-desktop.webp)
 
 Provider의 Base URL·API Key·기본 모델과, 모델별 Context Window / Max Input Tokens / Max Output Tokens를 따로 관리합니다. 최대 262,144 token까지 설정할 수 있고, *Model의 최대 입력·출력 token 합은 context window를 넘을 수 없습니다.* API Key는 `ENCRYPTION_KEY`로 암호화되어 저장되고 화면에는 마스크만 보입니다. Provider 한도와 모델 한도를 분리해 두어야 upstream이 지원하지 않는 값을 강제로 보내지 않습니다.
@@ -541,6 +590,8 @@ curl --fail http://127.0.0.1:8080/health/ready
 | 로그인은 되는데 화면이 403 | 사용자 → 역할, 인증·SSO → Role Mapping | 외부 역할 값과 Role Claim Path가 실제 token과 맞는지 확인합니다 |
 | 익명 사용자가 아무 화면도 못 본다 | 시스템 설정 → 공개 모드 | 꺼져 있으면 익명 탐색이 차단됩니다 |
 | API 호출이 `자동화 API가 비활성화되어 있습니다.` | 관리자 → REST API | API 사용을 켭니다 |
+| MCP 클라이언트가 로그인 창을 띄우지 않고 실패한다 | `curl -si …/mcp`의 `WWW-Authenticate`, `…/.well-known/oauth-protected-resource/mcp`의 상태 | 4.8 *MCP SSO(OAuth)*의 curl 확인을 따릅니다. 메타데이터가 404면 스위치·Issuer·리소스 식별자 중 하나가 빠진 것입니다 |
+| SSO로 연결은 되는데 `SSO 토큰이 이 서버를 위해 발급된 것이 아닙니다` | 관리자 → MCP 서버 → 허용 대상 | 메시지의 `azp`를 허용 대상에 적거나 Keycloak에 Audience 매퍼를 둡니다 |
 | API·MCP 호출이 429 `요청이 너무 많습니다.` | REST API / MCP의 분당 요청 제한 | 한도를 올리거나 클라이언트가 `Retry-After` 초만큼 기다리게 합니다. reverse proxy 뒤에서는 제한이 프록시 IP 기준으로 잡힙니다 |
 | 로고 업로드가 `이미지는 1MB 이하여야 합니다.` | 파일 크기 | 1MB 이하로 줄입니다. 서버는 본문을 다 받기 전에 거절합니다 |
 | 로고 주소 가져오기가 `이미지 주소가 HTTP ...를 반환했습니다.` | 그 주소가 컨테이너에서 열리는지 | 폐쇄망에서 도달 가능한 주소인지, 인증이 필요한 주소는 아닌지 확인합니다 |
@@ -564,6 +615,7 @@ curl --fail http://127.0.0.1:8080/health/ready
 | 자동 로그인 (Silent SSO) | 꺼짐 | 모든 방문자에게 Keycloak 계정이 있는 사내 설치에서만 켭니다 |
 | 서비스 접속 URL | 빈 값 | 실제 HTTPS origin으로 채웁니다. redirect URL이 여기서 만들어집니다 |
 | API·MCP 익명 조회 | 켬 | 조직 정책에 따라 끄거나 최소 조회로 둡니다 |
+| MCP SSO 토큰 허용 | 꺼짐 | Keycloak에 MCP 전용 공개 클라이언트를 만든 뒤 켭니다. 리소스 식별자는 공개 HTTPS 주소여야 하고, 허용 대상에는 그 클라이언트 ID만 적습니다 |
 | 공개 모드 | 켬 | 카탈로그를 사내에만 보여야 한다면 끕니다 |
 | API 120 / MCP 60 req·min | 그대로 | 실제 사용량에 맞춰 조정합니다 |
 | 방문 추적 | 꺼짐 | 켜야 한다면 Momento + 같은 오리진 프록시로. 외부 provider는 방문 데이터가 밖으로 나갑니다 |
@@ -590,6 +642,7 @@ curl --fail http://127.0.0.1:8080/health/ready
 - [ ] Bootstrap 관리자와 SSO Super Admin이 서로 다른 승인된 계정이다.
 - [ ] OIDC·AI secret이 재조회되지 않고 변경만 가능하다.
 - [ ] 공개 API와 익명 MCP가 조직 정책대로 설정돼 있다.
+- [ ] MCP SSO를 켰다면 다른 앱용 토큰으로 `/mcp`가 열리지 않고, 유효한 토큰으로 REST 경로가 열리지 않는 것을 확인했다.
 - [ ] 서비스 URL, OIDC redirect와 logout URL이 운영 HTTPS origin만 허용한다.
 - [ ] PostgreSQL 백업과 `ENCRYPTION_KEY` 복구 절차를 각각 시험했다.
 - [ ] 관리자·일반 사용자·익명 세션으로 200 / 401 / 403 경계를 확인했다.
