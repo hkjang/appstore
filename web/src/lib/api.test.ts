@@ -125,6 +125,16 @@ describe("API client", () => {
     ]);
   });
 
+  it("drops a trailing block whose JSON was cut off by the connection closing", async () => {
+    const events = await collectStream([
+      'event: token\ndata: {"text":"안녕"}\n\n',
+      // The connection dropped mid-event: the fragment must not be shown as text.
+      'event: token\ndata: {"type":"token","text":"안',
+    ]);
+
+    expect(events).toEqual([{ event: "token", data: { text: "안녕" } }]);
+  });
+
   it("joins an event split across chunks in the middle of a multibyte character", async () => {
     const encoded = new TextEncoder().encode(
       'event: token\ndata: {"text":"안녕"}\n\n',

@@ -542,16 +542,17 @@ export async function streamAiChat(
       boundary = buffer.indexOf("\n\n");
     }
   }
-  // A server that closes the connection right after the last event (no
-  // trailing blank line) still delivered that event; flush the decoder and
-  // parse whatever is left so a final text chunk or [DONE] is not dropped.
+  // The stream ended without a blank line after the last block. Flush the
+  // decoder and deliver that block only if its payload is complete (valid
+  // JSON or [DONE]); a fragment cut off mid-event is discarded, not shown.
   buffer += decoder.decode().replace(/\r\n/g, "\n");
-  if (buffer.trim()) emitSseBlock(buffer, onEvent);
+  if (buffer.trim()) emitSseBlock(buffer, onEvent, { completeOnly: true });
 }
 
 function emitSseBlock(
   block: string,
   onEvent: (event: AiStreamEvent) => void,
+  options: { completeOnly?: boolean } = {},
 ): void {
   let eventName: AiStreamEvent["event"] = "message";
   const dataLines: string[] = [];
@@ -566,7 +567,9 @@ function emitSseBlock(
     try {
       data = JSON.parse(raw);
     } catch {
-      /* text chunks are valid */
+      // Text chunks are valid inside a terminated block; an unterminated
+      // tail that is not JSON may be a truncated event, so drop it.
+      if (options.completeOnly) return;
     }
     onEvent({ event: eventName, data });
   }
