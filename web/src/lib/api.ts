@@ -538,25 +538,37 @@ export async function streamAiChat(
     while (boundary >= 0) {
       const block = buffer.slice(0, boundary);
       buffer = buffer.slice(boundary + 2);
-      let eventName: AiStreamEvent["event"] = "message";
-      const dataLines: string[] = [];
-      for (const line of block.split("\n")) {
-        if (line.startsWith("event:"))
-          eventName = line.slice(6).trim() as AiStreamEvent["event"];
-        if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
-      }
-      const raw = dataLines.join("\n");
-      if (raw && raw !== "[DONE]") {
-        let data: unknown = raw;
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          /* text chunks are valid */
-        }
-        onEvent({ event: eventName, data });
-      }
-      if (raw === "[DONE]") onEvent({ event: "finish", data: null });
+      emitSseBlock(block, onEvent);
       boundary = buffer.indexOf("\n\n");
     }
   }
+  // A server that closes the connection right after the last event (no
+  // trailing blank line) still delivered that event; flush the decoder and
+  // parse whatever is left so a final text chunk or [DONE] is not dropped.
+  buffer += decoder.decode().replace(/\r\n/g, "\n");
+  if (buffer.trim()) emitSseBlock(buffer, onEvent);
+}
+
+function emitSseBlock(
+  block: string,
+  onEvent: (event: AiStreamEvent) => void,
+): void {
+  let eventName: AiStreamEvent["event"] = "message";
+  const dataLines: string[] = [];
+  for (const line of block.split("\n")) {
+    if (line.startsWith("event:"))
+      eventName = line.slice(6).trim() as AiStreamEvent["event"];
+    if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+  }
+  const raw = dataLines.join("\n");
+  if (raw && raw !== "[DONE]") {
+    let data: unknown = raw;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      /* text chunks are valid */
+    }
+    onEvent({ event: eventName, data });
+  }
+  if (raw === "[DONE]") onEvent({ event: "finish", data: null });
 }

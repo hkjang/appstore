@@ -69,4 +69,73 @@ describe("API client", () => {
       { event: "finish", data: null },
     ]);
   });
+
+  async function collectStream(chunks: Array<string | Uint8Array>) {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of chunks)
+          controller.enqueue(
+            typeof chunk === "string" ? encoder.encode(chunk) : chunk,
+          );
+        controller.close();
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(body, {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+      ),
+    );
+    const events: Array<{ event: string; data: unknown }> = [];
+    await streamAiChat(
+      { messages: [{ role: "user", content: "hello" }] },
+      (event) => events.push(event),
+      new AbortController().signal,
+    );
+    return events;
+  }
+
+  it("delivers the last event when the stream closes without a trailing blank line", async () => {
+    const events = await collectStream([
+      'event: token\ndata: {"text":"안"}\n\n',
+      // The connection closes right after this event: no "\n\n" follows.
+      'event: token\ndata: {"text":"녕"}',
+    ]);
+
+    expect(events).toEqual([
+      { event: "token", data: { text: "안" } },
+      { event: "token", data: { text: "녕" } },
+    ]);
+  });
+
+  it("emits finish when the stream ends on an unterminated [DONE]", async () => {
+    const events = await collectStream([
+      'event: token\ndata: {"text":"안녕"}\n\n',
+      "data: [DO",
+      "NE]",
+    ]);
+
+    expect(events).toEqual([
+      { event: "token", data: { text: "안녕" } },
+      { event: "finish", data: null },
+    ]);
+  });
+
+  it("joins an event split across chunks in the middle of a multibyte character", async () => {
+    const encoded = new TextEncoder().encode(
+      'event: token\ndata: {"text":"안녕"}\n\n',
+    );
+    // Cut inside the 3-byte UTF-8 sequence for "안" so the decoder must buffer.
+    const cut = 'event: token\ndata: {"text":"'.length + 1;
+    const events = await collectStream([
+      encoded.slice(0, cut),
+      encoded.slice(cut),
+    ]);
+
+    expect(events).toEqual([{ event: "token", data: { text: "안녕" } }]);
+  });
 });
