@@ -538,25 +538,40 @@ export async function streamAiChat(
     while (boundary >= 0) {
       const block = buffer.slice(0, boundary);
       buffer = buffer.slice(boundary + 2);
-      let eventName: AiStreamEvent["event"] = "message";
-      const dataLines: string[] = [];
-      for (const line of block.split("\n")) {
-        if (line.startsWith("event:"))
-          eventName = line.slice(6).trim() as AiStreamEvent["event"];
-        if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
-      }
-      const raw = dataLines.join("\n");
-      if (raw && raw !== "[DONE]") {
-        let data: unknown = raw;
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          /* text chunks are valid */
-        }
-        onEvent({ event: eventName, data });
-      }
-      if (raw === "[DONE]") onEvent({ event: "finish", data: null });
+      emitSseBlock(block, onEvent);
       boundary = buffer.indexOf("\n\n");
     }
   }
+  // The stream ended without a blank line after the last block. Flush the
+  // decoder and deliver that block only if its payload is complete (valid
+  // JSON or [DONE]); a fragment cut off mid-event is discarded, not shown.
+  buffer += decoder.decode().replace(/\r\n/g, "\n");
+  if (buffer.trim()) emitSseBlock(buffer, onEvent, { completeOnly: true });
+}
+
+function emitSseBlock(
+  block: string,
+  onEvent: (event: AiStreamEvent) => void,
+  options: { completeOnly?: boolean } = {},
+): void {
+  let eventName: AiStreamEvent["event"] = "message";
+  const dataLines: string[] = [];
+  for (const line of block.split("\n")) {
+    if (line.startsWith("event:"))
+      eventName = line.slice(6).trim() as AiStreamEvent["event"];
+    if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+  }
+  const raw = dataLines.join("\n");
+  if (raw && raw !== "[DONE]") {
+    let data: unknown = raw;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      // Text chunks are valid inside a terminated block; an unterminated
+      // tail that is not JSON may be a truncated event, so drop it.
+      if (options.completeOnly) return;
+    }
+    onEvent({ event: eventName, data });
+  }
+  if (raw === "[DONE]") onEvent({ event: "finish", data: null });
 }
