@@ -342,7 +342,18 @@ func (s *Server) adminMCP(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	WriteJSON(w, http.StatusOK, value)
+	WriteJSON(w, http.StatusOK, s.withMCPOAuthStatus(r, value))
+}
+
+// withMCPOAuthStatus attaches what the admin screen shows beside the SSO
+// switch: whether it is live, and the addresses a client needs.
+func (s *Server) withMCPOAuthStatus(r *http.Request, value model.MCPSettings) model.MCPSettings {
+	oidcSettings, err := s.repository.GetOIDCSettings(r.Context())
+	if err != nil {
+		return value
+	}
+	value.OAuth.Status = resolveMCPOAuth(value, oidcSettings, s.loadSystemSettings(r).SiteURL, r).status()
+	return value
 }
 
 func (s *Server) adminUpdateMCP(w http.ResponseWriter, r *http.Request) {
@@ -355,6 +366,10 @@ func (s *Server) adminUpdateMCP(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, Validation("지원하는 MCP Protocol Version은 "+mcp.ProtocolVersion+"입니다.", nil))
 		return
 	}
+	if err := s.validateMCPOAuth(r, input.OAuth); err != nil {
+		WriteError(w, r, err)
+		return
+	}
 	before, _ := s.repository.GetMCPSettings(r.Context())
 	principal := CurrentPrincipal(r.Context())
 	after, err := s.repository.UpdateMCPSettings(r.Context(), input, &principal.User.ID)
@@ -363,7 +378,55 @@ func (s *Server) adminUpdateMCP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.recordAudit(r, "mcp.setting.update", "mcp_settings", "default", before, after)
-	WriteJSON(w, http.StatusOK, after)
+	WriteJSON(w, http.StatusOK, s.withMCPOAuthStatus(r, after))
+}
+
+// validateMCPOAuth refuses at save time what would otherwise fail silently at
+// the first token: a metadata document that names no authorization server,
+// an identifier no token can match, or a scope that is not a key permission.
+func (s *Server) validateMCPOAuth(r *http.Request, input model.MCPOAuthSettings) error {
+	if resource := strings.TrimSpace(input.Resource); resource != "" {
+		if err := validateMCPResource(resource); err != nil {
+			return Validation(err.Error(), map[string]any{"field": "oauth.resource"})
+		}
+	}
+	if len(input.Audience) > 50 {
+		return Validation("허용 대상은 50개까지 적을 수 있습니다.", map[string]any{"field": "oauth.audience"})
+	}
+	for _, audience := range input.Audience {
+		if len(audience) > 255 || strings.ContainsAny(audience, " \"\n\r\t") {
+			return Validation("허용 대상은 공백 없이 255자 이하의 클라이언트 ID 또는 주소여야 합니다.", map[string]any{"field": "oauth.audience"})
+		}
+	}
+	if len(input.Scopes) > 0 {
+		definitions, err := s.repository.ListKeyPermissionDefinitions(r.Context(), false)
+		if err != nil {
+			return err
+		}
+		known := make(map[string]bool, len(definitions))
+		for _, definition := range definitions {
+			known[definition.Key] = true
+		}
+		for _, scope := range input.Scopes {
+			if scope = strings.TrimSpace(scope); scope != "" && !known[scope] {
+				return Validation("범위 "+scope+"는 활성 키 권한이 아닙니다. 보안 설정의 키 권한 목록에서 고르세요.", map[string]any{"field": "oauth.scopes"})
+			}
+		}
+	}
+	if !input.Enabled {
+		return nil
+	}
+	oidcSettings, err := s.repository.GetOIDCSettings(r.Context())
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(oidcSettings.IssuerURL) == "" {
+		return Validation("MCP SSO 인증을 켜려면 인증·SSO에 Issuer URL이 있어야 합니다.", map[string]any{"field": "oauth.enabled"})
+	}
+	if mcpResource(input.Resource, s.loadSystemSettings(r).SiteURL, nil) == "" {
+		return Validation("MCP SSO 인증을 켜려면 리소스 식별자를 입력하거나 시스템 설정의 서비스 접속 URL을 채워야 합니다.", map[string]any{"field": "oauth.resource"})
+	}
+	return nil
 }
 
 func (s *Server) adminSecurity(w http.ResponseWriter, r *http.Request) {

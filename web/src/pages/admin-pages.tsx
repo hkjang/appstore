@@ -7,6 +7,7 @@ import {
   Bot,
   CheckCircle2,
   ClipboardCheck,
+  Copy,
   ExternalLink,
   Image as ImageIcon,
   Plus,
@@ -2593,7 +2594,148 @@ export function AdminMcpPage() {
       <div className="notice">
         MCP Endpoint <code>/mcp</code>
       </div>
+      <McpOAuthFields state={state} />
     </SettingsShell>
+  );
+}
+
+/**
+ * Splits a space-separated list the way the server reads it. Commas and
+ * newlines are tolerated because people paste from Keycloak either way.
+ */
+export function splitList(value: string): string[] {
+  return value.split(/[\s,]+/).filter(Boolean);
+}
+
+/**
+ * MCP through SSO. The server is a resource server only: it publishes the
+ * Keycloak issuer for clients to sign in with and checks the tokens they
+ * bring back. These fields decide whether that is on, what identifier a
+ * token must name, which client ids are trusted without an Audience mapper,
+ * and what an SSO subject may do. The status block is read-only and comes
+ * from the server, because the effective identifier depends on the service
+ * URL set elsewhere.
+ */
+function McpOAuthFields({ state }: { state: SettingsState }) {
+  const oauth = recordFrom(state.settings.oauth);
+  const status = recordFrom(oauth.status);
+  const setOAuth = (key: string, value: unknown) =>
+    state.set("oauth", { ...oauth, [key]: value });
+  const audience = Array.isArray(oauth.audience)
+    ? (oauth.audience as string[])
+    : [];
+  const scopes = Array.isArray(oauth.scopes) ? (oauth.scopes as string[]) : [];
+  // The typed text is kept apart from the parsed list so a trailing space
+  // survives while the person is still typing.
+  const [audienceText, setAudienceText] = useState<string>();
+  const [scopesText, setScopesText] = useState<string>();
+  const enabled = bool(oauth.enabled);
+  const metadataUrl = text(status.metadataUrl);
+  const resource = text(status.resource);
+  return (
+    <>
+      <h3 className="mt-6">SSO(OAuth) 인증</h3>
+      <p className="field-help">
+        개인 키 대신 Keycloak 액세스 토큰으로 <code>/mcp</code>에 들어오게
+        합니다. 인증·SSO의 Issuer URL을 그대로 쓰며, 이 서버는 토큰을 발급하지
+        않고 검사만 합니다.
+      </p>
+      <div className="switch-row">
+        <div>
+          <strong>SSO 토큰 허용</strong>
+          <div className="field-help">
+            {bool(status.active)
+              ? "켜져 있고 동작 중입니다. 아래 메타데이터 주소가 공개됩니다."
+              : enabled
+                ? `켜져 있지만 동작하지 않습니다: ${text(status.reason, "설정을 확인하세요")}`
+                : "꺼져 있습니다. 개인 키만 받습니다."}
+          </div>
+        </div>
+        <Switch
+          checked={enabled}
+          onChange={(value) => setOAuth("enabled", value)}
+          label="SSO 토큰 허용"
+        />
+      </div>
+      <Field
+        label="리소스 식별자"
+        id="mcp-oauth-resource"
+        help="토큰의 aud가 가리켜야 하는 이 서버의 공개 MCP 주소. 비우면 시스템 설정의 서비스 접속 URL + /mcp 입니다."
+      >
+        <Input
+          id="mcp-oauth-resource"
+          placeholder={resource || "https://apps.example.com/mcp"}
+          value={text(oauth.resource)}
+          onChange={(event) => setOAuth("resource", event.target.value)}
+        />
+      </Field>
+      <Field
+        label="허용 대상 (Client ID)"
+        id="mcp-oauth-audience"
+        help="공백으로 구분. 토큰의 aud 또는 azp가 여기 있으면 Audience 매퍼 없이 통과합니다. Keycloak 26은 클라이언트 ID를 azp에 싣습니다."
+      >
+        <Input
+          id="mcp-oauth-audience"
+          placeholder="claude-mcp cursor-mcp"
+          value={audienceText ?? audience.join(" ")}
+          onChange={(event) => {
+            setAudienceText(event.target.value);
+            setOAuth("audience", splitList(event.target.value));
+          }}
+        />
+      </Field>
+      <Field
+        label="범위 (키 권한)"
+        id="mcp-oauth-scopes"
+        help="공백으로 구분한 키 권한. SSO로 들어온 사람이 받는 권한이며 비우면 mcp:read apps:read 입니다. 그 사람의 역할 권한을 넘지 않습니다."
+      >
+        <Input
+          id="mcp-oauth-scopes"
+          placeholder="mcp:read apps:read"
+          value={scopesText ?? scopes.join(" ")}
+          onChange={(event) => {
+            setScopesText(event.target.value);
+            setOAuth("scopes", splitList(event.target.value));
+          }}
+        />
+      </Field>
+      <dl className="meta-list mt-5">
+        <div>
+          <dt>인증 서버 (Issuer)</dt>
+          <dd>
+            <code>{text(status.issuer, "인증·SSO에서 설정")}</code>
+          </dd>
+        </div>
+        <div>
+          <dt>MCP 주소</dt>
+          <dd>
+            <code>{resource || "서비스 접속 URL이 필요합니다"}</code>{" "}
+            {!!resource && <CopyValueButton value={resource} />}
+          </dd>
+        </div>
+        <div>
+          <dt>메타데이터 주소</dt>
+          <dd>
+            <code>{metadataUrl || "—"}</code>{" "}
+            {!!metadataUrl && <CopyValueButton value={metadataUrl} />}
+          </dd>
+        </div>
+      </dl>
+    </>
+  );
+}
+
+function CopyValueButton({ value }: { value: string }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-label={`${value} 복사`}
+      onClick={() => void navigator.clipboard?.writeText(value)}
+    >
+      <Copy size={14} /> 복사
+    </Button>
   );
 }
 const ANALYTICS_PROVIDERS: ReadonlyArray<readonly [string, string]> = [

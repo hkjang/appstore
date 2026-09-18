@@ -41,12 +41,26 @@ type ToolProvider interface {
 type Authenticator func(*http.Request) (Caller, error)
 type OriginValidator func(*http.Request, string) bool
 
+// Challenge builds the WWW-Authenticate value for a 401 so a refused client
+// can find its authorization server; rejected is true when a credential was
+// presented and turned down. An empty value leaves the header off.
+type Challenge func(r *http.Request, rejected bool) string
+
+// AuthError is an authentication refusal whose message is safe to show the
+// caller — it names what to fix, never what the server holds.
+type AuthError struct {
+	Message string
+}
+
+func (e *AuthError) Error() string { return e.Message }
+
 type Server struct {
 	Version        string
 	Provider       ToolProvider
 	Authenticate   Authenticator
 	ValidateOrigin OriginValidator
 	Enabled        func(context.Context) (enabled, anonymous bool, err error)
+	Challenge      Challenge
 }
 
 type request struct {
@@ -113,7 +127,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		anonymousAllowed = anonymous
 		if !anonymous && s.Authenticate == nil {
-			s.writeError(w, http.StatusUnauthorized, nil, -32001, "authentication is required")
+			s.unauthorized(w, r, nil, "authentication is required", false)
 			return
 		}
 	}
@@ -145,7 +159,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var err error
 		caller, err = s.Authenticate(r)
 		if err != nil && !errors.Is(err, ErrAnonymous) {
-			s.writeError(w, http.StatusUnauthorized, message.ID, -32001, "invalid authentication")
+			reason := "invalid authentication"
+			var refusal *AuthError
+			if errors.As(err, &refusal) {
+				reason = refusal.Message
+			}
+			s.unauthorized(w, r, message.ID, reason, true)
 			return
 		}
 		if caller.Permissions == nil {
@@ -153,7 +172,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !anonymousAllowed && !caller.Authenticated {
-		s.writeError(w, http.StatusUnauthorized, message.ID, -32001, "authentication is required")
+		s.unauthorized(w, r, message.ID, "authentication is required", false)
 		return
 	}
 
@@ -298,6 +317,18 @@ func ensureEOF(decoder *json.Decoder) error {
 		return errors.New("additional JSON value")
 	}
 	return err
+}
+
+// unauthorized is a 401 that points the way: when a challenge is configured
+// the response carries WWW-Authenticate, which is how an MCP client learns
+// where to sign in instead of hitting a dead end.
+func (s *Server) unauthorized(w http.ResponseWriter, r *http.Request, id json.RawMessage, message string, rejected bool) {
+	if s.Challenge != nil {
+		if value := s.Challenge(r, rejected); value != "" {
+			w.Header().Set("WWW-Authenticate", value)
+		}
+	}
+	s.writeError(w, http.StatusUnauthorized, id, -32001, message)
 }
 
 func (s *Server) writeError(w http.ResponseWriter, status int, id json.RawMessage, code int, message string) {

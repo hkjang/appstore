@@ -277,6 +277,40 @@ type MCPSettings struct {
 	Anonymous          bool   `json:"anonymous"`
 	RateLimitPerMinute int    `json:"rateLimitPerMinute"`
 	ProtocolVersion    string `json:"protocolVersion"`
+	// OAuth lets a Keycloak access token open /mcp beside personal keys. It
+	// lives inside the mcp settings row, so the stored keys read
+	// mcp.oauth.enabled, mcp.oauth.resource, mcp.oauth.audience and
+	// mcp.oauth.scopes; an existing row without it decodes as off.
+	OAuth MCPOAuthSettings `json:"oauth"`
+}
+
+// MCPOAuthSettings is the resource-server half of MCP authorization (OAuth
+// 2.1): this server never issues tokens, it only says which authorization
+// server does (the web sign-in's Keycloak issuer) and checks that a token it
+// receives was minted for this deployment.
+type MCPOAuthSettings struct {
+	Enabled bool `json:"enabled"`
+	// Resource is the identifier this server claims (RFC 8707): the public
+	// HTTPS address plus /mcp. Empty means it is built from the service URL.
+	Resource string `json:"resource"`
+	// Audience lists client ids (matched against aud or azp) accepted
+	// without an Audience mapper. Keycloak 26 puts the client id in azp.
+	Audience []string `json:"audience"`
+	// Scopes are the key permissions an SSO subject receives; the token's
+	// own scope claim can only narrow them, never widen.
+	Scopes []string `json:"scopes"`
+	// Status is derived on read and ignored on write.
+	Status *MCPOAuthStatus `json:"status,omitempty"`
+}
+
+// MCPOAuthStatus is what the admin screen shows next to the switch: whether
+// the feature is actually live, and the addresses a client needs.
+type MCPOAuthStatus struct {
+	Active      bool   `json:"active"`
+	Issuer      string `json:"issuer,omitempty"`
+	Resource    string `json:"resource,omitempty"`
+	MetadataURL string `json:"metadataUrl,omitempty"`
+	Reason      string `json:"reason,omitempty"`
 }
 
 type AIProvider struct {

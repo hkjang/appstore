@@ -49,7 +49,7 @@ type pageTracking struct {
 // health and the Momento proxy. They get the narrow policy.
 func isMachinePath(requestPath string) bool {
 	return strings.HasPrefix(requestPath, "/api/") || requestPath == "/mcp" || strings.HasPrefix(requestPath, "/mcp/") ||
-		strings.HasPrefix(requestPath, "/health") || requestPath == "/healthz" || requestPath == "/readyz" ||
+		strings.HasPrefix(requestPath, "/.well-known/") || strings.HasPrefix(requestPath, "/health") || requestPath == "/healthz" || requestPath == "/readyz" ||
 		requestPath == analytics.MomentoProxyPath || strings.HasPrefix(requestPath, analytics.MomentoProxyPath+"/")
 }
 

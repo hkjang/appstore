@@ -27,6 +27,8 @@ export interface PublicConfig {
   oidcAutoLogin?: boolean;
   workflowEnabled: boolean;
   anonymousMcp?: boolean;
+  /** MCP address a client may connect to with SSO alone; absent when off. */
+  mcpOauthResource?: string;
   theme?: "light" | "dark" | "system";
 }
 
