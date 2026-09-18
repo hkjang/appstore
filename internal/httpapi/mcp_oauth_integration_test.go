@@ -1,8 +1,10 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -136,7 +138,11 @@ func TestPostgreSQLMCPOAuthIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service, err := New(repository, box, nil)
+	// The log is part of the contract: a refused token tells the client only
+	// that it is invalid, and the administrator's guide sends them to the
+	// "MCP SSO token rejected" line for the cause.
+	var logs bytes.Buffer
+	service, err := New(repository, box, slog.New(slog.NewTextHandler(&logs, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,16 +287,32 @@ func TestPostgreSQLMCPOAuthIntegration(t *testing.T) {
 		t.Fatalf("narrowed scopes: %s", names)
 	}
 
-	// Tokens that are not API credentials for this issuer.
-	for name, token := range map[string]string{
-		"expired":      idp.AccessToken(t, "https://apps.example.test/mcp", map[string]any{"exp": time.Now().Add(-time.Minute).Unix()}),
-		"other issuer": authtest.NewIDP(t).AccessToken(t, "https://apps.example.test/mcp", nil),
-		"typ ID":       idp.AccessToken(t, "https://apps.example.test/mcp", map[string]any{"typ": "ID"}),
-		"HS256":        authtest.SignHS256(t, "secret", map[string]any{"iss": idp.Issuer(), "aud": "https://apps.example.test/mcp", "sub": "subject-mcp", "exp": time.Now().Add(time.Hour).Unix()}),
-		"cnf":          idp.AccessToken(t, "https://apps.example.test/mcp", map[string]any{"cnf": map[string]any{"jkt": "x"}}),
+	// Tokens that are not API credentials for this issuer. The client hears
+	// only that the token is invalid; the cause goes to the log, under the
+	// request's ID, and the token itself never does.
+	for _, refusal := range []struct{ name, token, cause string }{
+		{"expired", idp.AccessToken(t, "https://apps.example.test/mcp", map[string]any{"exp": time.Now().Add(-time.Minute).Unix()}), "expired"},
+		{"other issuer", authtest.NewIDP(t).AccessToken(t, "https://apps.example.test/mcp", nil), "signature"},
+		{"typ ID", idp.AccessToken(t, "https://apps.example.test/mcp", map[string]any{"typ": "ID"}), "ID tokens"},
+		{"HS256", authtest.SignHS256(t, "secret", map[string]any{"iss": idp.Issuer(), "aud": "https://apps.example.test/mcp", "sub": "subject-mcp", "exp": time.Now().Add(time.Hour).Unix()}), "HS256"},
+		{"cnf", idp.AccessToken(t, "https://apps.example.test/mcp", map[string]any{"cnf": map[string]any{"jkt": "x"}}), "proof of possession"},
 	} {
-		if w := mcpCall(token); w.Code != http.StatusUnauthorized {
-			t.Errorf("%s: %d %s", name, w.Code, w.Body.String())
+		logs.Reset()
+		w := mcpCall(refusal.token)
+		if w.Code != http.StatusUnauthorized || !strings.Contains(w.Body.String(), "SSO 액세스 토큰이 유효하지 않습니다") {
+			t.Errorf("%s: %d %s", refusal.name, w.Code, w.Body.String())
+			continue
+		}
+		requestID := w.Header().Get("X-Request-ID")
+		if requestID == "" {
+			t.Errorf("%s: no X-Request-ID on the refusal", refusal.name)
+		}
+		line := logs.String()
+		if !strings.Contains(line, `msg="MCP SSO token rejected"`) || !strings.Contains(line, refusal.cause) || !strings.Contains(line, "request_id="+requestID) {
+			t.Errorf("%s: log does not name the cause under the request's ID: %s", refusal.name, line)
+		}
+		if strings.Contains(line, refusal.token) {
+			t.Errorf("%s: the token itself was logged: %s", refusal.name, line)
 		}
 	}
 
