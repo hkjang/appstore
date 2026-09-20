@@ -189,6 +189,22 @@ test("SSO를 설정해도 복구용 관리자 로그인을 계속 사용할 수 
   ).toBeVisible();
 });
 
+test("거절된 silent SSO 뒤 로그인 화면은 이유를 알리고 SSO 링크는 그대로다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  await page.goto("/login?sso=none&returnTo=%2Fmy%2Fapps");
+  await expect(page.getByRole("status")).toContainText(
+    "자동으로 로그인하지 않았습니다",
+  );
+  await expect(
+    page.getByRole("link", { name: "회사 계정으로 SSO 로그인" }),
+  ).toHaveAttribute("href", "/api/v1/auth/oidc/login?returnTo=%2Fmy%2Fapps");
+
+  await page.goto("/login");
+  await expect(page.getByRole("status")).toHaveCount(0);
+});
+
 test("관리자는 스토어 목록과 상세에서 관리 설정으로 바로 이동한다", async ({
   page,
 }) => {

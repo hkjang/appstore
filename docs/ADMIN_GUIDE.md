@@ -536,7 +536,7 @@ curl --fail http://127.0.0.1:8080/health/ready
 | `/health/live`는 200인데 `/health/ready`가 503 `{"status":"not_ready"}` | PostgreSQL, 네트워크 | DB가 죽었거나 연결이 끊겼습니다. 2초 안에 ping이 되어야 합니다 |
 | 사용자에게 500과 요청 ID가 보인다 | `docker logs`에서 `request_id`로 검색 | `panic recovered`면 `stack`을, 아니면 해당 `http request`의 `status`와 `path`를 봅니다 |
 | SSO 로그인이 안 된다 | 관리자 → 인증·SSO → **연결 테스트** | 3.3의 실패 메시지 표를 따릅니다 |
-| 자동 로그인을 켰는데 로그인 화면이 뜬다 | 같은 브라우저 탭에서 Keycloak에 로그인돼 있는지, 주소에 `sso=none`이 붙어 있는지 | 탭 세션당 한 번만 시도합니다. 새 탭에서 열거나 Keycloak에 먼저 로그인한 뒤 다시 엽니다. 로그아웃 직후에는 의도적으로 시도하지 않습니다 |
+| 자동 로그인을 켰는데 로그인 화면이 뜬다 | 같은 브라우저 탭에서 Keycloak에 로그인돼 있는지, 주소에 `sso=none`이 붙어 있는지(로그인 화면에 "자동으로 로그인하지 않았습니다" 안내가 떠 있으면 그 경우입니다) | 탭 세션당 한 번만 시도합니다. 새 탭에서 열거나 Keycloak에 먼저 로그인한 뒤 다시 엽니다. 로그아웃 직후에는 의도적으로 시도하지 않습니다 |
 | 자동 로그인을 켠 뒤 화면이 깜빡이며 반복된다 | Keycloak의 Valid Redirect URIs, `docker logs`의 `/api/v1/auth/oidc/callback` 줄 | 정상이라면 일어나지 않습니다. 콜백이 `/login?sso=none`으로 302를 돌려주는지 확인하고, 아니면 자동 로그인을 끄고 연결 테스트부터 다시 합니다 |
 | 로그인은 되는데 화면이 403 | 사용자 → 역할, 인증·SSO → Role Mapping | 외부 역할 값과 Role Claim Path가 실제 token과 맞는지 확인합니다 |
 | 익명 사용자가 아무 화면도 못 본다 | 시스템 설정 → 공개 모드 | 꺼져 있으면 익명 탐색이 차단됩니다 |
