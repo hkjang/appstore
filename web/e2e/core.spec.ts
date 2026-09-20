@@ -581,6 +581,13 @@ test("공개 앱 즐겨찾기는 소유자와 공개 목록에서 추가하고 �
         JSON.parse(localStorage.getItem("appstore.favorites")!),
       ),
     ).toEqual(["agent-hub"]);
+    const menu = page.getByRole("button", { name: "메뉴 열기" });
+    if (await menu.isVisible()) {
+      await menu.click();
+      await expect(
+        page.getByRole("complementary", { name: "주 메뉴" }),
+      ).toHaveClass(/open/);
+    }
     await page.getByRole("link", { name: "즐겨찾기", exact: true }).click();
     await expect(page).toHaveURL("/favorites");
     await expect(
