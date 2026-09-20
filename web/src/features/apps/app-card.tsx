@@ -77,15 +77,17 @@ export function AppCard({
               : "앱 정보 보기"}
         </span>
         <div className="top-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`${app.name} ${favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}`}
-            aria-pressed={favorite}
-            onClick={() => toggle(app.slug)}
-          >
-            <Heart size={17} fill={favorite ? "currentColor" : "none"} />
-          </Button>
+          {viewable && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`${app.name} ${favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}`}
+              aria-pressed={favorite}
+              onClick={() => toggle(app.slug)}
+            >
+              <Heart size={17} fill={favorite ? "currentColor" : "none"} />
+            </Button>
+          )}
           {canManage && (
             <AppAdminLink appId={app.id} appName={app.name} compact />
           )}
