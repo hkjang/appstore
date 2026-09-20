@@ -463,14 +463,29 @@ test("앱 카드는 이름 밖을 눌러도 앱 상세로 이동한다", async (
 
 test("게시되지 않은 내 앱의 카드는 수정 화면으로 열린다", async ({ page }) => {
   await installMockApi(page, { authenticated: true });
+  const saved = ' [ "release-radar", "unrelated-app" ] ';
   await page.goto("/my/apps");
-  // Release Radar was rejected, so /apps/release-radar would answer 404; the
-  // card has no 자세히 and its name (and the overlay it draws) opens the edit
-  // screen instead.
+  await page.evaluate(
+    (value) => localStorage.setItem("appstore.favorites", value),
+    saved,
+  );
+  // Both owner pages use the production AppCard and FavoritesProvider.
   const card = page.locator(".app-card").filter({ hasText: "Release Radar" });
-  await expect(
-    card.getByRole("link", { name: "Release Radar 상세 보기" }),
-  ).toHaveCount(0);
+  for (const path of ["/my", "/my/apps"]) {
+    await page.goto(path);
+    await expect(card).toBeVisible();
+    await expect(card.getByRole("button", { name: /즐겨찾기/ })).toHaveCount(0);
+    await expect(card.getByText("반려", { exact: true })).toBeVisible();
+    await expect(
+      card.getByRole("link", { name: "Release Radar 상세 보기" }),
+    ).toHaveCount(0);
+    await expect(
+      card.getByRole("link", { name: "Release Radar 관리 설정 열기" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => localStorage.getItem("appstore.favorites")),
+    ).toBe(saved);
+  }
   await card.getByRole("link", { name: "Release Radar", exact: true }).click();
   await expect(page).toHaveURL(
     /\/my\/apps\/ffffffff-ffff-4fff-8fff-ffffffffffff\/edit$/,
@@ -547,4 +562,46 @@ test("검토자는 앱 내용과 이전 검토를 보고 의견과 함께 결정
   await page.getByLabel("검토 의견").fill("사내망 접속을 확인했습니다.");
   await page.getByRole("button", { name: /승인 및 게시/ }).click();
   await expect(page).toHaveURL(/\/review$/);
+});
+
+test("공개 앱 즐겨찾기는 소유자와 공개 목록에서 추가하고 즐겨찾기에서 해제한다", async ({
+  page,
+}) => {
+  await installMockApi(page, { authenticated: true });
+  for (const path of ["/my/apps", "/my", "/apps"]) {
+    await page.goto(path);
+    const add = page.getByRole("button", { name: "Agent Hub 즐겨찾기 추가" });
+    await expect(add).toHaveAttribute("aria-pressed", "false");
+    await add.click();
+    await expect(
+      page.getByRole("button", { name: "Agent Hub 즐겨찾기 해제" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("appstore.favorites")!),
+      ),
+    ).toEqual(["agent-hub"]);
+    await page.getByRole("link", { name: "즐겨찾기", exact: true }).click();
+    await expect(page).toHaveURL("/favorites");
+    await expect(
+      page.getByRole("heading", { name: "Agent Hub" }),
+    ).toBeVisible();
+    const remove = page.getByRole("button", {
+      name: "Agent Hub 즐겨찾기 해제",
+    });
+    await expect(remove).toHaveAttribute("aria-pressed", "true");
+    await remove.click();
+    await expect(page.getByRole("heading", { name: "Agent Hub" })).toHaveCount(
+      0,
+    );
+    expect(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("appstore.favorites")!),
+      ),
+    ).toEqual([]);
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "즐겨찾기한 앱이 없습니다" }),
+    ).toBeVisible();
+  }
 });
