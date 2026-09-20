@@ -17,6 +17,10 @@ import { safeReturnTo } from "../lib/utils";
 export function LoginPage() {
   const [params] = useSearchParams();
   const returnTo = safeReturnTo(params.get("returnTo"));
+  // The OIDC callback lands here with sso=none when a silent (prompt=none)
+  // attempt found no identity-provider session; the marker only explains the
+  // screen and never changes where the buttons go.
+  const ssoRefused = params.get("sso") === "none";
   const auth = useAuth();
   const navigate = useNavigate();
   const config = useQuery({
@@ -104,6 +108,15 @@ export function LoginPage() {
                 void auth.refresh();
               }}
             />
+          )}
+          {oidcEnabled && ssoRefused && (
+            <div className="notice mb-5" role="status">
+              <ShieldCheck size={20} />
+              <span>
+                회사 계정 세션이 없어 자동으로 로그인하지 않았습니다. 아래
+                버튼으로 로그인하세요.
+              </span>
+            </div>
           )}
           {oidcEnabled && (
             <a className="button button-primary w-full" href={oidcUrl}>
