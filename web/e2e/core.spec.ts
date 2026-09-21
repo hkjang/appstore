@@ -167,6 +167,50 @@ test("스토어 메뉴는 Apps와 MCP Apps를 동시에 선택하지 않는다",
   ).not.toHaveClass(/active/);
 });
 
+for (const ssoOnly of [true, false]) {
+  test(`${ssoOnly ? "SSO" : "Bootstrap"} 전용 설치에서는 사용 가능한 로그인 방식만 표시한다`, async ({
+    page,
+  }) => {
+    await installMockApi(page);
+    await page.route("**/api/v1/auth/session", (route) =>
+      route.fulfill({
+        json: { authenticated: false, bootstrapAvailable: !ssoOnly },
+      }),
+    );
+    await page.route("**/api/v1/public/config", (route) =>
+      route.fulfill({
+        json: {
+          siteName: ssoOnly ? "SSO 전용" : "Bootstrap 전용",
+          oidcEnabled: ssoOnly,
+          oidcConfigured: ssoOnly,
+        },
+      }),
+    );
+    await page.goto("/login");
+    await expect(
+      page.getByRole("heading", {
+        name: `${ssoOnly ? "SSO 전용" : "Bootstrap 전용"} 로그인`,
+      }),
+    ).toBeVisible();
+    const sso = page.getByRole("link", { name: "회사 계정으로 SSO 로그인" });
+    const username = page.getByLabel("Bootstrap 관리자");
+    if (ssoOnly) {
+      await expect(sso).toBeVisible();
+      await expect(username).toBeHidden();
+    } else {
+      await expect(username).toBeVisible();
+      await expect(page.getByLabel("비밀번호")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "관리자 로그인" }),
+      ).toBeVisible();
+      await expect(sso).toBeHidden();
+    }
+    await expect(
+      page.getByRole("button", { name: "관리자 계정으로 로그인" }),
+    ).toBeHidden();
+  });
+}
+
 test("SSO를 설정해도 복구용 관리자 로그인을 계속 사용할 수 있다", async ({
   page,
 }) => {
