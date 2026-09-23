@@ -71,6 +71,123 @@ describe("Apps route state", () => {
   });
 });
 
+describe("즐겨찾기 화면", () => {
+  // The catalog answer is deliberately larger than one page and larger than
+  // the favorites it contains, which is the shape that made the count and the
+  // page navigation describe the whole catalog instead of this view.
+  const catalog = {
+    items: [
+      {
+        id: "1",
+        slug: "agent-hub",
+        name: "Agent Hub",
+        summary: "AI 에이전트 카탈로그",
+        status: "published",
+      },
+      {
+        id: "2",
+        slug: "doc-mind",
+        name: "Doc Mind",
+        summary: "문서 검색",
+        status: "published",
+      },
+      {
+        id: "3",
+        slug: "chart-lab",
+        name: "Chart Lab",
+        summary: "지표 대시보드",
+        status: "published",
+      },
+      {
+        id: "4",
+        slug: "queue-runner",
+        name: "Queue Runner",
+        summary: "작업 큐",
+        status: "published",
+      },
+    ],
+    total: 137,
+    limit: 100,
+    offset: 0,
+  };
+
+  afterEach(() => localStorage.clear());
+
+  const renderCatalog = (props: { favoritesOnly?: boolean }) => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockImplementation((input: RequestInfo | URL) =>
+          Promise.resolve(
+            new Response(
+              JSON.stringify(
+                String(input).includes("/categories") ? [] : catalog,
+              ),
+              { status: 200, headers: { "content-type": "application/json" } },
+            ),
+          ),
+        ),
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/favorites"]}>
+          <AuthProvider>
+            <FavoritesProvider>
+              <AppsPage {...props} />
+            </FavoritesProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+
+  it("counts the favorites it shows, not the whole catalog", async () => {
+    localStorage.setItem(
+      "appstore.favorites",
+      JSON.stringify(["agent-hub", "chart-lab"]),
+    );
+    renderCatalog({ favoritesOnly: true });
+
+    expect(await screen.findByText("2개 앱")).toBeVisible();
+    // Card names are the only level-2 headings once cards are on screen.
+    expect(
+      screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
+    ).toEqual(["Agent Hub", "Chart Lab"]);
+    expect(screen.queryByText("137개 앱")).toBeNull();
+  });
+
+  it("keeps the loading wording until the catalog answers", () => {
+    localStorage.setItem("appstore.favorites", JSON.stringify(["agent-hub"]));
+    renderCatalog({ favoritesOnly: true });
+
+    expect(screen.getByText("앱 수 확인 중")).toBeVisible();
+    expect(screen.queryByText("0개 앱")).toBeNull();
+  });
+
+  it("offers no page navigation, because later pages cannot hold more favorites", async () => {
+    localStorage.setItem("appstore.favorites", JSON.stringify(["agent-hub"]));
+    renderCatalog({ favoritesOnly: true });
+
+    expect(await screen.findByText("1개 앱")).toBeVisible();
+    expect(screen.queryByRole("navigation", { name: "페이지" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "다음" })).toBeNull();
+  });
+
+  it("leaves the catalog view reporting the server total and paging", async () => {
+    renderCatalog({});
+
+    expect(await screen.findByText("137개 앱")).toBeVisible();
+    expect(
+      screen.getByRole("navigation", { name: "페이지" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
+  });
+});
+
 describe("App detail introduction", () => {
   // jsdom reports 0 for both heights, which is also what it reports after
   // these stubs are put back, so the reset is the plain jsdom answer.

@@ -592,3 +592,21 @@ test("검토자는 앱 내용과 이전 검토를 보고 의견과 함께 결정
   await page.getByRole("button", { name: /승인 및 게시/ }).click();
   await expect(page).toHaveURL(/\/review$/);
 });
+
+test("즐겨찾기 화면은 보여 주는 카드 수만큼만 앱 수를 말한다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  // Favorites live in this browser only, so they are seeded before the app
+  // reads them rather than clicked through the catalog.
+  await page.addInitScript(() =>
+    localStorage.setItem("appstore.favorites", JSON.stringify(["agent-hub"])),
+  );
+  await page.goto("/favorites");
+  await expect(page.getByRole("heading", { name: "즐겨찾기" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+  // The catalog holds more than this one app, and the count used to report
+  // that larger number here.
+  await expect(page.getByText("1개 앱")).toBeVisible();
+  await expect(page.locator("nav[aria-label='페이지']")).toHaveCount(0);
+});

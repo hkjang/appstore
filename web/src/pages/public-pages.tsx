@@ -354,7 +354,9 @@ export function AppsPage({
       </form>
       <div className="flex items-center justify-between gap-3 mb-4 text-[14px] text-[var(--text-muted)]">
         <span aria-live="polite">
-          {apps.data ? `${apps.data.total}개 앱` : "앱 수 확인 중"}
+          {apps.data
+            ? `${favoritesOnly ? filtered.length : apps.data.total}개 앱`
+            : "앱 수 확인 중"}
         </span>
         <div className="flex gap-2">
           {featured && (
@@ -403,7 +405,9 @@ export function AppsPage({
           ))}
         </div>
       )}
-      {apps.data && apps.data.total > apps.data.pageSize && (
+      {/* A favorites view keeps one page of the catalog and filters it by the
+          slugs stored in this browser, so a second page holds nothing to show. */}
+      {!favoritesOnly && apps.data && apps.data.total > apps.data.pageSize && (
         <nav className="state-actions mt-7" aria-label="페이지">
           <Button
             variant="secondary"
