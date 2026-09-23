@@ -217,23 +217,54 @@ export function AppsPage({
     queryFn: ({ signal }) => api.categories(signal),
   });
   const apps = useQuery({
+    // Favorites are filtered in the browser, so the stored slugs change what
+    // is shown without changing what has to be fetched.
     queryKey: [
       "apps",
-      { q, category, sort, mcp, featured, page, favoritesOnly, slugs },
+      {
+        q,
+        category,
+        sort,
+        mcp,
+        featured,
+        page: favoritesOnly ? 1 : page,
+        favoritesOnly,
+      },
     ],
-    queryFn: ({ signal }) =>
-      api.apps(
-        {
-          q,
-          category,
-          sort,
-          mcp: mcp || undefined,
-          featured: featured || undefined,
-          page,
-          pageSize: favoritesOnly ? 100 : 24,
-        },
+    queryFn: async ({ signal }) => {
+      const filters = {
+        q,
+        category,
+        sort,
+        mcp: mcp || undefined,
+        featured: featured || undefined,
+      };
+      if (!favoritesOnly)
+        return api.apps({ ...filters, page, pageSize: 24 }, signal);
+      // A favorite can sit anywhere in the catalog, so this view reads the
+      // pages to the end and hands back the whole list to filter.
+      const first = await api.apps(
+        { ...filters, page: 1, pageSize: 100 },
         signal,
-      ),
+      );
+      const items = [...first.items];
+      // The server decides how large a page really is, so the next offset
+      // follows its answer rather than what was asked for.
+      const size = first.pageSize > 0 ? first.pageSize : items.length;
+      for (
+        let offset = size;
+        size > 0 && offset < first.total;
+        offset += size
+      ) {
+        const rest = await api.apps(
+          { ...filters, offset, pageSize: size },
+          signal,
+        );
+        if (!rest.items.length) break;
+        items.push(...rest.items);
+      }
+      return { ...first, items };
+    },
   });
   const filtered = favoritesOnly
     ? (apps.data?.items.filter((app) => slugs.includes(app.slug)) ?? [])
@@ -354,7 +385,9 @@ export function AppsPage({
       </form>
       <div className="flex items-center justify-between gap-3 mb-4 text-[14px] text-[var(--text-muted)]">
         <span aria-live="polite">
-          {apps.data ? `${apps.data.total}개 앱` : "앱 수 확인 중"}
+          {apps.data
+            ? `${favoritesOnly ? filtered.length : apps.data.total}개 앱`
+            : "앱 수 확인 중"}
         </span>
         <div className="flex gap-2">
           {featured && (
@@ -403,7 +436,9 @@ export function AppsPage({
           ))}
         </div>
       )}
-      {apps.data && apps.data.total > apps.data.pageSize && (
+      {/* A favorites view already read the catalog to the end, so every
+          favorite is on screen and there is no further page to reach. */}
+      {!favoritesOnly && apps.data && apps.data.total > apps.data.pageSize && (
         <nav className="state-actions mt-7" aria-label="페이지">
           <Button
             variant="secondary"
