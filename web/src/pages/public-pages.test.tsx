@@ -1,13 +1,88 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../app/providers";
 import { FavoritesProvider } from "../features/apps/favorites";
 import { AppDetailPage, AppsPage } from "./public-pages";
 
 describe("Apps route state", () => {
+  it("shows a catalog favorite on /favorites and removes it when toggled off", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        const url = String(input);
+        const payload = url.includes("/categories")
+          ? []
+          : url.includes("/auth/session")
+            ? { authenticated: false }
+            : {
+                items: [
+                  {
+                    id: "1",
+                    slug: "agent-hub",
+                    name: "Agent Hub",
+                    summary: "AI",
+                    status: "published",
+                    visibility: "public",
+                  },
+                ],
+                total: 1,
+              };
+        return Promise.resolve(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }),
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/apps"]}>
+          <AuthProvider>
+            <FavoritesProvider>
+              <Link to="/favorites">즐겨찾기로 이동</Link>
+              <Routes>
+                <Route path="/apps" element={<AppsPage />} />
+                <Route path="/favorites" element={<AppsPage favoritesOnly />} />
+              </Routes>
+            </FavoritesProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const add = await screen.findByRole("button", {
+      name: "Agent Hub 즐겨찾기 추가",
+    });
+    expect(add).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(add);
+    expect(
+      screen.getByRole("button", { name: "Agent Hub 즐겨찾기 해제" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(JSON.parse(localStorage.getItem("appstore.favorites")!)).toEqual([
+      "agent-hub",
+    ]);
+    await userEvent.click(
+      screen.getByRole("link", { name: "즐겨찾기로 이동" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "즐겨찾기" }),
+    ).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Agent Hub" }),
+    ).toBeVisible();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Agent Hub 즐겨찾기 해제" }),
+    );
+    expect(screen.queryByRole("heading", { name: "Agent Hub" })).toBeNull();
+    expect(JSON.parse(localStorage.getItem("appstore.favorites")!)).toEqual([]);
+  });
+
   it("restores search, category and sort controls from the URL", async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
