@@ -24,10 +24,14 @@ type publicConfigResponse struct {
 	OIDCConfigured bool   `json:"oidcConfigured"`
 	// OIDCAutoLogin tells the browser it may try a silent (prompt=none)
 	// sign-in before showing a login screen. Only true when SSO is usable.
-	OIDCAutoLogin   bool   `json:"oidcAutoLogin"`
-	WorkflowEnabled bool   `json:"workflowEnabled"`
-	AnonymousMCP    bool   `json:"anonymousMcp"`
-	Theme           string `json:"theme"`
+	OIDCAutoLogin   bool `json:"oidcAutoLogin"`
+	WorkflowEnabled bool `json:"workflowEnabled"`
+	AnonymousMCP    bool `json:"anonymousMcp"`
+	// MCPOAuthResource is the MCP address a client can connect to with SSO
+	// alone; empty when tokens are not accepted. It is what the metadata
+	// document publishes anyway, so the key page may show it to anyone.
+	MCPOAuthResource string `json:"mcpOauthResource,omitempty"`
+	Theme            string `json:"theme"`
 }
 
 func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +58,10 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 	// so it works under the image content security policy and keeps working if
 	// the original host disappears.
 	checksums, _ := s.repository.ListBrandingChecksums(r.Context())
+	var mcpOAuthResource string
+	if oauth := s.mcpOAuth(r); oauth.Active {
+		mcpOAuthResource = oauth.Resource
+	}
 	logoURL := settings.LogoURL
 	if checksum, ok := checksums[store.BrandingLogo]; ok {
 		logoURL = brandingURL(store.BrandingLogo, checksum)
@@ -68,7 +76,7 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 		FaviconURL: faviconURL,
 		PublicMode: settings.PublicMode, OIDCEnabled: oidcEnabled, OIDCConfigured: oidcConfigured,
 		OIDCAutoLogin: oidcEnabled && oidcConfigured && oidcAutoLogin, WorkflowEnabled: workflow.Enabled,
-		AnonymousMCP: anonymousMCP, Theme: settings.Theme,
+		AnonymousMCP: anonymousMCP, MCPOAuthResource: mcpOAuthResource, Theme: settings.Theme,
 	})
 }
 
