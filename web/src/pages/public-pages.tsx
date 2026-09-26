@@ -217,9 +217,13 @@ export function AppsPage({
     queryFn: ({ signal }) => api.categories(signal),
   });
   const apps = useQuery({
+    // The favorite slugs stay out of the key: they only pick which of the
+    // fetched cards are shown, so keying on them would turn every heart click
+    // into a fresh query that refetches the same list behind a skeleton.
+    // favoritesOnly does belong here because it decides the page size.
     queryKey: [
       "apps",
-      { q, category, sort, mcp, featured, page, favoritesOnly, slugs },
+      { q, category, sort, mcp, featured, page, favoritesOnly },
     ],
     queryFn: ({ signal }) =>
       api.apps(

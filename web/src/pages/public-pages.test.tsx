@@ -83,6 +83,122 @@ describe("Apps route state", () => {
     expect(JSON.parse(localStorage.getItem("appstore.favorites")!)).toEqual([]);
   });
 
+  const jsonResponse = (payload: unknown) =>
+    new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+
+  // The catalog answer is held back until the test releases it, which is how a
+  // real network makes a request in flight visible: while one is open the page
+  // has no list to draw and falls back to the loading placeholders.
+  const heldCatalog = (apps: [slug: string, name: string][]) => {
+    const waiting: (() => void)[] = [];
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/categories")) return Promise.resolve(jsonResponse([]));
+      if (url.includes("/auth/session"))
+        return Promise.resolve(jsonResponse({ authenticated: false }));
+      return new Promise<Response>((resolve) =>
+        waiting.push(() =>
+          resolve(
+            jsonResponse({
+              items: apps.map(([slug, name], index) => ({
+                id: String(index + 1),
+                slug,
+                name,
+                summary: "AI",
+                status: "published",
+                visibility: "public",
+              })),
+              total: apps.length,
+              limit: 24,
+              offset: 0,
+            }),
+          ),
+        ),
+      );
+    });
+    return {
+      fetchMock,
+      requests: () =>
+        fetchMock.mock.calls.filter(([url]) =>
+          String(url).includes("/v1/apps?"),
+        ).length,
+      answer: () => waiting.splice(0).forEach((send) => send()),
+    };
+  };
+
+  const renderCatalog = (fetchMock: unknown, favoritesOnly = false) => {
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[favoritesOnly ? "/favorites" : "/apps"]}>
+          <AuthProvider>
+            <FavoritesProvider>
+              <AppsPage favoritesOnly={favoritesOnly} />
+            </FavoritesProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+
+  it("keeps the catalog grid on screen and skips a refetch when a heart is toggled", async () => {
+    const catalog = heldCatalog([["agent-hub", "Agent Hub"]]);
+    renderCatalog(catalog.fetchMock);
+    await waitFor(() => expect(catalog.requests()).toBe(1));
+    catalog.answer();
+    const add = await screen.findByRole("button", {
+      name: "Agent Hub 즐겨찾기 추가",
+    });
+
+    await userEvent.click(add);
+
+    // The heart is browser-local state the list does not depend on, so the
+    // grid stays as it was instead of being asked for again.
+    expect(screen.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+    expect(screen.queryByLabelText("앱 목록을 불러오는 중")).toBeNull();
+    expect(screen.getByText("1개 앱")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Agent Hub 즐겨찾기 해제" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(JSON.parse(localStorage.getItem("appstore.favorites")!)).toEqual([
+      "agent-hub",
+    ]);
+    expect(catalog.requests()).toBe(1);
+  });
+
+  it("removes an unfavorited card on /favorites without reloading the list", async () => {
+    localStorage.setItem(
+      "appstore.favorites",
+      JSON.stringify(["agent-hub", "docs-hub"]),
+    );
+    const catalog = heldCatalog([
+      ["agent-hub", "Agent Hub"],
+      ["docs-hub", "Docs Hub"],
+    ]);
+    renderCatalog(catalog.fetchMock, true);
+    await waitFor(() => expect(catalog.requests()).toBe(1));
+    catalog.answer();
+    const remove = await screen.findByRole("button", {
+      name: "Agent Hub 즐겨찾기 해제",
+    });
+
+    await userEvent.click(remove);
+
+    expect(screen.queryByRole("heading", { name: "Agent Hub" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Docs Hub" })).toBeVisible();
+    expect(screen.queryByLabelText("앱 목록을 불러오는 중")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("appstore.favorites")!)).toEqual([
+      "docs-hub",
+    ]);
+    expect(catalog.requests()).toBe(1);
+  });
+
   it("restores search, category and sort controls from the URL", async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
