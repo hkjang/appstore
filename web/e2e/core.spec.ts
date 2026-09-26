@@ -656,3 +656,32 @@ test("공개 앱 즐겨찾기는 소유자와 공개 목록에서 추가하고 �
     ).toBeVisible();
   }
 });
+
+test("카탈로그에서 즐겨찾기를 눌러도 목록을 다시 받아 오지 않는다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  const listRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/api/v1/apps") listRequests.push(url.search);
+  });
+  await page.goto("/apps");
+  const add = page.getByRole("button", { name: "Agent Hub 즐겨찾기 추가" });
+  await expect(add).toBeVisible();
+  await expect(page.getByText(/개 앱$/)).toBeVisible();
+  const before = listRequests.length;
+  expect(before).toBeGreaterThan(0);
+
+  await add.click();
+
+  await expect(
+    page.getByRole("button", { name: "Agent Hub 즐겨찾기 해제" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  // The catalog the heart was clicked in stays on screen: no placeholder grid,
+  // no "앱 수 확인 중", and no second request for the same list.
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+  await expect(page.getByLabel("앱 목록을 불러오는 중")).toHaveCount(0);
+  await expect(page.getByText("앱 수 확인 중")).toHaveCount(0);
+  expect(listRequests.length).toBe(before);
+});
