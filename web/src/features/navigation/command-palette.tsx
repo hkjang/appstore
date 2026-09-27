@@ -168,7 +168,14 @@ export function CommandPalette({
   const results = useMemo<Destination[]>(() => {
     const trimmed = query.trim();
     if (!trimmed) {
-      const recent = readRecent();
+      // The stored list outlives the session that built it, so a menu a
+      // signed-out browser no longer has is not offered as a recent one.
+      const allowedMenus = new Set(menuDestinations.map((item) => item.id));
+      const recent = readRecent().filter((item) => {
+        if (item.id.startsWith("menu:")) return allowedMenus.has(item.id);
+        if (item.id.startsWith("app-admin:")) return canManage;
+        return true;
+      });
       const recentIds = new Set(recent.map((item) => item.id));
       return [
         ...recent,
@@ -179,7 +186,7 @@ export function CommandPalette({
       ...appDestinations,
       ...menuDestinations.filter((item) => matches(item, trimmed)),
     ];
-  }, [appDestinations, menuDestinations, query]);
+  }, [appDestinations, canManage, menuDestinations, query]);
 
   useEffect(() => {
     if (!open) return;
