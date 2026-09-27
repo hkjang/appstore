@@ -106,7 +106,10 @@ export function CommandPalette({
   const navigate = useNavigate();
   const { session } = useAuth();
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
+  // The selection follows the destination, not its row number: app results are
+  // inserted ahead of the menu matches when a slow search answers, and an index
+  // would then point at whatever slid into that row.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const canManage = hasAnyRole(session?.user?.roles, ADMIN_ROLES);
@@ -188,10 +191,16 @@ export function CommandPalette({
     ];
   }, [appDestinations, canManage, menuDestinations, query]);
 
+  // A destination that is gone from the list falls back to the first row.
+  const activeIndex = Math.max(
+    0,
+    results.findIndex((item) => item.id === activeId),
+  );
+
   useEffect(() => {
     if (!open) return;
     setQuery("");
-    setActive(0);
+    setActiveId(null);
     const focus = requestAnimationFrame(() => inputRef.current?.focus());
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -201,7 +210,7 @@ export function CommandPalette({
     };
   }, [open]);
 
-  useEffect(() => setActive(0), [query]);
+  useEffect(() => setActiveId(null), [query]);
 
   if (!open) return null;
 
@@ -222,12 +231,14 @@ export function CommandPalette({
       event.preventDefault();
       if (!results.length) return;
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((index) => (index + step + results.length) % results.length);
+      const next =
+        results[(activeIndex + step + results.length) % results.length];
+      if (next) setActiveId(next.id);
       return;
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      go(results[active]);
+      go(results[activeIndex]);
     }
   };
 
@@ -256,7 +267,7 @@ export function CommandPalette({
             aria-label="빠른 이동 검색"
             aria-controls={listId}
             aria-activedescendant={
-              results[active] ? `${listId}-${active}` : undefined
+              results[activeIndex] ? `${listId}-${activeIndex}` : undefined
             }
             autoComplete="off"
             role="combobox"
@@ -276,9 +287,9 @@ export function CommandPalette({
                   type="button"
                   id={`${listId}-${index}`}
                   role="option"
-                  aria-selected={index === active}
-                  className={`palette-item${index === active ? " active" : ""}`}
-                  onMouseMove={() => setActive(index)}
+                  aria-selected={index === activeIndex}
+                  className={`palette-item${index === activeIndex ? " active" : ""}`}
+                  onMouseMove={() => setActiveId(destination.id)}
                   onClick={() => go(destination)}
                 >
                   <span className="palette-icon" data-tone={destination.tone}>
@@ -288,7 +299,7 @@ export function CommandPalette({
                     <strong>{destination.label}</strong>
                     {destination.hint && <span>{destination.hint}</span>}
                   </span>
-                  {index === active && (
+                  {index === activeIndex && (
                     <CornerDownLeft size={15} aria-hidden="true" />
                   )}
                 </button>
