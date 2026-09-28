@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { StoreApp } from "../src/types";
 import { installMockApi } from "./mock-api";
 
 test("공개 탐색과 URL 검색 상태는 새로고침 후에도 유지된다", async ({
@@ -737,4 +738,53 @@ test("로그아웃한 뒤 새 탭에서 자동 로그인이 다시 밀어 넣지
   await expect(later).toHaveURL("/");
   expect(attempts).toEqual([]);
   await later.close();
+});
+
+test("카탈로그 보기 전환은 현재 페이지와 앱을 유지한다", async ({ page }) => {
+  await installMockApi(page);
+  const apps: StoreApp[] = Array.from({ length: 25 }, (_, index) => ({
+    id: String(index + 1),
+    slug: `catalog-${index + 1}`,
+    name: `Catalog App ${index + 1}`,
+    summary: "Catalog entry",
+    status: "published",
+    visibility: "public",
+  }));
+  const requests: string[] = [];
+  await page.route("**/api/v1/apps?*", async (route) => {
+    requests.push(route.request().url());
+    const params = new URL(route.request().url()).searchParams;
+    const offset = Number(params.get("offset"));
+    const limit = Number(params.get("limit"));
+    await route.fulfill({
+      json: {
+        items: apps.slice(offset, offset + limit),
+        total: apps.length,
+        offset,
+        limit,
+      },
+    });
+  });
+  await page.goto("/apps?page=2&q=Catalog&category=ai&sort=name");
+  const lastApp = page.getByRole("heading", { name: "Catalog App 25" });
+  await expect(lastApp).toBeVisible();
+  for (const label of ["목록", "카드"]) {
+    const button = page.getByRole("button", { name: label, exact: true });
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(page).toHaveURL(/page=2/);
+    await expect(lastApp).toBeVisible();
+    await expect(page.getByText("2 페이지", { exact: true })).toBeVisible();
+    expect(requests).toHaveLength(1);
+  }
+  await page.reload();
+  await expect(lastApp).toBeVisible();
+  await expect(page.locator("#catalog-search")).toHaveValue("Catalog");
+  await expect(page.getByLabel("카테고리")).toHaveValue("ai");
+  await expect(page.getByLabel("정렬")).toHaveValue("name");
+  await page.getByLabel("정렬").selectOption("updated");
+  await expect(
+    page.getByRole("heading", { name: "Catalog App 1", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("1 페이지", { exact: true })).toBeVisible();
 });
