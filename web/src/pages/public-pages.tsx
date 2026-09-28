@@ -248,7 +248,7 @@ export function AppsPage({
       const next = new URLSearchParams(current);
       if (value) next.set(key, value);
       else next.delete(key);
-      if (key !== "page") next.delete("page");
+      if (key !== "page" && key !== "view") next.delete("page");
       return next;
     });
   };

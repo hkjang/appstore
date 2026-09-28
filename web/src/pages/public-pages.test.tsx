@@ -5,6 +5,7 @@ import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../app/providers";
 import { FavoritesProvider } from "../features/apps/favorites";
+import type { StoreApp } from "../types";
 import { AppDetailPage, AppsPage } from "./public-pages";
 
 describe("Apps route state", () => {
@@ -198,6 +199,109 @@ describe("Apps route state", () => {
     ]);
     expect(catalog.requests()).toBe(1);
   });
+
+  const renderSecondPage = (view = "grid") => {
+    const items: StoreApp[] = Array.from({ length: 25 }, (_, index) => ({
+      id: String(index + 1),
+      slug: `app-${index + 1}`,
+      name: `Catalog App ${index + 1}`,
+      summary: "Catalog entry",
+      status: "published",
+      visibility: "public",
+    }));
+    const requests: URL[] = [];
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/v1/apps") {
+        requests.push(url);
+        const offset = Number(url.searchParams.get("offset"));
+        const limit = Number(url.searchParams.get("limit"));
+        return Promise.resolve(
+          jsonResponse({
+            items: items.slice(offset, offset + limit),
+            total: items.length,
+            limit,
+            offset,
+          }),
+        );
+      }
+      return Promise.resolve(
+        jsonResponse(
+          url.pathname === "/api/v1/categories"
+            ? [{ id: "ai", slug: "ai", name: "AI" }]
+            : { authenticated: false },
+        ),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter
+          initialEntries={[
+            `/apps?page=2&q=Catalog&category=ai&sort=name&view=${view}`,
+          ]}
+        >
+          <AuthProvider>
+            <FavoritesProvider>
+              <AppsPage />
+            </FavoritesProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    return requests;
+  };
+
+  it.each([
+    ["grid", "목록"],
+    ["list", "카드"],
+  ])("keeps page two when changing the %s view", async (view, button) => {
+    const requests = renderSecondPage(view);
+    await screen.findByRole("heading", { name: "Catalog App 25" });
+    await userEvent.click(screen.getByRole("button", { name: button }));
+
+    expect(screen.getByText("2 페이지")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Catalog App 25" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: button })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByLabelText("앱 검색")).toHaveValue("Catalog");
+    expect(screen.getByLabelText("카테고리")).toHaveValue("ai");
+    expect(screen.getByLabelText("정렬")).toHaveValue("name");
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.searchParams.get("offset")).toBe("24");
+  });
+
+  it.each(["search", "category", "sort"])(
+    "still resets to page one after a %s change",
+    async (control) => {
+      const requests = renderSecondPage("list");
+      await screen.findByRole("heading", { name: "Catalog App 25" });
+      if (control === "search") {
+        await userEvent.type(screen.getByLabelText("앱 검색"), " App");
+        await userEvent.click(screen.getByRole("button", { name: "검색" }));
+      } else if (control === "category") {
+        await userEvent.selectOptions(screen.getByLabelText("카테고리"), "");
+      } else {
+        await userEvent.selectOptions(screen.getByLabelText("정렬"), "updated");
+      }
+      expect(
+        await screen.findByRole("heading", { name: "Catalog App 1" }),
+      ).toBeVisible();
+      expect(screen.getByText("1 페이지")).toBeVisible();
+      expect(screen.getByRole("button", { name: "목록" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(requests.at(-1)?.searchParams.get("offset")).toBe("0");
+    },
+  );
 
   it("restores search, category and sort controls from the URL", async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
