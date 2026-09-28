@@ -25,7 +25,7 @@
     <main id="guide">
       <header class="section guide-hero"><span class="eyebrow">ADMINISTRATOR GUIDE</span><h1>인증부터 AI까지, 운영 설정을 화면에서 관리하기</h1><p class="lead">환경변수는 설치에 필요한 네 값으로 고정합니다. 운영 중 변경하는 서비스 URL, OIDC, 역할, Workflow, Key 정책, AI, API와 MCP는 관리자 화면과 감사 로그로 관리합니다.</p></header>
       <div class="section compact guide-layout">
-        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#bootstrap">최초 Bootstrap</a><a href="#system">시스템 설정</a><a href="#branding">로고·파비콘</a><a href="#copy">메인 배너 문구</a><a href="#oidc">Keycloak OIDC</a><a href="#roles">역할과 권한</a><a href="#workflow">승인 Workflow</a><a href="#keys">Key 정책</a><a href="#ai">AI 공급자</a><a href="#api-mcp">API와 MCP</a><a href="#security-check">보안 심의 연동</a><a href="#apps">앱 카탈로그</a><a href="#users">사용자·감사</a><a href="#security">보안 점검</a></aside>
+        <aside class="toc" aria-label="이 페이지 목차"><strong>목차</strong><a href="#bootstrap">최초 Bootstrap</a><a href="#system">시스템 설정</a><a href="#branding">로고·파비콘</a><a href="#copy">메인 배너 문구</a><a href="#oidc">Keycloak OIDC</a><a href="#silent-sso">자동 로그인</a><a href="#roles">역할과 권한</a><a href="#workflow">승인 Workflow</a><a href="#keys">Key 정책</a><a href="#ai">AI 공급자</a><a href="#api-mcp">API와 MCP</a><a href="#security-check">보안 심의 연동</a><a href="#apps">앱 카탈로그</a><a href="#users">사용자·감사</a><a href="#security">보안 점검</a></aside>
         <article class="guide-content">
           <div class="callout"><strong>이 문서는 대체되었습니다.</strong> 설치·환경 변수·운영·장애 대응까지 화면 캡처와 함께 담은 정본 관리자 가이드는 <a href="../../ADMIN_GUIDE.md">docs/ADMIN_GUIDE.md</a>이며 인쇄용 <a href="../../ADMIN_GUIDE.pdf">PDF</a>도 함께 제공합니다. 이 페이지는 웹 요약으로 남겨 두었고, 내용이 다르면 정본을 따릅니다.</div>
           <section id="bootstrap"><h2>1. 최초 Bootstrap 관리자</h2>
@@ -70,7 +70,7 @@
           </section>
 
           <section id="oidc"><h2>3. Keycloak OIDC 연결</h2>
-            <figure class="shot"><a href="../../assets/screenshots/captures/admin-authentication-desktop.webp" aria-label="Keycloak OIDC 관리자 설정 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-authentication-desktop.webp" width="1440" height="1126" decoding="async" alt="Issuer, Client ID, 가려진 Secret, 역할 매핑과 SSO 연결 시험이 있는 OIDC 설정 전체 화면"></a><figcaption>v2.11.8 실제 화면입니다. Secret은 설정할 수 있지만 다시 조회할 수 없습니다.</figcaption></figure>
+            <figure class="shot"><a href="../../assets/screenshots/captures/admin-authentication-desktop.webp" aria-label="Keycloak OIDC 관리자 설정 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-authentication-desktop.webp" width="1440" height="1126" decoding="async" alt="Issuer, Client ID, 가려진 Secret, 역할 매핑과 SSO 연결 시험이 있는 OIDC 설정 전체 화면"></a><figcaption>v2.11.9 실제 화면입니다. Secret은 설정할 수 있지만 다시 조회할 수 없습니다.</figcaption></figure>
             <h3>Keycloak에서 준비</h3>
             <ul>
               <li>표준 Authorization Code Flow를 허용하는 confidential client를 만듭니다.</li>
@@ -92,6 +92,24 @@
               <li><strong>HTTP 404</strong>: realm 경로가 틀렸습니다. Issuer는 realm까지 포함해야 하며 <code>/.well-known/...</code>은 붙이지 않습니다.</li>
               <li><strong>필수 항목이 없습니다</strong>: 응답이 discovery 문서가 아닙니다. reverse proxy가 로그인 화면이나 오류 페이지를 대신 반환하고 있는지 확인합니다.</li>
               <li><strong>issuer가 다릅니다</strong>: Keycloak이 내부 hostname으로 issuer를 발행하고 있습니다. Keycloak의 frontend URL(<code>KC_HOSTNAME</code>)을 사용자에게 노출되는 주소로 맞춥니다.</li>
+            </ul>
+          </section>
+
+          <section id="silent-sso"><h2>3-1. 자동 로그인 (Silent SSO)</h2>
+            <p>OIDC 설정의 <strong>자동 로그인</strong>을 켜면 Keycloak에 이미 로그인한 사람은 로그인 화면을 보지 않고 열려던 화면으로 바로 들어옵니다. AppStore는 인증 요청에 <code>prompt=none</code>을 붙여 보내고, Keycloak은 세션이 있으면 즉시 code를 돌려주고 없으면 <code>login_required</code>로 거절합니다. 로그인 화면은 한 번도 뜨지 않습니다.</p>
+            <h3>되돌아오는 고리를 막는 세 가지 장치</h3>
+            <p><code>prompt=none</code>은 화면을 보여주지 않으므로, 아무 조건 없이 매번 시도하면 브라우저가 Keycloak과 AppStore 사이를 계속 왕복합니다. 다음 세 가지가 그것을 막습니다.</p>
+            <ul>
+              <li><strong>탭마다 한 번</strong>: 한 번 시도한 탭은 새로 고쳐도 다시 시도하지 않습니다. 새 탭은 다시 시도합니다.</li>
+              <li><strong>로그아웃 이후</strong>: 직접 로그아웃하면 다시 로그인할 때까지 자동 로그인을 시도하지 않습니다. 이 기록은 탭이 아니라 브라우저에 남으므로, 로그아웃한 뒤 새 탭을 열어도 자동으로 다시 들어가지지 않습니다.</li>
+              <li><strong>주소의 표시</strong>: 거절된 뒤에는 <code>/login?sso=none</code>으로 이동합니다. 저장소가 비워진 상태에서도 이 표시가 재시도를 막습니다.</li>
+            </ul>
+            <h3>운영 시 확인할 점</h3>
+            <ul>
+              <li>Keycloak에 추가 설정은 필요하지 않습니다. redirect URI만 이미 등록되어 있으면 됩니다.</li>
+              <li><strong>AppStore 로그아웃은 Keycloak 세션을 끝내지 않습니다.</strong> 다른 SSO 앱은 그대로 로그인 상태로 남고, AppStore에 다시 들어올 때도 비밀번호를 다시 묻지 않습니다. 조직 차원의 로그아웃이 필요하면 Keycloak의 계정 화면이나 관리자 세션 종료를 사용합니다.</li>
+              <li>사이트 데이터를 차단한 브라우저나 시크릿 창에서는 재시도 방지 기록을 저장할 수 없어 자동 로그인을 시도하지 않고 로그인 화면을 보여줍니다.</li>
+              <li>켠 뒤에는 새 private 창에서 (1) 로그인 없이 바로 진입, (2) 로그아웃 후 새 탭에서 로그인 상태로 되돌아가지 않음, (3) Keycloak 세션이 없을 때 로그인 화면 도달을 각각 확인하세요.</li>
             </ul>
           </section>
 
@@ -159,11 +177,11 @@
               <li>API Key는 <code>ENCRYPTION_KEY</code>로 암호화해 저장하고 화면에는 <strong>설정됨</strong>으로만 표시합니다. SecCheck에서 <code>AUDITOR</code> 또는 <code>SECURITY_REVIEWER</code> 역할의 read 키를 발급하세요.</li>
               <li>이미 게시된 앱은 설정을 켜도 내려가지 않습니다.</li>
             </ul>
-            <figure class="shot"><a href="../../assets/screenshots/captures/admin-security-check-desktop.webp" aria-label="보안 심의 연동 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-security-check-desktop.webp" width="1440" height="1000" decoding="async" alt="SecCheck 주소와 API Key, 보안 심의 필수 설정을 관리하는 전체 화면"></a><figcaption>v2.11.8 실제 화면입니다. 저장된 API Key는 화면으로 돌려주지 않습니다.</figcaption></figure>
+            <figure class="shot"><a href="../../assets/screenshots/captures/admin-security-check-desktop.webp" aria-label="보안 심의 연동 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-security-check-desktop.webp" width="1440" height="1000" decoding="async" alt="SecCheck 주소와 API Key, 보안 심의 필수 설정을 관리하는 전체 화면"></a><figcaption>v2.11.9 실제 화면입니다. 저장된 API Key는 화면으로 돌려주지 않습니다.</figcaption></figure>
           </section>
 
           <section id="apps"><h2>9. 앱 카탈로그 관리</h2>
-            <figure class="shot"><a href="../../assets/screenshots/captures/admin-app-detail-desktop.webp" aria-label="관리자 앱 상세 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-app-detail-desktop.webp" width="1440" height="1466" decoding="async" alt="앱 상세 정보와 게시 상태를 수정하고 삭제하는 관리자 상세 전체 화면"></a><figcaption>v2.11.8 실제 화면입니다. 등록자가 아니어도 관리자는 모든 앱의 상세 정보를 수정할 수 있습니다.</figcaption></figure>
+            <figure class="shot"><a href="../../assets/screenshots/captures/admin-app-detail-desktop.webp" aria-label="관리자 앱 상세 전체 화면 열기"><img class="capture-preview" src="../../assets/screenshots/captures/admin-app-detail-desktop.webp" width="1440" height="1466" decoding="async" alt="앱 상세 정보와 게시 상태를 수정하고 삭제하는 관리자 상세 전체 화면"></a><figcaption>v2.11.9 실제 화면입니다. 등록자가 아니어도 관리자는 모든 앱의 상세 정보를 수정할 수 있습니다.</figcaption></figure>
             <ul>
               <li><code>/admin/apps</code>에서 이름·설명·태그 검색, 게시 상태, MCP 지원과 정렬로 카탈로그를 좁힙니다. 조건은 URL에 유지됩니다.</li>
               <li>목록의 상태 select는 게시 상태만 즉시 바꿉니다. 나머지 정보는 <strong>상세 · 수정</strong>에서 편집합니다.</li>

@@ -105,6 +105,9 @@ function ProfileMenu() {
         className="profile-trigger"
         aria-expanded={open}
         aria-haspopup="menu"
+        // The name beside the avatar is hidden at phone widths, which would
+        // otherwise leave this button with no accessible name at all.
+        aria-label={`${label} 프로필 메뉴`}
         onClick={() => setOpen((value) => !value)}
       >
         <span className="avatar" aria-hidden="true">

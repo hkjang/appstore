@@ -283,10 +283,15 @@ export async function installMockApi(
   page: Page,
   options: MockApiOptions = {},
 ): Promise<void> {
-  const authenticated = options.authenticated ?? false;
+  // Signing out has to be observable, so the session state is mutable rather
+  // than fixed at install time.
+  let signedIn = options.authenticated ?? false;
   const user = { ...adminUser, roles: options.roles ?? adminUser.roles };
 
-  await page.route("**/api/**", async (route) => {
+  // Routed on the context, not the page, so a second tab opened by a test is
+  // served by this same mock and shares its session state. Page-level routes a
+  // test adds afterwards still take precedence.
+  await page.context().route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -317,14 +322,30 @@ export async function installMockApi(
         theme: "system",
       });
     }
+    if (path === "/api/v1/auth/logout" && request.method() === "POST") {
+      signedIn = false;
+      return route.fulfill({ status: 204, body: "" });
+    }
+    // A stand-in for a provider holding no session: prompt=none is refused
+    // with the marker that tells the browser not to ask again.
+    if (path === "/api/v1/auth/oidc/login") {
+      const returnTo = url.searchParams.get("returnTo") ?? "/";
+      return route.fulfill({
+        status: 302,
+        headers: {
+          location: `/login?sso=none&returnTo=${encodeURIComponent(returnTo)}`,
+        },
+        body: "",
+      });
+    }
     if (path === "/api/v1/auth/session") {
       return json({
-        authenticated,
+        authenticated: signedIn,
         oidcConfigured: true,
         bootstrapRequired: false,
         bootstrapAvailable: true,
-        csrfToken: authenticated ? "csrf-e2e" : undefined,
-        user: authenticated ? user : undefined,
+        csrfToken: signedIn ? "csrf-e2e" : undefined,
+        user: signedIn ? user : undefined,
       });
     }
     if (path === "/api/v1/categories") return json([category]);

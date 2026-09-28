@@ -685,3 +685,56 @@ test("카탈로그에서 즐겨찾기를 눌러도 목록을 다시 받아 오�
   await expect(page.getByText("앱 수 확인 중")).toHaveCount(0);
   expect(listRequests.length).toBe(before);
 });
+
+test("자동 로그인은 세션이 없을 때 조용히 한 번만 확인한다", async ({
+  page,
+}) => {
+  await installMockApi(page, { config: { oidcAutoLogin: true } });
+  const attempts: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/auth/oidc/login"))
+      attempts.push(request.url());
+  });
+  await page.goto("/apps/agent-hub");
+  // The provider answered login_required, so the browser lands on the login
+  // screen carrying the marker instead of bouncing again.
+  await expect(page).toHaveURL("/login?sso=none&returnTo=%2Fapps%2Fagent-hub");
+  await expect(
+    page.getByRole("heading", { name: "AppStore 로그인" }),
+  ).toBeVisible();
+  expect(attempts).toHaveLength(1);
+  expect(attempts[0]).toContain("prompt=none");
+});
+
+test("로그아웃한 뒤 새 탭에서 자동 로그인이 다시 밀어 넣지 않는다", async ({
+  page,
+}) => {
+  await installMockApi(page, {
+    authenticated: true,
+    config: { oidcAutoLogin: true },
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "AppStore 관리자 프로필 메뉴" })
+    .click();
+  await page.getByRole("menuitem", { name: "로그아웃" }).click();
+  await expect(
+    page.getByRole("link", { name: "로그인", exact: true }),
+  ).toBeVisible();
+
+  // A tab opened after the sign-out starts with empty session storage, which is
+  // exactly where a tab-scoped marker would let SSO sign the person back in.
+  const later = await page.context().newPage();
+  const attempts: string[] = [];
+  later.on("request", (request) => {
+    if (request.url().includes("/api/v1/auth/oidc/login"))
+      attempts.push(request.url());
+  });
+  await later.goto("/");
+  await expect(
+    later.getByRole("link", { name: "로그인", exact: true }),
+  ).toBeVisible();
+  await expect(later).toHaveURL("/");
+  expect(attempts).toEqual([]);
+  await later.close();
+});

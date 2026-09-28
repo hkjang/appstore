@@ -28,8 +28,14 @@ function decide(overrides: Partial<PublicConfig> = {}, path = "/my/apps") {
 }
 
 describe("silent SSO rules", () => {
-  beforeEach(() => sessionStorage.clear());
-  afterEach(() => sessionStorage.clear());
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+  afterEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
 
   it("attempts only when the administrator turned auto_login on", () => {
     expect(decide()).toBe(true);
@@ -68,6 +74,28 @@ describe("silent SSO rules", () => {
     markSignedOut();
     expect(decide()).toBe(false);
     clearSilentSsoState();
+    expect(decide()).toBe(true);
+  });
+
+  it("keeps a sign-out in force in a tab opened afterwards", () => {
+    // The provider session outlives this app's session, so a marker scoped to
+    // one tab would let the next tab sign the person straight back in.
+    markSignedOut();
+    sessionStorage.clear(); // what a newly opened tab starts with
+    expect(decide()).toBe(false);
+    clearSilentSsoState();
+    expect(decide()).toBe(true);
+  });
+
+  it("still lets a newly opened tab attempt after an ordinary refusal", () => {
+    // Only a sign-out is durable; one tab giving up must not stop the next.
+    vi.spyOn(window, "location", "get").mockReturnValue({
+      ...window.location,
+      assign: vi.fn(),
+    } as Location);
+    beginSilentSso("/my/apps");
+    expect(decide()).toBe(false);
+    sessionStorage.clear();
     expect(decide()).toBe(true);
   });
 
