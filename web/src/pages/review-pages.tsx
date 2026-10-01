@@ -15,6 +15,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { formatDate, formatDateTime } from "../lib/utils";
 import { formatFileSize } from "../features/apps/guide-documents";
+import { publiclyViewable } from "../features/apps/app-card";
 import {
   AppIcon,
   Badge,
@@ -183,7 +184,12 @@ export function ReviewDetailPage() {
         actions={
           <>
             <DecisionBadge status={detail.status} />
-            {app && (
+            {/* An app waiting for this very review is not published yet, so the
+                store page would answer 앱을 찾을 수 없습니다 and cost the
+                reviewer the screen they were working on. The link appears once
+                the app is really there — the app itself is rendered below
+                either way. */}
+            {app && publiclyViewable(app) && (
               <Link
                 className="button button-secondary"
                 to={`/apps/${encodeURIComponent(app.slug)}`}
