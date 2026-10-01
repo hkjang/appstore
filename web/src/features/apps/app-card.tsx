@@ -10,8 +10,9 @@ import { SecurityVerifiedBadge } from "../security-check/verified-badge";
 
 // The public detail route serves only published, public apps (see
 // GetAppBySlug with includeAll=false), so this is what decides whether a card
-// may link to /apps/{slug} at all.
-function publiclyViewable(app: StoreApp) {
+// may link to /apps/{slug} at all. The review screen links there too and reads
+// the same answer, so neither screen can start offering a dead link on its own.
+export function publiclyViewable(app: StoreApp) {
   return app.status === "published" && app.visibility !== "private";
 }
 

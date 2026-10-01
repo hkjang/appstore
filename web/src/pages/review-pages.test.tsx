@@ -3,6 +3,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "../app/providers";
+import { FavoritesProvider } from "../features/apps/favorites";
+import { AppDetailPage } from "./public-pages";
 import { ReviewDetailPage } from "./review-pages";
 
 const reviewId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
@@ -87,24 +90,54 @@ function detail(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function renderDetail(payload: Record<string, unknown>) {
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/**
+ * Mounts the review detail beside the public store route it links to, so a
+ * reviewer following that link lands on the page the server would really serve:
+ * `storeApp` is what `/api/v1/apps/{slug}` returns, and leaving it out answers
+ * the 404 that endpoint gives for an app that is not published and public.
+ */
+function renderDetail(
+  payload: Record<string, unknown>,
+  options: { storeApp?: Record<string, unknown> } = {},
+) {
   const calls: { url: string; method: string; body?: unknown }[] = [];
   vi.stubGlobal(
     "fetch",
     vi
       .fn()
       .mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
         calls.push({
-          url: String(input),
+          url,
           method: init?.method ?? "GET",
           body: init?.body,
         });
-        return Promise.resolve(
-          new Response(JSON.stringify(payload), {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          }),
-        );
+        if (url.includes("/auth/session"))
+          return Promise.resolve(json({ authenticated: false }));
+        if (url.includes("/documents"))
+          return Promise.resolve(json({ documents: [] }));
+        if (/\/api\/v1\/apps\/[^/?]+$/.test(url))
+          return Promise.resolve(
+            options.storeApp
+              ? json(options.storeApp)
+              : json(
+                  {
+                    error: {
+                      code: "APP_NOT_FOUND",
+                      message: "앱을 찾을 수 없습니다.",
+                    },
+                  },
+                  404,
+                ),
+          );
+        return Promise.resolve(json(payload));
       }),
   );
   const client = new QueryClient({
@@ -113,10 +146,15 @@ function renderDetail(payload: Record<string, unknown>) {
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[`/review/${reviewId}`]}>
-        <Routes>
-          <Route path="/review/:id" element={<ReviewDetailPage />} />
-          <Route path="/review" element={<p>검토 대기</p>} />
-        </Routes>
+        <AuthProvider>
+          <FavoritesProvider>
+            <Routes>
+              <Route path="/review/:id" element={<ReviewDetailPage />} />
+              <Route path="/review" element={<p>검토 대기</p>} />
+              <Route path="/apps/:slug" element={<AppDetailPage />} />
+            </Routes>
+          </FavoritesProvider>
+        </AuthProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -177,6 +215,32 @@ describe("Review detail", () => {
     expect(
       String(calls.find((call) => call.url.endsWith("/reject"))?.body),
     ).toContain("URL을 고쳐 주세요.");
+  });
+
+  it("offers no store link while the app is still waiting for this review", async () => {
+    renderDetail(detail());
+    await screen.findByText(/검증된 에이전트를 한곳에서/);
+    expect(screen.queryByRole("link", { name: /스토어에서 보기/ })).toBeNull();
+  });
+
+  it("offers no store link for a published app kept private", async () => {
+    const app = detail().app;
+    renderDetail(
+      detail({ app: { ...app, status: "published", visibility: "private" } }),
+    );
+    await screen.findByText(/검증된 에이전트를 한곳에서/);
+    expect(screen.queryByRole("link", { name: /스토어에서 보기/ })).toBeNull();
+  });
+
+  it("opens the store page from a review of a published public app", async () => {
+    const app = { ...detail().app, status: "published" };
+    renderDetail(detail({ app }), { storeApp: app });
+    const user = userEvent.setup();
+    await screen.findByText(/검증된 에이전트를 한곳에서/);
+    await user.click(screen.getByRole("link", { name: /스토어에서 보기/ }));
+    expect(
+      await screen.findByRole("link", { name: /서비스 열기/ }),
+    ).toHaveAttribute("href", "https://agent.internal.example");
   });
 
   it("closes the decision once the review is settled", async () => {
