@@ -28,6 +28,7 @@ import { SecurityVerifiedBadge } from "../features/security-check/verified-badge
 import type { StoreApp } from "../types";
 import { formatDate } from "../lib/utils";
 import { AppCard } from "../features/apps/app-card";
+import { AppStatusBadge } from "../features/apps/app-status";
 import { heroCopy } from "../features/home/hero-copy";
 import { useFavorites } from "../features/apps/favorites";
 import {
@@ -466,13 +467,11 @@ export function AppDetailPage() {
                   <Star size={14} /> 추천
                 </Badge>
               )}
-              {item.status && (
-                <Badge
-                  tone={item.status === "published" ? "positive" : "warning"}
-                >
-                  {item.status}
-                </Badge>
-              )}
+              {/* The shared badge is the one place status labels are named, so
+                  this header reads 게시됨 like an owner's own list does rather
+                  than the value the API stores. The guard stays: the badge
+                  spells an absent status as —, which is noise here. */}
+              {item.status && <AppStatusBadge status={item.status} />}
               <SecurityVerifiedBadge app={item} showDate />
             </div>
             <h1 className="detail-title">{item.name}</h1>

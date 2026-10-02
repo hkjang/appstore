@@ -447,3 +447,65 @@ describe("App detail introduction", () => {
     expect(screen.queryByRole("button", { name: /더 보기/ })).toBeNull();
   });
 });
+
+describe("App detail status badge", () => {
+  const renderDetail = (app: Partial<StoreApp>) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        const url = String(input);
+        const payload = url.includes("/documents")
+          ? { items: [] }
+          : url.includes("/apps/agent-hub")
+            ? {
+                id: "1",
+                slug: "agent-hub",
+                name: "Agent Hub",
+                summary: "AI 에이전트 카탈로그",
+                ...app,
+              }
+            : {};
+        return Promise.resolve(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }),
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/apps/agent-hub"]}>
+          <AuthProvider>
+            <FavoritesProvider>
+              <Routes>
+                <Route path="/apps/:slug" element={<AppDetailPage />} />
+              </Routes>
+            </FavoritesProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+
+  it("names the status in Korean instead of showing the stored value", async () => {
+    renderDetail({ status: "published" });
+
+    const badge = await screen.findByText("게시됨");
+    // The colour a published app already carried in this header is unchanged.
+    expect(badge).toHaveClass("badge-positive");
+    expect(screen.queryByText("published")).toBeNull();
+  });
+
+  it("draws no status badge when the response carries no status", async () => {
+    const { container } = renderDetail({});
+
+    expect(
+      await screen.findByRole("heading", { name: "Agent Hub" }),
+    ).toBeVisible();
+    expect(container.querySelectorAll(".badge-row .badge")).toHaveLength(0);
+  });
+});
