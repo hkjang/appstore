@@ -117,7 +117,11 @@ export function MyAppsPage() {
         <ErrorState error={apps.error} retry={() => void apps.refetch()} />
       )}
       {apps.data && !apps.data.length && (
-        <EmptyState actions={<ButtonLink to="/submit">앱 등록</ButtonLink>} />
+        <EmptyState
+          title="등록한 앱이 없습니다"
+          description="앱을 등록하면 상태와 검토 결과를 여기에서 확인할 수 있습니다."
+          actions={<ButtonLink to="/submit">앱 등록</ButtonLink>}
+        />
       )}
       {apps.data && (
         <div className="card-grid">

@@ -167,6 +167,40 @@ describe("My applications", () => {
   });
 });
 
+describe("Empty my applications", () => {
+  it("tells a first-time owner to register an app instead of changing filters", async () => {
+    renderMyApps([]);
+
+    // /my/apps has no search, filter or sort control, so the shared default
+    // copy ("조건을 바꾸거나 …") asks the owner to change something that is
+    // not on the screen.
+    const heading = await screen.findByRole("heading", {
+      name: "등록한 앱이 없습니다",
+    });
+    const panel = within(heading.closest(".state-panel")!);
+    expect(heading).toBeVisible();
+    expect(screen.queryByText(/조건을 바꾸거나/)).toBeNull();
+    expect(panel.getByRole("link", { name: "앱 등록" })).toHaveAttribute(
+      "href",
+      "/submit",
+    );
+  });
+
+  it("keeps the dashboard's own empty state unchanged", async () => {
+    renderMyApps([], "/my");
+
+    const heading = await screen.findByRole("heading", {
+      name: "등록한 앱이 없습니다",
+    });
+    const panel = within(heading.closest(".state-panel")!);
+    expect(heading).toBeVisible();
+    expect(panel.getByRole("link", { name: "첫 앱 등록" })).toHaveAttribute(
+      "href",
+      "/submit",
+    );
+  });
+});
+
 describe.each(["/my/apps", "/my"])("Owner favorites on %s", (path) => {
   it.each([
     ["draft", "public", "초안"],
