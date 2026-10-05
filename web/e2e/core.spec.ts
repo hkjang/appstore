@@ -560,6 +560,10 @@ test("보안 심의를 마쳐야 앱을 제출할 수 있다", async ({ page }) 
   // The block an owner pastes into SecCheck, and no way past it yet.
   await expect(page.getByText("[APPSTORE-SECURITY-CHECK:v1]")).toBeVisible();
   await expect(page.getByRole("button", { name: /검토 제출/ })).toHaveCount(0);
+  // The status list names the app's own state in Korean, not the stored enum.
+  const appStatusRow = page.locator(".meta-row", { hasText: "앱 상태" });
+  await expect(appStatusRow).toContainText("초안");
+  await expect(appStatusRow).not.toContainText("draft");
 
   await page.getByLabel("심의 ID").fill("77777777-7777-4777-8777-777777777777");
   await page.getByRole("button", { name: /심의 결과 확인/ }).click();

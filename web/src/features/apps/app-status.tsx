@@ -8,7 +8,15 @@ export const APP_STATUSES = [
   { value: "archived", label: "보관됨", tone: undefined },
 ] as const;
 
+// The one place a stored status turns into words, so a badge and a plain text
+// row never name the same status differently.
+export function appStatusLabel(status?: string) {
+  return (
+    APP_STATUSES.find((item) => item.value === status)?.label ?? status ?? "—"
+  );
+}
+
 export function AppStatusBadge({ status }: { status?: string }) {
   const entry = APP_STATUSES.find((item) => item.value === status);
-  return <Badge tone={entry?.tone}>{entry?.label ?? status ?? "—"}</Badge>;
+  return <Badge tone={entry?.tone}>{appStatusLabel(status)}</Badge>;
 }

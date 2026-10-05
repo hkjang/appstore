@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { formatDateTime } from "../../lib/utils";
+import { appStatusLabel } from "../apps/app-status";
 import {
   Button,
   Card,
@@ -258,7 +259,7 @@ export function AppSecurityCheckPage() {
             </div>
             <div className="meta-row">
               <dt>앱 상태</dt>
-              <dd>{view.appStatus}</dd>
+              <dd>{appStatusLabel(view.appStatus)}</dd>
             </div>
           </dl>
           {view.reviewUrl && (
