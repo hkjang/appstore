@@ -109,6 +109,21 @@ describe("App security check", () => {
     );
   });
 
+  it("names the app status in Korean instead of showing the stored value", async () => {
+    renderOwnerPage(view({ appStatus: "pending_review" }));
+    await screen.findByText(/APPSTORE-SECURITY-CHECK/);
+    const row = screen.getByText("앱 상태").closest(".meta-row");
+    expect(row).toHaveTextContent("검토 대기");
+    expect(screen.queryByText("pending_review")).toBeNull();
+  });
+
+  it("falls back to the stored value for a status it does not know", async () => {
+    renderOwnerPage(view({ appStatus: "quarantined" }));
+    await screen.findByText(/APPSTORE-SECURITY-CHECK/);
+    const row = screen.getByText("앱 상태").closest(".meta-row");
+    expect(row).toHaveTextContent("quarantined");
+  });
+
   it("explains why a review was refused", async () => {
     vi.stubGlobal(
       "fetch",
