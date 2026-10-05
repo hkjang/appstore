@@ -11,7 +11,9 @@ import {
 } from "../features/apps/guide-documents";
 import {
   Button,
+  ButtonLink,
   Card,
+  EmptyState,
   ErrorState,
   Field,
   Input,
@@ -70,8 +72,10 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
   });
   const existing = useQuery({
     queryKey: ["my-app", id],
+    // A list without this id means "없음", not a failure: returning undefined
+    // would make the query library raise and show its own English message.
     queryFn: async ({ signal }) =>
-      (await api.myApps(signal)).find((app) => app.id === id),
+      (await api.myApps(signal)).find((app) => app.id === id) ?? null,
     enabled: edit,
   });
   const [form, setForm] = useState<FormState>(empty);
@@ -137,6 +141,16 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
         <ErrorState
           error={existing.error}
           retry={() => void existing.refetch()}
+        />
+      </div>
+    );
+  if (edit && !existing.data)
+    return (
+      <div className="page">
+        <EmptyState
+          title="앱을 찾을 수 없습니다"
+          description="이미 삭제되었거나 내가 등록한 앱이 아닙니다."
+          actions={<ButtonLink to="/my/apps">내 앱 목록</ButtonLink>}
         />
       </div>
     );
