@@ -124,6 +124,34 @@ describe("App security check", () => {
     expect(row).toHaveTextContent("quarantined");
   });
 
+  it.each([
+    ["APPROVED", "승인됨"],
+    ["CONDITIONAL", "조건부 승인"],
+    ["REJECTED", "반려됨"],
+  ])("names the final result %s as %s", async (finalResult, label) => {
+    renderOwnerPage(view({ finalResult }));
+    await screen.findByText(/APPSTORE-SECURITY-CHECK/);
+    const row = screen.getByText("최종 결과").closest(".meta-row");
+    expect(row).toHaveTextContent(`최종 결과${label}`);
+    expect(row).not.toHaveTextContent(finalResult);
+    expect(screen.queryByRole("button", { name: /검토 제출/ })).toBeNull();
+  });
+
+  it.each([
+    ["empty", { finalResult: "" }, "—"],
+    ["missing", {}, "—"],
+    ["unknown", { finalResult: "DEFERRED" }, "DEFERRED"],
+  ])(
+    "preserves the fallback for a final result that is %s",
+    async (_, fields, label) => {
+      // Unknown values defend future compatibility, not today's server enum.
+      renderOwnerPage(view(fields));
+      await screen.findByText(/APPSTORE-SECURITY-CHECK/);
+      const row = screen.getByText("최종 결과").closest(".meta-row");
+      expect(row).toHaveTextContent(`최종 결과${label}`);
+    },
+  );
+
   it("explains why a review was refused", async () => {
     vi.stubGlobal(
       "fetch",

@@ -40,6 +40,12 @@ const REMOTE_STATUS: Record<string, string> = {
   CLOSED: "종료됨",
 };
 
+const FINAL_RESULT: Record<string, string> = {
+  APPROVED: "승인됨",
+  CONDITIONAL: "조건부 승인",
+  REJECTED: "반려됨",
+};
+
 export function AppSecurityCheckPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -247,7 +253,10 @@ export function AppSecurityCheckPage() {
             </div>
             <div className="meta-row">
               <dt>최종 결과</dt>
-              <dd>{view.finalResult || "—"}</dd>
+              <dd>
+                {FINAL_RESULT[view.finalResult ?? ""] ??
+                  (view.finalResult || "—")}
+              </dd>
             </div>
             <div className="meta-row">
               <dt>승인 시각</dt>

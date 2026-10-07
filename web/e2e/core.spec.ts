@@ -564,10 +564,14 @@ test("보안 심의를 마쳐야 앱을 제출할 수 있다", async ({ page }) 
   const appStatusRow = page.locator(".meta-row", { hasText: "앱 상태" });
   await expect(appStatusRow).toContainText("초안");
   await expect(appStatusRow).not.toContainText("draft");
+  const finalResultRow = page.locator(".meta-row", { hasText: "최종 결과" });
+  await expect(finalResultRow.locator("dd")).toHaveText("—");
 
   await page.getByLabel("심의 ID").fill("77777777-7777-4777-8777-777777777777");
   await page.getByRole("button", { name: /심의 결과 확인/ }).click();
   await expect(page.getByText(/보안 심의가 확인되었습니다/)).toBeVisible();
+  await expect(finalResultRow.locator("dd")).toHaveText("승인됨");
+  await expect(finalResultRow).not.toContainText("APPROVED");
   await expect(page.getByRole("button", { name: /검토 제출/ })).toBeVisible();
 });
 
