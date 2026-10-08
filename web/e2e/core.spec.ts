@@ -29,6 +29,45 @@ test("비로그인 등록 접근은 원래 URL을 보존한 로그인 화면으�
   await expect(page.getByText("AppStore v2.0.0")).toBeVisible();
 });
 
+test("초안 등록 완료 상태를 표시한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  await page.route("**/api/v1/apps", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const saved: StoreApp = {
+      ...route.request().postDataJSON(),
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      status: "draft",
+    };
+    await route.fulfill({ status: 201, json: saved });
+  });
+  await page.goto("/submit");
+  await page.getByLabel("앱 이름").fill("Draft App");
+  await page.getByLabel("Slug", { exact: true }).fill("draft-app");
+  await page.getByLabel("한 줄 설명").fill("초안 상태 확인용 앱");
+  await page.getByLabel("서비스 URL").fill("https://draft.example.internal");
+  await page
+    .getByLabel("카테고리", { exact: true })
+    .selectOption({ label: "AI · Automation" });
+  await page
+    .getByLabel("상세 설명")
+    .fill("등록 후 저장 응답의 실제 상태를 확인합니다.");
+  await page.getByRole("button", { name: "등록", exact: true }).click();
+
+  const panel = page.locator(".state-panel");
+  await expect(
+    panel.getByRole("heading", { name: "앱이 등록되었습니다" }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText("현재 상태: 초안", { exact: true }),
+  ).toBeVisible();
+  await expect(panel).not.toContainText(/즉시 게시|승인 Workflow|보안 심의/);
+  await panel.getByRole("button", { name: "내 앱으로 이동" }).click();
+  await expect(page).toHaveURL("/my/apps");
+  await expect(
+    page.getByRole("heading", { name: "내가 등록한 앱" }),
+  ).toBeVisible();
+});
+
 test("일반 사용자는 관리자 화면에서 403 상태를 본다", async ({ page }) => {
   await installMockApi(page, {
     authenticated: true,
