@@ -513,6 +513,48 @@ test("가이드 문서는 비로그인 방문자도 앱 상세에서 내려받�
   await expect(page.getByText("agent-hub-운영-가이드.pdf")).toBeVisible();
 });
 
+test("가이드 문서 복수 선택 실패를 요약한다", async ({ page }) => {
+  await installMockApi(page, { authenticated: true });
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.url().includes("/api/v1/") &&
+      ["POST", "DELETE"].includes(request.method())
+    )
+      writes.push(`${request.method()} ${request.url()}`);
+  });
+  await page.goto("/submit");
+  const input = page.getByLabel("가이드 문서 파일 선택");
+  await input.setInputFiles([
+    { name: "첫째.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(0) },
+    {
+      name: "정상.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4 guide"),
+    },
+    { name: "둘째.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(0) },
+  ]);
+
+  await expect(page.getByRole("alert")).toHaveCount(1);
+  await expect(page.getByRole("alert")).toHaveText(
+    "첫째.pdf: 빈 파일은 첨부할 수 없습니다. (총 2개 파일 첨부 실패)",
+  );
+  const rows = page.locator(".document-list .document-row");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.getByText("정상.pdf", { exact: true })).toBeVisible();
+  await expect(rows).toContainText("저장 시 업로드됩니다");
+  expect(writes).toEqual([]);
+
+  await input.setInputFiles({
+    name: "다음.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 next guide"),
+  });
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(rows.locator("strong")).toHaveText(["정상.pdf", "다음.pdf"]);
+  expect(writes).toEqual([]);
+});
+
 test("소유자는 앱 수정 화면에서 가이드 문서를 첨부하고 삭제를 예약한다", async ({
   page,
 }) => {

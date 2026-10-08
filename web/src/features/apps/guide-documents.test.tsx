@@ -82,6 +82,127 @@ describe("guide document rules", () => {
 });
 
 describe("guide documents on an app form", () => {
+  it("summarizes rejected files with the first reason in one alert", async () => {
+    const fetchMock = stubFetch([]);
+    const user = userEvent.setup();
+    renderWithClient(<DraftHarness />);
+
+    await user.upload(screen.getByLabelText("가이드 문서 파일 선택"), [
+      new File([], "첫째.pdf", { type: "application/pdf" }),
+      new File([], "둘째.pdf", { type: "application/pdf" }),
+    ]);
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("alert").textContent).toBe(
+      "첫째.pdf: 빈 파일은 첨부할 수 없습니다. (총 2개 파일 첨부 실패)",
+    );
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps stored and pending files and stages mixed picks in selection order", async () => {
+    const fetchMock = stubFetch([storedDocument]);
+    const user = userEvent.setup();
+    renderWithClient(<DraftHarness appId={storedDocument.appId} />);
+    expect(await screen.findByText("운영 가이드")).toBeInTheDocument();
+    const input = screen.getByLabelText("가이드 문서 파일 선택");
+    await user.upload(input, new File(["guide"], "이전.pdf"));
+    await user.upload(input, [
+      new File([], "첫째.pdf"),
+      new File(["guide"], "정상1.pdf"),
+      new File([], "둘째.pdf"),
+      new File(["guide"], "정상2.pdf"),
+    ]);
+
+    expect(screen.getByRole("alert").textContent).toBe(
+      "첫째.pdf: 빈 파일은 첨부할 수 없습니다. (총 2개 파일 첨부 실패)",
+    );
+    expect(
+      screen
+        .getAllByRole("listitem")
+        .map((row) => row.querySelector("strong")?.textContent),
+    ).toEqual(["운영 가이드", "이전.pdf", "정상1.pdf", "정상2.pdf"]);
+    expect(screen.getAllByText(/저장 시 업로드됩니다/)).toHaveLength(3);
+    expect(
+      fetchMock.mock.calls.filter(
+        ([, init]) => (init?.method ?? "GET") !== "GET",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("clears the summary on a valid pick and keeps later single failures unchanged", async () => {
+    stubFetch([]);
+    const user = userEvent.setup();
+    renderWithClient(<DraftHarness />);
+    const input = screen.getByLabelText("가이드 문서 파일 선택");
+    await user.upload(input, [
+      new File([], "첫째.pdf"),
+      new File([], "둘째.pdf"),
+    ]);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "총 2개 파일 첨부 실패",
+    );
+
+    await user.upload(input, new File(["guide"], "정상.pdf"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("정상.pdf")).toBeInTheDocument();
+
+    await user.upload(input, new File([], "단일.pdf"));
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("alert").textContent).toBe(
+      "단일.pdf: 빈 파일은 첨부할 수 없습니다.",
+    );
+    expect(screen.getByText("정상.pdf")).toBeInTheDocument();
+  });
+
+  it("counts duplicate names once per rejected file across stored, pending and current picks", async () => {
+    stubFetch([storedDocument]);
+    const user = userEvent.setup();
+    renderWithClient(<DraftHarness appId={storedDocument.appId} />);
+    expect(await screen.findByText("운영 가이드")).toBeInTheDocument();
+    const input = screen.getByLabelText("가이드 문서 파일 선택");
+    await user.upload(input, new File(["guide"], "pending.pdf"));
+    await user.upload(input, [
+      new File(["guide"], "운영 가이드.PDF"),
+      new File(["guide"], "PENDING.pdf"),
+      new File(["guide"], "new.pdf"),
+      new File(["guide"], "NEW.pdf"),
+    ]);
+
+    expect(screen.getByRole("alert").textContent).toBe(
+      "운영 가이드.PDF: 같은 이름의 문서가 이미 있습니다. (총 3개 파일 첨부 실패)",
+    );
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByText("new.pdf")).toBeInTheDocument();
+  });
+
+  it("counts each file over the attachment limit without dropping accepted files", async () => {
+    stubFetch([]);
+    const user = userEvent.setup();
+    renderWithClient(<DraftHarness />);
+    const input = screen.getByLabelText("가이드 문서 파일 선택");
+    await user.upload(
+      input,
+      Array.from(
+        { length: 9 },
+        (_, index) => new File(["guide"], `${index}.pdf`),
+      ),
+    );
+    await user.upload(input, [
+      new File(["guide"], "마지막.pdf"),
+      new File(["guide"], "초과1.pdf"),
+      new File(["guide"], "초과2.pdf"),
+    ]);
+
+    expect(screen.getByRole("alert").textContent).toBe(
+      "가이드 문서는 앱당 10개까지 첨부할 수 있습니다. (총 2개 파일 첨부 실패)",
+    );
+    expect(screen.getAllByRole("listitem")).toHaveLength(10);
+    expect(screen.getByText("마지막.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("초과1.pdf")).not.toBeInTheDocument();
+    expect(screen.queryByText("초과2.pdf")).not.toBeInTheDocument();
+  });
+
   it("stages a picked file and a removal until the form is saved", async () => {
     const fetchMock = stubFetch([storedDocument]);
     const user = userEvent.setup();
