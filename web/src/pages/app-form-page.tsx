@@ -3,7 +3,9 @@ import { CheckCircle2, Send } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
+import type { StoreApp } from "../types";
 import { parseList } from "../lib/utils";
+import { appStatusLabel } from "../features/apps/app-status";
 import { RejectionNotice } from "../features/apps/rejection-notice";
 import {
   GuideDocumentsField,
@@ -79,7 +81,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
     enabled: edit,
   });
   const [form, setForm] = useState<FormState>(empty);
-  const [complete, setComplete] = useState(false);
+  const [completedApp, setCompletedApp] = useState<StoreApp | null>(null);
   const documents = useGuideDocumentDraft(edit ? id : undefined);
   useEffect(() => {
     if (!existing.data) return;
@@ -117,8 +119,8 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
       await documents.apply(saved?.id ?? id);
       return saved;
     },
-    onSuccess: async () => {
-      setComplete(true);
+    onSuccess: async (saved) => {
+      setCompletedApp(saved);
       await client.invalidateQueries({ queryKey: ["my-apps"] });
     },
   });
@@ -154,7 +156,7 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
         />
       </div>
     );
-  if (complete)
+  if (completedApp)
     return (
       <div className="page">
         <div className="state-panel">
@@ -163,9 +165,8 @@ export function AppFormPage({ edit = false }: { edit?: boolean }) {
               <CheckCircle2 />
             </div>
             <h2>{edit ? "앱이 수정되었습니다" : "앱이 등록되었습니다"}</h2>
-            <p>
-              승인 Workflow 설정에 따라 즉시 게시되거나 검토 대기 상태가 됩니다.
-            </p>
+            <p>현재 상태: {appStatusLabel(completedApp.status)}</p>
+            <p>내 앱에서 상태와 다음 단계를 확인할 수 있습니다.</p>
             <div className="state-actions">
               <Button onClick={() => navigate("/my/apps")}>
                 내 앱으로 이동
