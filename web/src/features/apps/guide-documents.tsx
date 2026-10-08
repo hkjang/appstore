@@ -124,19 +124,23 @@ export function useGuideDocumentDraft(appId?: string): GuideDocumentDraft {
       let attached = documents.length - removed.length + pending.length;
       const accepted: File[] = [];
       let error = "";
+      let rejected = 0;
       for (const file of picked) {
         const failure = taken.has(file.name.toLowerCase())
           ? file.name + ": 같은 이름의 문서가 이미 있습니다."
           : guideDocumentError(file, attached);
         if (failure) {
-          error = failure;
+          if (!error) error = failure;
+          rejected += 1;
           continue;
         }
         taken.add(file.name.toLowerCase());
         accepted.push(file);
         attached += 1;
       }
-      setPickError(error);
+      setPickError(
+        rejected > 1 ? `${error} (총 ${rejected}개 파일 첨부 실패)` : error,
+      );
       if (accepted.length) setPending((current) => [...current, ...accepted]);
     },
     dropPending: (index) => {
