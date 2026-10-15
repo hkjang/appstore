@@ -295,4 +295,53 @@ describe("guide documents on the app detail page", () => {
       expect(screen.queryByText("가이드 문서")).not.toBeInTheDocument(),
     );
   });
+
+  it("tells a visitor the lookup failed instead of looking empty, and reloads on demand", async () => {
+    // A broken lookup used to render exactly like an app with no guides, so
+    // the visitor had no way to tell the difference or to try again.
+    const user = userEvent.setup();
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() => {
+        calls += 1;
+        if (calls === 1)
+          return Promise.resolve(
+            jsonResponse(
+              { code: "internal", message: "서버 오류가 발생했습니다." },
+              500,
+            ),
+          );
+        return Promise.resolve(jsonResponse({ items: [storedDocument] }));
+      }),
+    );
+    renderWithClient(<AppGuideDocuments appSlug="agent-hub" />);
+
+    expect(
+      await screen.findByText("가이드 문서를 불러오지 못했습니다."),
+    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "가이드 문서" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: /내려받기/ })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    const link = await screen.findByRole("link", { name: /내려받기/ });
+    expect(link).toHaveAttribute("href", storedDocument.downloadUrl);
+    expect(link).toHaveAttribute("download", storedDocument.fileName);
+    expect(screen.queryByText("가이드 문서를 불러오지 못했습니다.")).toBeNull();
+  });
+
+  it("waits for the first lookup instead of warning while it is still pending", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() => new Promise(() => {})),
+    );
+    renderWithClient(<AppGuideDocuments appSlug="agent-hub" />);
+    await waitFor(() =>
+      expect(
+        screen.queryByText("가이드 문서를 불러오지 못했습니다."),
+      ).toBeNull(),
+    );
+    expect(screen.queryByRole("button", { name: "다시 시도" })).toBeNull();
+  });
 });

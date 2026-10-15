@@ -513,6 +513,46 @@ test("가이드 문서는 비로그인 방문자도 앱 상세에서 내려받�
   await expect(page.getByText("agent-hub-운영-가이드.pdf")).toBeVisible();
 });
 
+test("가이드 문서 조회가 실패하면 안내와 다시 시도를 보여 준다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  // The app retries a failed query once, so the first load only reports an
+  // error after two refusals; everything after that falls through to the mock.
+  let refusals = 0;
+  await page.route("**/api/v1/apps/agent-hub/documents", async (route) => {
+    if (refusals < 2) {
+      refusals += 1;
+      return route.fulfill({
+        status: 500,
+        contentType: "application/json; charset=utf-8",
+        body: JSON.stringify({
+          code: "internal",
+          message: "서버 오류가 발생했습니다.",
+        }),
+      });
+    }
+    return route.fallback();
+  });
+
+  await page.goto("/apps/agent-hub");
+  await expect(
+    page.getByText("가이드 문서를 불러오지 못했습니다."),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /내려받기/ })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "다시 시도" }).click();
+
+  const download = page.getByRole("link", { name: /내려받기/ });
+  await expect(download).toHaveAttribute(
+    "href",
+    "/api/v1/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/documents/f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1",
+  );
+  await expect(
+    page.getByText("가이드 문서를 불러오지 못했습니다."),
+  ).toHaveCount(0);
+});
+
 test("가이드 문서 복수 선택 실패를 요약한다", async ({ page }) => {
   await installMockApi(page, { authenticated: true });
   const writes: string[] = [];

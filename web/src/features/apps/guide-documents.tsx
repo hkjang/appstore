@@ -280,6 +280,18 @@ export function AppGuideDocuments({ appSlug }: { appSlug: string }) {
     queryFn: ({ signal }) => api.appDocuments(appSlug, signal),
     enabled: !!appSlug,
   });
+  // A failed lookup must not look like an app with no guides: keep the card so
+  // the visitor knows there may be documents and can ask for them again.
+  if (documents.isError)
+    return (
+      <Card className="prose-card">
+        <h2>가이드 문서</h2>
+        <p className="muted mt-4">가이드 문서를 불러오지 못했습니다.</p>
+        <div className="mt-4">
+          <Button onClick={() => void documents.refetch()}>다시 시도</Button>
+        </div>
+      </Card>
+    );
   const items = documents.data ?? [];
   if (!items.length) return null;
   return (
