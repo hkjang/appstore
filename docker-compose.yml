@@ -2,11 +2,11 @@ name: appstore
 
 services:
   appstore:
-    image: appstore:${APPSTORE_VERSION:-v2.11.17}
+    image: appstore:${APPSTORE_VERSION:-v2.11.18}
     build:
       context: .
       args:
-        VERSION: ${APPSTORE_VERSION:-v2.11.17}
+        VERSION: ${APPSTORE_VERSION:-v2.11.18}
         COMMIT: ${APPSTORE_COMMIT:-local}
         BUILD_DATE: ${APPSTORE_BUILD_DATE:-unknown}
     pull_policy: never
