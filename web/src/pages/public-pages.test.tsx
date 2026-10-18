@@ -130,14 +130,18 @@ describe("Apps route state", () => {
     };
   };
 
-  const renderCatalog = (fetchMock: unknown, favoritesOnly = false) => {
+  const renderCatalog = (
+    fetchMock: unknown,
+    favoritesOnly = false,
+    entry = favoritesOnly ? "/favorites" : "/apps",
+  ) => {
     vi.stubGlobal("fetch", fetchMock);
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={[favoritesOnly ? "/favorites" : "/apps"]}>
+        <MemoryRouter initialEntries={[entry]}>
           <AuthProvider>
             <FavoritesProvider>
               <AppsPage favoritesOnly={favoritesOnly} />
@@ -198,6 +202,137 @@ describe("Apps route state", () => {
       "docs-hub",
     ]);
     expect(catalog.requests()).toBe(1);
+  });
+
+  // The list endpoint narrows by `q` and `mcp` on the server, so this stub
+  // narrows the same way: a favorite that does not match is simply absent from
+  // the answer, which is what makes the favorites view look empty.
+  const searchableCatalog = (apps: [slug: string, name: string][]) => {
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/v1/categories")
+        return Promise.resolve(jsonResponse([]));
+      if (url.pathname === "/api/v1/auth/session")
+        return Promise.resolve(jsonResponse({ authenticated: false }));
+      const q = (url.searchParams.get("q") ?? "").toLowerCase();
+      // None of these fixtures speaks MCP, so an MCP-only request is empty.
+      const items =
+        url.searchParams.get("mcp") === "true"
+          ? []
+          : apps
+              .filter(([, name]) => name.toLowerCase().includes(q))
+              .map(([slug, name], index) => ({
+                id: String(index + 1),
+                slug,
+                name,
+                summary: "AI",
+                status: "published",
+                visibility: "public",
+              }));
+      return Promise.resolve(
+        jsonResponse({
+          items,
+          total: items.length,
+          limit: 100,
+          offset: 0,
+        }),
+      );
+    });
+    return fetchMock;
+  };
+
+  it("blames the search, not an empty collection, when /favorites finds nothing", async () => {
+    localStorage.setItem(
+      "appstore.favorites",
+      JSON.stringify(["agent-hub", "docs-hub"]),
+    );
+    renderCatalog(
+      searchableCatalog([
+        ["agent-hub", "Agent Hub"],
+        ["docs-hub", "Docs Hub"],
+      ]),
+      true,
+      "/favorites?q=zzz&view=list",
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "검색 조건에 맞는 즐겨찾기 앱이 없습니다",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("검색 조건을 지우면 보관한 앱이 다시 보입니다."),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "즐겨찾기한 앱이 없습니다" }),
+    ).toBeNull();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "검색 조건 지우기" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Agent Hub" }),
+    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Docs Hub" })).toBeVisible();
+    expect(screen.getByLabelText("앱 검색")).toHaveValue("");
+    // Only the narrowing parameters go; the chosen view survives.
+    expect(screen.getByRole("button", { name: "목록" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("blames an MCP-only filter on /favorites and lets it go too", async () => {
+    localStorage.setItem("appstore.favorites", JSON.stringify(["agent-hub"]));
+    renderCatalog(
+      searchableCatalog([["agent-hub", "Agent Hub"]]),
+      true,
+      "/favorites?mcp=true",
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "검색 조건에 맞는 즐겨찾기 앱이 없습니다",
+      }),
+    ).toBeVisible();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "검색 조건 지우기" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Agent Hub" }),
+    ).toBeVisible();
+  });
+
+  it("still tells a visitor with no favorites to use the heart", async () => {
+    renderCatalog(searchableCatalog([["agent-hub", "Agent Hub"]]), true);
+
+    expect(
+      await screen.findByRole("heading", { name: "즐겨찾기한 앱이 없습니다" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("앱 상세 또는 카드에서 하트를 눌러 보관하세요."),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "검색 조건 지우기" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "필터 초기화" })).toBeNull();
+  });
+
+  it("leaves the catalog empty state alone when a search finds nothing", async () => {
+    renderCatalog(
+      searchableCatalog([["agent-hub", "Agent Hub"]]),
+      false,
+      "/apps?q=zzz",
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "조건에 맞는 앱이 없습니다" }),
+    ).toBeVisible();
+    expect(screen.getByText("검색어나 필터를 바꾸어 보세요.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "필터 초기화" })).toBeVisible();
   });
 
   const renderSecondPage = (view = "grid") => {

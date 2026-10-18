@@ -244,6 +244,10 @@ export function AppsPage({
     ? (apps.data?.items.filter((app) => slugs.includes(app.slug)) ?? [])
     : (apps.data?.items ?? []);
 
+  // Parameters that hide cards the view would otherwise hold. On /favorites an
+  // empty result then means "nothing matched" rather than "nothing saved".
+  const narrowed = !!q || mcp || featured;
+
   const update = (key: string, value?: string) => {
     setParams((current) => {
       const next = new URLSearchParams(current);
@@ -256,6 +260,15 @@ export function AppsPage({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     update("q", draft.trim());
+  };
+  // Drops only what narrows the list, so the reader keeps the view and sort
+  // they picked while their saved apps come back.
+  const clearNarrowing = () => {
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      for (const key of ["q", "mcp", "featured", "page"]) next.delete(key);
+      return next;
+    });
   };
 
   return (
@@ -385,18 +398,26 @@ export function AppsPage({
       {apps.data && !filtered.length && (
         <EmptyState
           title={
-            favoritesOnly
-              ? "즐겨찾기한 앱이 없습니다"
-              : "조건에 맞는 앱이 없습니다"
+            !favoritesOnly
+              ? "조건에 맞는 앱이 없습니다"
+              : narrowed
+                ? "검색 조건에 맞는 즐겨찾기 앱이 없습니다"
+                : "즐겨찾기한 앱이 없습니다"
           }
           description={
-            favoritesOnly
-              ? "앱 상세 또는 카드에서 하트를 눌러 보관하세요."
-              : "검색어나 필터를 바꾸어 보세요."
+            !favoritesOnly
+              ? "검색어나 필터를 바꾸어 보세요."
+              : narrowed
+                ? "검색 조건을 지우면 보관한 앱이 다시 보입니다."
+                : "앱 상세 또는 카드에서 하트를 눌러 보관하세요."
           }
           actions={
-            !favoritesOnly && (
+            !favoritesOnly ? (
               <Button onClick={() => setParams({})}>필터 초기화</Button>
+            ) : (
+              narrowed && (
+                <Button onClick={clearNarrowing}>검색 조건 지우기</Button>
+              )
             )
           }
         />

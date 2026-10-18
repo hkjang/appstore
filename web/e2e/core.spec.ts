@@ -787,6 +787,38 @@ test("공개 앱 즐겨찾기는 소유자와 공개 목록에서 추가하고 �
   }
 });
 
+test("즐겨찾기 검색이 0건이면 검색 조건 때문임을 알리고 지울 수 있다", async ({
+  page,
+}) => {
+  await installMockApi(page);
+  await page.goto("/apps");
+  await page.evaluate(() =>
+    localStorage.setItem("appstore.favorites", JSON.stringify(["agent-hub"])),
+  );
+  await page.goto("/favorites");
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+
+  // The header carries its own "앱 검색" box, so stay inside the catalog toolbar.
+  const toolbar = page.locator("form.toolbar");
+  await toolbar.getByLabel("앱 검색").fill("존재하지않는앱이름");
+  await toolbar.getByRole("button", { name: "검색" }).click();
+
+  // The saved app is still saved; only the search hid it, and the screen says so.
+  await expect(
+    page.getByRole("heading", {
+      name: "검색 조건에 맞는 즐겨찾기 앱이 없습니다",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "즐겨찾기한 앱이 없습니다" }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "검색 조건 지우기" }).click();
+
+  await expect(page.getByRole("heading", { name: "Agent Hub" })).toBeVisible();
+  await expect(toolbar.getByLabel("앱 검색")).toHaveValue("");
+});
+
 test("카탈로그에서 즐겨찾기를 눌러도 목록을 다시 받아 오지 않는다", async ({
   page,
 }) => {
